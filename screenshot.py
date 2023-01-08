@@ -1,14 +1,17 @@
 import pytesseract
-from PIL import ImageGrab, Image, ImageDraw
+from PIL import ImageGrab, Image, ImageDraw, ImageFilter
 import os
+from typing import *
+import cv2
+import numpy as np
 
 def take_screenshot(left, top, width, height) -> Image.Image:
     """
     Takes a screenshot of the given screen coordinates, and returns the PIL.Image.
     """
-    return ImageGrab.grab((left, top, width, height))
+    return ImageGrab.grab((left, top, left + width, top + height))
 
-def process_image(image: Image.Image, relative_box: tuple[int, int, int, int] = None) -> Image.Image:
+def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = None) -> Image.Image:
     """
     Converts the image into a more AI readable format. The endresult can be seen under selection_showcase.png and ai_image_input.png.
     relative_box in this format (relative_left, relative_top, relative_width, relative_height).
@@ -25,21 +28,23 @@ def process_image(image: Image.Image, relative_box: tuple[int, int, int, int] = 
     draw.rectangle(crop_box, outline="black")
     image.save("selection_showcase.png")
 
-    cropped_image = cropped_image.convert("L")
+    img = np.asarray(cropped_image, dtype="uint8")
+    img = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    cropped_image = Image.fromarray(img[1])
     cropped_image.save("ai_image_input.png")
 
     return cropped_image
 
-def read_image_text(image: Image.Image, psm: int = 3, oem: int = 3, user_words: list[str] = None) -> str:
+def read_image_text(image: Image.Image, psm: int = 3, oem: int = 3, user_words: List[str] = None) -> str:
     """
     Feeds the image to tesseract, and returns the text it detected.
     """
     if user_words:
         with open("user_words.txt", "w") as f:
             f.write("\n".join(user_words))
-        config = f"--oem {oem} --psm {psm} --user-words \"{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'user_words.txt')}\""
+        config = f"--oem {oem} --psm {psm} --user-words \"{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'user_words.txt')}\" outputbase digits"
     else:
-        config = f"--oem {oem} --psm {psm}"
+        config = f"--oem {oem} --psm {psm} outputbase digits"
 
     try:
         return pytesseract.image_to_string(image, config=config)
