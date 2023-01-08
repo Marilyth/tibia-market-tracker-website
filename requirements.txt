@@ -1,0 +1,6 @@
+pyautogui
+typer
+pytesseract
+opencv-python
+numpy
+pandas
