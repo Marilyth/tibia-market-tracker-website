@@ -21,7 +21,7 @@ async function fetchTable(column){
     var minBuy = (document.getElementById("name-input") as HTMLInputElement).value;
     var maxBuy = (document.getElementById("name-input") as HTMLInputElement).value;
 
-    var items = await getItems(20, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "name", 1);
+    var items = await getItems(name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "Name", 1);
 
     items.forEach(item => {
         var row = table.insertRow();
@@ -33,7 +33,6 @@ async function fetchTable(column){
 
 /**
  * Fetches the getItems endpoint of the API with the given options.
- * @param {number} limit The maximum amount of items to retrieve.
  * @param {string} name The name which the items must contain.
  * @param {number} minTraded The minimum amount of trades the items have per month.
  * @param {number} maxTraded The maximum amount of trades the items have per month.
@@ -45,9 +44,9 @@ async function fetchTable(column){
  * @param {number} orderDirection The direction, 1 or -1, by which to order the list.
  * @returns The list of items.
  */
-async function getItems(limit, name, minTraded, maxTraded, minSellPrice, maxSellPrice, minBuyPrice, maxBuyPrice, orderBy, orderDirection){
+async function getItems(name, minTraded, maxTraded, minSellPrice, maxSellPrice, minBuyPrice, maxBuyPrice, orderBy, orderDirection){
     // TODO: Fetch items from API.
-    /*var url = `127.0.0.1/getItems?limit=${limit}&name=${name}&minTraded=${minTraded}`+
+    var url = `http://127.0.0.1:5000/get_items?name=${name}&minTraded=${minTraded}`+
             `&maxTraded=${maxTraded}&minSellPrice=${minSellPrice}&maxSellPrice=${maxSellPrice}`+
             `&minBuyPrice=${minBuyPrice}&maxBuyPrice=${maxBuyPrice}&orderBy=${orderBy}&orderDirection=${orderDirection}`
 
@@ -57,10 +56,15 @@ async function getItems(limit, name, minTraded, maxTraded, minSellPrice, maxSell
         }
 
         return response.json();
-    });*/
+    });
 
-    return [new MarketValues(10, 5, 7, 7, 10, 20, "Ham", 0),
-            new MarketValues(12, 2, 10, 3, 100, 120, "Meat", 0)];
+    var itemsList: MarketValues[] = [];
+    items.forEach(item => {
+        itemsList.push(new MarketValues(item.SellPrice, item.BuyPrice, item.AvgSellPrice, item.AvgBuyPrice,
+                                        item.Sold, item.Bought, item.RelProfit, item.PotProfit, item.Name));
+    });
+
+    return itemsList
 }
 
 /**
@@ -114,13 +118,13 @@ class MarketValues{
     sold: number
     bought: number
     name: string
-    time: number
     traded: number
     totalProfit: number
-    relativeProfit: string
+    relativeProfit: number
+    potentialProfit: number
 
     constructor(sellOffer: number, buyOffer: number, monthSellOffer: number, monthBuyOffer: number,
-        sold: number, bought: number, name: string, time: number){
+        sold: number, bought: number, relativeProfit: number, potentialProfit: number, name: string){
         this.sellOffer = sellOffer;
         this.buyOffer = buyOffer;
         this.monthBuyOffer = monthBuyOffer;
@@ -128,11 +132,11 @@ class MarketValues{
         this.sold = sold;
         this.bought = bought;
         this.name = name;
-        this.time = time;
+        this.potentialProfit = potentialProfit;
+        this.relativeProfit = relativeProfit;
 
         this.traded = sold + bought;
         this.totalProfit = sellOffer - buyOffer;
-        this.relativeProfit = `${(sellOffer / buyOffer) * 100}%`;
     }
 
     insertToRow(row: HTMLTableRowElement){
@@ -152,6 +156,9 @@ class MarketValues{
         totalProfit.textContent = this.totalProfit.toString();
 
         var relativeProfit = row.insertCell();
-        relativeProfit.textContent = this.relativeProfit;
+        relativeProfit.textContent = `${this.relativeProfit * 100}%`;
+
+        var potentialProfit = row.insertCell();
+        potentialProfit.textContent = this.potentialProfit.toString();
     }
 }

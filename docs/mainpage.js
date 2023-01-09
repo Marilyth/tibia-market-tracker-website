@@ -60,7 +60,7 @@ function fetchTable(column) {
                     maxSell = document.getElementById("name-input").value;
                     minBuy = document.getElementById("name-input").value;
                     maxBuy = document.getElementById("name-input").value;
-                    return [4 /*yield*/, getItems(20, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "name", 1)];
+                    return [4 /*yield*/, getItems(name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "Name", 1)];
                 case 3:
                     items = _a.sent();
                     items.forEach(function (item) {
@@ -77,7 +77,6 @@ function fetchTable(column) {
 }
 /**
  * Fetches the getItems endpoint of the API with the given options.
- * @param {number} limit The maximum amount of items to retrieve.
  * @param {string} name The name which the items must contain.
  * @param {number} minTraded The minimum amount of trades the items have per month.
  * @param {number} maxTraded The maximum amount of trades the items have per month.
@@ -89,23 +88,29 @@ function fetchTable(column) {
  * @param {number} orderDirection The direction, 1 or -1, by which to order the list.
  * @returns The list of items.
  */
-function getItems(limit, name, minTraded, maxTraded, minSellPrice, maxSellPrice, minBuyPrice, maxBuyPrice, orderBy, orderDirection) {
+function getItems(name, minTraded, maxTraded, minSellPrice, maxSellPrice, minBuyPrice, maxBuyPrice, orderBy, orderDirection) {
     return __awaiter(this, void 0, void 0, function () {
+        var url, items, itemsList;
         return __generator(this, function (_a) {
-            // TODO: Fetch items from API.
-            /*var url = `127.0.0.1/getItems?limit=${limit}&name=${name}&minTraded=${minTraded}`+
-                    `&maxTraded=${maxTraded}&minSellPrice=${minSellPrice}&maxSellPrice=${maxSellPrice}`+
-                    `&minBuyPrice=${minBuyPrice}&maxBuyPrice=${maxBuyPrice}&orderBy=${orderBy}&orderDirection=${orderDirection}`
-        
-            var items = await fetch(url).then(response => {
-                if(response.status != 200){
-                    throw new Error("Fetching items failed!");
-                }
-        
-                return response.json();
-            });*/
-            return [2 /*return*/, [new MarketValues(10, 5, 7, 7, 10, 20, "Ham", 0),
-                    new MarketValues(12, 2, 10, 3, 100, 120, "Meat", 0)]];
+            switch (_a.label) {
+                case 0:
+                    url = "http://127.0.0.1:5000/get_items?name=".concat(name, "&minTraded=").concat(minTraded) +
+                        "&maxTraded=".concat(maxTraded, "&minSellPrice=").concat(minSellPrice, "&maxSellPrice=").concat(maxSellPrice) +
+                        "&minBuyPrice=".concat(minBuyPrice, "&maxBuyPrice=").concat(maxBuyPrice, "&orderBy=").concat(orderBy, "&orderDirection=").concat(orderDirection);
+                    return [4 /*yield*/, fetch(url).then(function (response) {
+                            if (response.status != 200) {
+                                throw new Error("Fetching items failed!");
+                            }
+                            return response.json();
+                        })];
+                case 1:
+                    items = _a.sent();
+                    itemsList = [];
+                    items.forEach(function (item) {
+                        itemsList.push(new MarketValues(item.SellPrice, item.BuyPrice, item.AvgSellPrice, item.AvgBuyPrice, item.Sold, item.Bought, item.RelProfit, item.PotProfit, item.Name));
+                    });
+                    return [2 /*return*/, itemsList];
+            }
         });
     });
 }
@@ -168,7 +173,7 @@ function setLoading(isLoading) {
     });
 }
 var MarketValues = /** @class */ (function () {
-    function MarketValues(sellOffer, buyOffer, monthSellOffer, monthBuyOffer, sold, bought, name, time) {
+    function MarketValues(sellOffer, buyOffer, monthSellOffer, monthBuyOffer, sold, bought, relativeProfit, potentialProfit, name) {
         this.sellOffer = sellOffer;
         this.buyOffer = buyOffer;
         this.monthBuyOffer = monthBuyOffer;
@@ -176,10 +181,10 @@ var MarketValues = /** @class */ (function () {
         this.sold = sold;
         this.bought = bought;
         this.name = name;
-        this.time = time;
+        this.potentialProfit = potentialProfit;
+        this.relativeProfit = relativeProfit;
         this.traded = sold + bought;
         this.totalProfit = sellOffer - buyOffer;
-        this.relativeProfit = "".concat((sellOffer / buyOffer) * 100, "%");
     }
     MarketValues.prototype.insertToRow = function (row) {
         var name = row.insertCell();
@@ -193,7 +198,9 @@ var MarketValues = /** @class */ (function () {
         var totalProfit = row.insertCell();
         totalProfit.textContent = this.totalProfit.toString();
         var relativeProfit = row.insertCell();
-        relativeProfit.textContent = this.relativeProfit;
+        relativeProfit.textContent = "".concat(this.relativeProfit * 100, "%");
+        var potentialProfit = row.insertCell();
+        potentialProfit.textContent = this.potentialProfit.toString();
     };
     return MarketValues;
 }());

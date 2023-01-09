@@ -11,7 +11,7 @@ def take_screenshot(left, top, width, height) -> Image.Image:
     """
     return ImageGrab.grab((left, top, left + width, top + height))
 
-def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = None) -> Image.Image:
+def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = None, invert = True) -> Image.Image:
     """
     Converts the image into a more AI readable format. The endresult can be seen under selection_showcase.png and ai_image_input.png.
     relative_box in this format (relative_left, relative_top, relative_width, relative_height).
@@ -29,7 +29,12 @@ def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = 
     image.save("selection_showcase.png")
 
     img = np.asarray(cropped_image, dtype="uint8")
-    img = cv2.threshold(img, 128, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    img = cv2.threshold(img, 128, 255, (cv2.THRESH_BINARY_INV if invert else cv2.THRESH_BINARY) | cv2.THRESH_OTSU)
+    
+    # Force black text on white background.
+    if img[1][0][0] == 0:
+        img = cv2.threshold(img[1], 128, 255, cv2.THRESH_BINARY_INV)
+
     cropped_image = Image.fromarray(img[1])
     cropped_image.save("ai_image_input.png")
 

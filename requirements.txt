@@ -4,3 +4,4 @@ pytesseract
 opencv-python
 numpy
 pandas
+flask-cors
