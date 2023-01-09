@@ -43,14 +43,15 @@ function fetchTable(column) {
         var table, i, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, items;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0:
-                    setLoading(true);
+                case 0: return [4 /*yield*/, setLoading(true)];
+                case 1:
+                    _a.sent();
                     table = document.getElementById("item-table");
                     for (i = table.rows.length; i > 1; i--) {
                         table.deleteRow(i - 1);
                     }
                     return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 1000); })];
-                case 1:
+                case 2:
                     _a.sent();
                     name = document.getElementById("name-input").value;
                     minTraded = document.getElementById("name-input").value;
@@ -60,13 +61,15 @@ function fetchTable(column) {
                     minBuy = document.getElementById("name-input").value;
                     maxBuy = document.getElementById("name-input").value;
                     return [4 /*yield*/, getItems(20, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "name", 1)];
-                case 2:
+                case 3:
                     items = _a.sent();
                     items.forEach(function (item) {
                         var row = table.insertRow();
                         item.insertToRow(row);
                     });
-                    setLoading(false);
+                    return [4 /*yield*/, setLoading(false)];
+                case 4:
+                    _a.sent();
                     return [2 /*return*/];
             }
         });
@@ -136,16 +139,33 @@ function getItemDetails(name) {
  * @param isLoading
  */
 function setLoading(isLoading) {
-    var button = document.getElementById("search-button");
-    var loadingRing = document.getElementById("loading-ring");
-    if (isLoading) {
-        button.disabled = true;
-        loadingRing.style.display = "inline-block";
-    }
-    else {
-        button.disabled = false;
-        loadingRing.style.display = "none";
-    }
+    return __awaiter(this, void 0, void 0, function () {
+        var button, table, loadingRing;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    button = document.getElementById("search-button");
+                    table = document.getElementById("item-table");
+                    loadingRing = document.getElementById("loading-ring");
+                    if (isLoading) {
+                        button.disabled = true;
+                        table.style.opacity = "0";
+                        loadingRing.style.opacity = "1";
+                    }
+                    else {
+                        button.disabled = false;
+                        table.style.opacity = "1";
+                        loadingRing.style.opacity = "0";
+                    }
+                    // Wait for transitions to finish.
+                    return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 150); })];
+                case 1:
+                    // Wait for transitions to finish.
+                    _a.sent();
+                    return [2 /*return*/];
+            }
+        });
+    });
 }
 var MarketValues = /** @class */ (function () {
     function MarketValues(sellOffer, buyOffer, monthSellOffer, monthBuyOffer, sold, bought, name, time) {

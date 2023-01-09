@@ -3,15 +3,16 @@
  * @param {string} column The name of the column to be sorted.
  */
 async function fetchTable(column){
-    setLoading(true);
+    await setLoading(true);
 
     var table = document.getElementById("item-table") as HTMLTableElement;
 
     for(var i = table.rows.length; i > 1; i--){
         table.deleteRow(i - 1);
     }
-    
+
     await new Promise(resolve => setTimeout(resolve, 1000));
+    
     var name = (document.getElementById("name-input") as HTMLInputElement).value;
     var minTraded = (document.getElementById("name-input") as HTMLInputElement).value;
     var maxTraded = (document.getElementById("name-input") as HTMLInputElement).value;
@@ -27,7 +28,7 @@ async function fetchTable(column){
         item.insertToRow(row);
     });
 
-    setLoading(false);
+    await setLoading(false);
 }
 
 /**
@@ -86,17 +87,23 @@ async function getItemDetails(name){
  * Sets the page to appear loading, or reverts it.
  * @param isLoading 
  */
-function setLoading(isLoading){
+async function setLoading(isLoading){
     var button = document.getElementById("search-button") as HTMLButtonElement;
+    var table = document.getElementById("item-table") as HTMLTableElement;
     var loadingRing = document.getElementById("loading-ring");
 
     if (isLoading){
         button.disabled = true;
-        loadingRing.style.display = "inline-block";
+        table.style.opacity = "0";
+        loadingRing.style.opacity = "1";
     } else {
         button.disabled = false;
-        loadingRing.style.display = "none";
+        table.style.opacity = "1";
+        loadingRing.style.opacity = "0";
     }
+
+    // Wait for transitions to finish.
+    await new Promise(resolve => setTimeout(resolve, 150));
 }
 
 class MarketValues{

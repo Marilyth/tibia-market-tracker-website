@@ -6,6 +6,7 @@
 
         <div id="mySidenav" class="sidenav">
             <div class="title">
+                <img src="https://static.wikia.nocookie.net/tibia/images/1/1a/Tibia_Coins.gif/revision/latest?path-prefix=en&amp;format=original" alt="Tibia_Coins.gif">
                 <h2>Market Tracker</h2> 
             </div>
             <input id="name-input" placeholder="Item name"> <br><br>
@@ -20,6 +21,7 @@
           </div>
           
           <div class="main">
+            <div id="loading-ring" class="lds-roller" style="padding-bottom: 20px; opacity: 0;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
             <table id="item-table" class="styled-table">
                 <tr>
                     <th onclick="fetchTable('name');">Name</th>
@@ -30,8 +32,6 @@
                     <th onclick="">Relative flip profit</th>
                 </tr>
             </table>
-
-            <div id="loading-ring" class="lds-roller" style="padding-top: 60px; display: none;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
           </div>
          
         <script src="mainpage.js"></script>

@@ -1,45 +1,48 @@
 body, html {
-        height: 100%;
-        margin: 0;
-        font-family: sans-serif;
-        text-align: center;
-        background-color: rgb(155, 155, 155);
-      }
+  height: 100%;
+  margin: 0;
+  font-family: sans-serif;
+  text-align: center;
+  background-color: rgb(155, 155, 155);
+}
       
-      .styled-table {
-        vertical-align: top;
-        background-color: rgba(255, 255, 255, 0.6);
-        border-radius: 15px;
-        border-collapse: collapse;
-        margin: auto;
-        font-size: 0.9em;
-        font-family: sans-serif;
-        min-width: 400px;
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-    }
+.styled-table {
+  overflow: hidden;
+  vertical-align: top;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 15px;
+  border-collapse: collapse;
+  margin: auto;
+  font-size: 0.9em;
+  font-family: sans-serif;
+  min-width: 400px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s linear;
+}
 
-    .styled-table thead tr {
-      color: #ffffff;
-      text-align: left;
-  }
+.styled-table thead tr {
+  color: #ffffff;
+  text-align: left;
+}
 
-  .styled-table th,
+.styled-table th,
 .styled-table td {
     padding: 12px 15px;
 }
 
 .styled-table tr {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.15s linear;
 }
 
 .styled-table tr:hover{
-  background-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
-/* The side navigation menu */
+/* The main display */
 .main {
   height: 100%; /* 100% Full-height */
-  width: 80%; /* 0 width - change this with JavaScript */
+  width: 80%;
   position: fixed; /* Stay in place */
   z-index: 1; /* Stay on top */
   top: 0; /* Stay at the top */
@@ -48,20 +51,25 @@ body, html {
   padding-top: 60px; /* Place content 60px from the top */
 }
 
+.item-details{
+  background-color: rgba(255, 255, 255, 0.6); 
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+}
+
 /* The side navigation menu */
 .sidenav {
   height: 100%; /* 100% Full-height */
-  width: 20%; /* 0 width - change this with JavaScript */
+  width: 20%;
   position: fixed; /* Stay in place */
   z-index: 1; /* Stay on top */
   top: 0; /* Stay at the top */
   left: 0;
-  background-color: rgba(255, 255, 255, 0.6); /* Black*/
+  background-color: rgba(255, 255, 255, 0.6);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   overflow-x: hidden; /* Disable horizontal scroll */
 }
 
-/* The navigation menu links */
+/* The filter inputs */
 .sidenav input {
   padding-top: 60px;
   margin: auto;
@@ -92,17 +100,11 @@ body, html {
   margin: 0px;
 }
 
-/* When you mouse over the navigation links, change their color */
-.sidenav input:hover {
-  background-color: rgba(255, 255, 255, 0.25);
-}
-
-/* The navigation menu links */
+/* The navigation menu buttons */
 .sidenav button {
   margin: auto;
   outline: none;
   margin-top: 8px;
-  text-decoration: none;
   font-size: 18px;
   color: rgba(0, 0, 0, 0.5);
   display: block;
@@ -113,7 +115,7 @@ body, html {
   padding: 8px 8px 8px 8px;
 }
 
-/* When you mouse over the navigation links, change their color */
+/* When you mouse over the buttons, change their color */
 .sidenav button:hover {
   background-color: rgba(255, 255, 255, 0.5);
 }
