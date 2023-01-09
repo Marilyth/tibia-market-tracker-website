@@ -1,0 +1,206 @@
+body, html {
+        height: 100%;
+        margin: 0;
+        font-family: sans-serif;
+        text-align: center;
+        background-color: rgb(155, 155, 155);
+      }
+      
+      .styled-table {
+        vertical-align: top;
+        background-color: rgba(255, 255, 255, 0.6);
+        border-radius: 15px;
+        border-collapse: collapse;
+        margin: auto;
+        font-size: 0.9em;
+        font-family: sans-serif;
+        min-width: 400px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .styled-table thead tr {
+      color: #ffffff;
+      text-align: left;
+  }
+
+  .styled-table th,
+.styled-table td {
+    padding: 12px 15px;
+}
+
+.styled-table tr {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.styled-table tr:hover{
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* The side navigation menu */
+.main {
+  height: 100%; /* 100% Full-height */
+  width: 80%; /* 0 width - change this with JavaScript */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Stay on top */
+  top: 0; /* Stay at the top */
+  left: 20%;
+  overflow-x: hidden; /* Disable horizontal scroll */
+  padding-top: 60px; /* Place content 60px from the top */
+}
+
+/* The side navigation menu */
+.sidenav {
+  height: 100%; /* 100% Full-height */
+  width: 20%; /* 0 width - change this with JavaScript */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Stay on top */
+  top: 0; /* Stay at the top */
+  left: 0;
+  background-color: rgba(255, 255, 255, 0.6); /* Black*/
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+  overflow-x: hidden; /* Disable horizontal scroll */
+}
+
+/* The navigation menu links */
+.sidenav input {
+  padding-top: 60px;
+  margin: auto;
+  margin-top: 8px;
+  padding: 8px 8px 8px 8px;
+  text-decoration: none;
+  font-size: 18px;
+  color: #818181;
+  display: block;
+  transition: 0.3s;
+  background-color: rgba(0, 0, 0, 0);
+  border: 0px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  outline: none;
+}
+
+.title {
+  background-color: rgba(0, 0, 0, 0.15);
+  padding-top: 20px;
+  padding-bottom: 20px;
+  margin: 0px;
+}
+
+.title h2 {
+  color: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  margin: 0px;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidenav input:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+}
+
+/* The navigation menu links */
+.sidenav button {
+  margin: auto;
+  outline: none;
+  margin-top: 8px;
+  text-decoration: none;
+  font-size: 18px;
+  color: rgba(0, 0, 0, 0.5);
+  display: block;
+  transition: 0.3s;
+  background-color: rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
+  padding: 8px 8px 8px 8px;
+}
+
+/* When you mouse over the navigation links, change their color */
+.sidenav button:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.lds-roller {
+  transition: 0.3s;
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+.lds-roller div {
+  animation: lds-roller 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  transform-origin: 40px 40px;
+}
+.lds-roller div:after {
+  content: " ";
+  display: block;
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fff;
+  margin: -4px 0 0 -4px;
+}
+.lds-roller div:nth-child(1) {
+  animation-delay: -0.036s;
+}
+.lds-roller div:nth-child(1):after {
+  top: 63px;
+  left: 63px;
+}
+.lds-roller div:nth-child(2) {
+  animation-delay: -0.072s;
+}
+.lds-roller div:nth-child(2):after {
+  top: 68px;
+  left: 56px;
+}
+.lds-roller div:nth-child(3) {
+  animation-delay: -0.108s;
+}
+.lds-roller div:nth-child(3):after {
+  top: 71px;
+  left: 48px;
+}
+.lds-roller div:nth-child(4) {
+  animation-delay: -0.144s;
+}
+.lds-roller div:nth-child(4):after {
+  top: 72px;
+  left: 40px;
+}
+.lds-roller div:nth-child(5) {
+  animation-delay: -0.18s;
+}
+.lds-roller div:nth-child(5):after {
+  top: 71px;
+  left: 32px;
+}
+.lds-roller div:nth-child(6) {
+  animation-delay: -0.216s;
+}
+.lds-roller div:nth-child(6):after {
+  top: 68px;
+  left: 24px;
+}
+.lds-roller div:nth-child(7) {
+  animation-delay: -0.252s;
+}
+.lds-roller div:nth-child(7):after {
+  top: 63px;
+  left: 17px;
+}
+.lds-roller div:nth-child(8) {
+  animation-delay: -0.288s;
+}
+.lds-roller div:nth-child(8):after {
+  top: 56px;
+  left: 12px;
+}
+@keyframes lds-roller {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+

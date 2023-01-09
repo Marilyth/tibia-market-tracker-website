@@ -40,11 +40,18 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
  */
 function fetchTable(column) {
     return __awaiter(this, void 0, void 0, function () {
-        var table, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, items, i;
+        var table, i, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, items;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    setLoading(true);
                     table = document.getElementById("item-table");
+                    for (i = table.rows.length; i > 1; i--) {
+                        table.deleteRow(i - 1);
+                    }
+                    return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 1000); })];
+                case 1:
+                    _a.sent();
                     name = document.getElementById("name-input").value;
                     minTraded = document.getElementById("name-input").value;
                     maxTraded = document.getElementById("name-input").value;
@@ -53,15 +60,13 @@ function fetchTable(column) {
                     minBuy = document.getElementById("name-input").value;
                     maxBuy = document.getElementById("name-input").value;
                     return [4 /*yield*/, getItems(20, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "name", 1)];
-                case 1:
+                case 2:
                     items = _a.sent();
-                    for (i = table.rows.length; i > 1; i--) {
-                        table.deleteRow(i - 1);
-                    }
                     items.forEach(function (item) {
                         var row = table.insertRow();
                         item.insertToRow(row);
                     });
+                    setLoading(false);
                     return [2 /*return*/];
             }
         });
@@ -126,6 +131,22 @@ function getItemDetails(name) {
         });
     });
 }
+/**
+ * Sets the page to appear loading, or reverts it.
+ * @param isLoading
+ */
+function setLoading(isLoading) {
+    var button = document.getElementById("search-button");
+    var loadingRing = document.getElementById("loading-ring");
+    if (isLoading) {
+        button.disabled = true;
+        loadingRing.style.display = "inline-block";
+    }
+    else {
+        button.disabled = false;
+        loadingRing.style.display = "none";
+    }
+}
 var MarketValues = /** @class */ (function () {
     function MarketValues(sellOffer, buyOffer, monthSellOffer, monthBuyOffer, sold, bought, name, time) {
         this.sellOffer = sellOffer;
@@ -156,5 +177,4 @@ var MarketValues = /** @class */ (function () {
     };
     return MarketValues;
 }());
-fetchTable("");
 //# sourceMappingURL=mainpage.js.map

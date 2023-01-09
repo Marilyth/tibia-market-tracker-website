@@ -1,20 +1,39 @@
-<h3>Filters</h3>
-<input id="name-input" placeholder="Item name"> <br>
-<input id="min-traded-input" placeholder="Minimum amount traded" type="number" min="0"> - 
-<input id="max-traded-input" placeholder="Maximum amount traded" type="number" min="0"> <br>
-<input id="min-sell-input" placeholder="Minimum sell price" type="number" min="0"> - 
-<input id="max-sell-input" placeholder="Maximum sell price" type="number" min="0"> <br>
-<input id="min-buy-input" placeholder="Minimum buy price" type="number" min="0"> - 
-<input id="max-buy-input" placeholder="Maximum buy price" type="number" min="0"> <br>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="style/main.css" media="screen" />
+    </head>
+    <body>
 
-<table id="item-table">
-    <tr>
-        <th onclick="">Name</th>
-        <th onclick="">Sold for</th>
-        <th onclick="">Bought for</th>
-        <th onclick="">Amount per month</th>
-        <th onclick="">Total flip profit</th>
-        <th onclick="">Relative flip profit</th>
-    </tr>
-</table>
-<script src="mainpage.js">fetchTable("");</script>
+        <div id="mySidenav" class="sidenav">
+            <div class="title">
+                <h2>Market Tracker</h2> 
+            </div>
+            <input id="name-input" placeholder="Item name"> <br><br>
+            <input id="min-traded-input" placeholder="Minimum amount traded" type="number" min="0">
+            <input id="max-traded-input" placeholder="Maximum amount traded" type="number" min="0"> <br><br>
+            <input id="min-sell-input" placeholder="Minimum sell price" type="number" min="0">
+            <input id="max-sell-input" placeholder="Maximum sell price" type="number" min="0"> <br><br>
+            <input id="min-buy-input" placeholder="Minimum buy price" type="number" min="0">
+            <input id="max-buy-input" placeholder="Maximum buy price" type="number" min="0"> <br><br>
+
+            <button id="search-button" onclick="fetchTable('name');">Search</button>
+          </div>
+          
+          <div class="main">
+            <table id="item-table" class="styled-table">
+                <tr>
+                    <th onclick="fetchTable('name');">Name</th>
+                    <th onclick="">Sold for</th>
+                    <th onclick="">Bought for</th>
+                    <th onclick="">Amount per month</th>
+                    <th onclick="">Total flip profit</th>
+                    <th onclick="">Relative flip profit</th>
+                </tr>
+            </table>
+
+            <div id="loading-ring" class="lds-roller" style="padding-top: 60px; display: none;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+          </div>
+         
+        <script src="mainpage.js"></script>
+    </body>
+</html>

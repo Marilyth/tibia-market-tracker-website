@@ -3,7 +3,15 @@
  * @param {string} column The name of the column to be sorted.
  */
 async function fetchTable(column){
+    setLoading(true);
+
     var table = document.getElementById("item-table") as HTMLTableElement;
+
+    for(var i = table.rows.length; i > 1; i--){
+        table.deleteRow(i - 1);
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 1000));
     var name = (document.getElementById("name-input") as HTMLInputElement).value;
     var minTraded = (document.getElementById("name-input") as HTMLInputElement).value;
     var maxTraded = (document.getElementById("name-input") as HTMLInputElement).value;
@@ -13,14 +21,13 @@ async function fetchTable(column){
     var maxBuy = (document.getElementById("name-input") as HTMLInputElement).value;
 
     var items = await getItems(20, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "name", 1);
-    for(var i = table.rows.length; i > 1; i--){
-        table.deleteRow(i - 1);
-    }
 
     items.forEach(item => {
         var row = table.insertRow();
         item.insertToRow(row);
     });
+
+    setLoading(false);
 }
 
 /**
@@ -75,6 +82,23 @@ async function getItemDetails(name){
     return items;
 }
 
+/**
+ * Sets the page to appear loading, or reverts it.
+ * @param isLoading 
+ */
+function setLoading(isLoading){
+    var button = document.getElementById("search-button") as HTMLButtonElement;
+    var loadingRing = document.getElementById("loading-ring");
+
+    if (isLoading){
+        button.disabled = true;
+        loadingRing.style.display = "inline-block";
+    } else {
+        button.disabled = false;
+        loadingRing.style.display = "none";
+    }
+}
+
 class MarketValues{
     sellOffer: number
     buyOffer: number
@@ -124,5 +148,3 @@ class MarketValues{
         relativeProfit.textContent = this.relativeProfit;
     }
 }
-
-fetchTable("");
