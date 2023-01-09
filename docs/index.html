@@ -1,1 +1,20 @@
-Hello World
+<h3>Filters</h3>
+<input id="name-input" placeholder="Item name"> <br>
+<input id="min-traded-input" placeholder="Minimum amount traded" type="number" min="0"> - 
+<input id="max-traded-input" placeholder="Maximum amount traded" type="number" min="0"> <br>
+<input id="min-sell-input" placeholder="Minimum sell price" type="number" min="0"> - 
+<input id="max-sell-input" placeholder="Maximum sell price" type="number" min="0"> <br>
+<input id="min-buy-input" placeholder="Minimum buy price" type="number" min="0"> - 
+<input id="max-buy-input" placeholder="Maximum buy price" type="number" min="0"> <br>
+
+<table id="item-table">
+    <tr>
+        <th onclick="">Name</th>
+        <th onclick="">Sold for</th>
+        <th onclick="">Bought for</th>
+        <th onclick="">Amount per month</th>
+        <th onclick="">Total flip profit</th>
+        <th onclick="">Relative flip profit</th>
+    </tr>
+</table>
+<script src="mainpage.js">fetchTable("");</script>
