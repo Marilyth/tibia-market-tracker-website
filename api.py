@@ -1,13 +1,9 @@
-from crypt import methods
-from flask import Flask, request, send_from_directory, json, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS, cross_origin
 from threading import Thread, Lock
 
-from numpy import append
-from py import process
 from datetime import datetime
 import os
-import json
 import pandas
 
 api = Flask(__name__)
