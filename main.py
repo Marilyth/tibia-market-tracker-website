@@ -14,6 +14,8 @@ def do_market_search(email: str, password: str, tibia_location: str):
     client = Client()
     client.start_game(tibia_location)
     client.login_to_game(email, password)
+
+    afk_time = time.time()
     client.open_market()
     
     with open("tracked_items.txt", "r") as t:
@@ -21,12 +23,14 @@ def do_market_search(email: str, password: str, tibia_location: str):
             f.write("Name,SellPrice,BuyPrice,AvgSellPrice,AvgBuyPrice,Sold,Bought,Profit,RelProfit,PotProfit\n")
             for i, item in enumerate(t.readlines()):
 
-                # Restart Tibia every 400 items to avoid afk kick.
-                if (i + 1) % 400 == 0:
+                # Restart Tibia every 13 minutes to avoid afk kick.
+                if time.time() - afk_time > 800:
                     client.exit_tibia()
                     time.sleep(2)
                     client.start_game(tibia_location)
                     client.login_to_game(email, password)
+                    
+                    afk_time = time.time()
                     client.open_market()
 
                 values = client.search_item(item.replace("\n", ""))
