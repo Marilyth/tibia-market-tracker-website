@@ -15,7 +15,7 @@ class MarketValues:
         self.sold: int = sold
         self.bought: int = bought
         self.profit: int = self.sell_offer - self.buy_offer
-        self.rel_profit: float = round(self.profit / self.buy_offer, 2)
+        self.rel_profit: float = round(self.profit / self.buy_offer, 2) if self.buy_offer > 0 else 0
         self.potential_profit: int = self.profit * min(sold, bought)
         self.name = name
 
@@ -65,17 +65,17 @@ class Client:
         """
         Checks if the update button exists, and if so, updates and starts Tibia.
         """
-        self._wait_until_find("images/Update.png", click=True, timeout=10)
+        self._wait_until_find("images/Update.png", click=True, timeout=10, cache=False)
 
         # Wait until update is done, and click play button.
-        self._wait_until_find("images/PlayButton.png", click=True)
+        self._wait_until_find("images/PlayButton.png", click=True, cache=False)
         time.sleep(5)
 
     def login_to_game(self, email: str, password: str):
         """
         Logs into the provided account, and selects the provided character.
         """
-        password_position = self._wait_until_find("images/PasswordField.png", click=True)
+        password_position = self._wait_until_find("images/PasswordField.png", click=True, cache=False)
 
         pyautogui.leftClick(password_position)
         pyautogui.typewrite(password)
@@ -91,11 +91,11 @@ class Client:
         pyautogui.press("enter")
 
         # Go ingame.
-        character_position = self._wait_until_find("images/BotCharacter.png")
+        character_position = self._wait_until_find("images/BotCharacter.png", cache=False)
         pyautogui.doubleClick(character_position)
         
         # Wait until ingame.
-        self._wait_until_find("images/Ingame.png")
+        self._wait_until_find("images/Ingame.png", cache=False)
         print("Ingame.")
 
     def exit_tibia(self):
@@ -110,7 +110,7 @@ class Client:
         Searches for an empty depot, and opens the market on it.
         """
         def try_open_market() -> bool:
-            x, y = self._wait_until_find("images/SuccessDepotTile.png", timeout=5)
+            x, y = self._wait_until_find("images/SuccessDepotTile.png", timeout=5, cache=False)
             if x >= 0:
                 pyautogui.leftClick(636, 375)
                 self._wait_until_find("images/Market.png", click=True)
@@ -185,9 +185,10 @@ class Client:
         start_time = time.time()
 
         while time.time() - start_time < timeout:
-            if image in self.position_cache:
+            if cache and image in self.position_cache:
                 position = self.position_cache[image]
             else:
+                pyautogui.moveTo(1, 1)
                 position = pyautogui.locateCenterOnScreen(image)
                 if position:
                     self.position_cache[image] = position
