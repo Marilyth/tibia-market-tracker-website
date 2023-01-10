@@ -3,6 +3,7 @@ import subprocess
 import time
 from typing import *
 import screenshot
+import requests
 
 
 class MarketValues:
@@ -21,6 +22,28 @@ class MarketValues:
     def __str__(self) -> str:
         return f"{self.name.lower()},{self.sell_offer},{self.buy_offer},{self.month_sell_offer},{self.month_buy_offer},{self.sold},{self.bought},{self.profit},{self.rel_profit},{self.potential_profit}"
 
+
+class Wiki:
+    def __init__(self):
+        pass
+
+    def get_all_marketable_items(self) -> List[str]:
+        """
+        Fetches all marketable item names from the tibia fandom wiki.
+        """
+        items = []
+        url = "https://tibia.fandom.com/api.php?action=query&list=categorymembers&cmtitle=Category%3AMarketable+Items&format=json&cmprop=title&cmlimit=500"
+        cmcontinue = ""
+        while True:
+            response = requests.get(url + (f"&{cmcontinue=}" if cmcontinue else "")).json()
+            items.extend([member["title"] for member in response["query"]["categorymembers"]])
+
+            if "continue" in response:
+                cmcontinue = response["continue"]["cmcontinue"]
+            else:
+                break
+
+        return items
 
 class Client:
     def __init__(self):
@@ -42,9 +65,7 @@ class Client:
         """
         Checks if the update button exists, and if so, updates and starts Tibia.
         """
-        update_position = pyautogui.locateCenterOnScreen("images/Update.png")
-        if update_position:
-            pyautogui.leftClick(update_position)
+        self._wait_until_find("images/Update.png", click=True, timeout=10)
 
         # Wait until update is done, and click play button.
         self._wait_until_find("images/PlayButton.png", click=True)
@@ -161,7 +182,9 @@ class Client:
             return MarketValues(name, time.time(), -1, -1, -1, -1, -1, -1, -1, -1)
 
     def _wait_until_find(self, image: str, timeout: int = 1000, click: bool = False, cache: bool = True) -> Tuple[int, int]:
-        while timeout > 0:
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
             if image in self.position_cache:
                 position = self.position_cache[image]
             else:
@@ -175,7 +198,6 @@ class Client:
                     
                 return position
 
-            timeout -= 1
             time.sleep(0.2)
         
         return (-1, -1)
