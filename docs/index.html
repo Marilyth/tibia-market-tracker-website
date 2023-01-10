@@ -17,20 +17,35 @@
             <input id="min-buy-input" placeholder="Minimum buy price" type="number" min="0">
             <input id="max-buy-input" placeholder="Maximum buy price" type="number" min="0"> <br><br>
 
-            <button id="search-button" onclick="fetchTable('name');">Search</button>
+            <select id="order-by">
+                <option value="Name" selected disabled>Order by</option>
+                <option value="Name">Name</option>
+                <option value="SellPrice">Sell Price</option>
+                <option value="BuyPrice">Buy Price</option>
+                <option value="Profit">Profit</option>
+                <option value="RelProfit">Relative Profit</option>
+                <option value="PotProfit">Potential monthly Profit</option>
+            </select>
+            <select id="order-dir">
+                <option value="1">Ascending</option>
+                <option value="-1">Descending</option>
+            </select><br><br>
+
+            <button id="search-button" onclick="fetchTable();">Search</button>
           </div>
           
           <div class="main">
-            <div id="loading-ring" class="lds-roller" style="padding-bottom: 20px; opacity: 0;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+            <div class="error" style="display: none;" id="error-message"></div>
+            <div id="loading-ring" class="lds-roller" style="padding-bottom: 1vw; opacity: 0;"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
             <table id="item-table" class="styled-table">
                 <tr>
-                    <th onclick="fetchTable('name');">Name</th>
-                    <th onclick="">Sold for</th>
-                    <th onclick="">Bought for</th>
-                    <th onclick="">Amount per month</th>
-                    <th onclick="">Profit</th>
-                    <th onclick="">Relative profit</th>
-                    <th onclick="">Potential monthly profit</th>
+                    <th>Name</th>
+                    <th>Sold for</th>
+                    <th>Bought for</th>
+                    <th>Amount per month</th>
+                    <th>Profit</th>
+                    <th>Relative profit</th>
+                    <th>Potential monthly profit</th>
                 </tr>
             </table>
           </div>

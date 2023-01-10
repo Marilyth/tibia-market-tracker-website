@@ -36,16 +36,16 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 /**
  * Fetches the list data from the API, according to the inputs, and fills the table with it.
- * @param {string} column The name of the column to be sorted.
  */
-function fetchTable(column) {
+function fetchTable() {
     return __awaiter(this, void 0, void 0, function () {
-        var table, i, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, items;
+        var table, i, name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, orderBy, orderDir, items;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, setLoading(true)];
                 case 1:
                     _a.sent();
+                    hideError();
                     table = document.getElementById("item-table");
                     for (i = table.rows.length; i > 1; i--) {
                         table.deleteRow(i - 1);
@@ -60,7 +60,9 @@ function fetchTable(column) {
                     maxSell = document.getElementById("name-input").value;
                     minBuy = document.getElementById("name-input").value;
                     maxBuy = document.getElementById("name-input").value;
-                    return [4 /*yield*/, getItems(name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "Name", 1)];
+                    orderBy = document.getElementById("order-by").value;
+                    orderDir = +document.getElementById("order-dir").value;
+                    return [4 /*yield*/, getItems(name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, orderBy, orderDir)];
                 case 3:
                     items = _a.sent();
                     items.forEach(function (item) {
@@ -90,26 +92,37 @@ function fetchTable(column) {
  */
 function getItems(name, minTraded, maxTraded, minSellPrice, maxSellPrice, minBuyPrice, maxBuyPrice, orderBy, orderDirection) {
     return __awaiter(this, void 0, void 0, function () {
-        var url, items, itemsList;
+        var url, items, itemsList, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     url = "http://127.0.0.1:5000/get_items?name=".concat(name, "&minTraded=").concat(minTraded) +
                         "&maxTraded=".concat(maxTraded, "&minSellPrice=").concat(minSellPrice, "&maxSellPrice=").concat(maxSellPrice) +
                         "&minBuyPrice=".concat(minBuyPrice, "&maxBuyPrice=").concat(maxBuyPrice, "&orderBy=").concat(orderBy, "&orderDirection=").concat(orderDirection);
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 3, , 4]);
                     return [4 /*yield*/, fetch(url).then(function (response) {
                             if (response.status != 200) {
+                                setLoading(false);
+                                showError(response.statusText);
                                 throw new Error("Fetching items failed!");
                             }
                             return response.json();
                         })];
-                case 1:
+                case 2:
                     items = _a.sent();
                     itemsList = [];
                     items.forEach(function (item) {
                         itemsList.push(new MarketValues(item.SellPrice, item.BuyPrice, item.AvgSellPrice, item.AvgBuyPrice, item.Sold, item.Bought, item.RelProfit, item.PotProfit, item.Name));
                     });
                     return [2 /*return*/, itemsList];
+                case 3:
+                    error_1 = _a.sent();
+                    setLoading(false);
+                    showError(error_1.toString());
+                    return [3 /*break*/, 4];
+                case 4: return [2 /*return*/];
             }
         });
     });
@@ -171,6 +184,16 @@ function setLoading(isLoading) {
             }
         });
     });
+}
+function showError(message) {
+    var div = document.getElementById("error-message");
+    div.innerText = message;
+    div.style.display = "block";
+}
+function hideError() {
+    var div = document.getElementById("error-message");
+    div.innerText = "";
+    div.style.display = "none";
 }
 var MarketValues = /** @class */ (function () {
     function MarketValues(sellOffer, buyOffer, monthSellOffer, monthBuyOffer, sold, bought, relativeProfit, potentialProfit, name) {

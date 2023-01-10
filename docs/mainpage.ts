@@ -1,9 +1,9 @@
 /**
  * Fetches the list data from the API, according to the inputs, and fills the table with it.
- * @param {string} column The name of the column to be sorted.
  */
-async function fetchTable(column){
+async function fetchTable(){
     await setLoading(true);
+    hideError();
 
     var table = document.getElementById("item-table") as HTMLTableElement;
 
@@ -20,8 +20,10 @@ async function fetchTable(column){
     var maxSell = (document.getElementById("name-input") as HTMLInputElement).value;
     var minBuy = (document.getElementById("name-input") as HTMLInputElement).value;
     var maxBuy = (document.getElementById("name-input") as HTMLInputElement).value;
+    var orderBy = (document.getElementById("order-by") as HTMLSelectElement).value;
+    var orderDir = +(document.getElementById("order-dir") as HTMLSelectElement).value;
 
-    var items = await getItems(name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, "Name", 1);
+    var items = await getItems(name, minTraded, maxTraded, minSell, maxSell, minBuy, maxBuy, orderBy, orderDir);
 
     items.forEach(item => {
         var row = table.insertRow();
@@ -50,21 +52,28 @@ async function getItems(name, minTraded, maxTraded, minSellPrice, maxSellPrice, 
             `&maxTraded=${maxTraded}&minSellPrice=${minSellPrice}&maxSellPrice=${maxSellPrice}`+
             `&minBuyPrice=${minBuyPrice}&maxBuyPrice=${maxBuyPrice}&orderBy=${orderBy}&orderDirection=${orderDirection}`
 
-    var items = await fetch(url).then(response => {
-        if(response.status != 200){
-            throw new Error("Fetching items failed!");
-        }
+    try {
+        var items = await fetch(url).then(response => {
+            if(response.status != 200){
+                setLoading(false);
+                showError(response.statusText);
+                throw new Error("Fetching items failed!");
+            }
+    
+            return response.json();
+        });
 
-        return response.json();
-    });
+        var itemsList: MarketValues[] = [];
+        items.forEach(item => {
+            itemsList.push(new MarketValues(item.SellPrice, item.BuyPrice, item.AvgSellPrice, item.AvgBuyPrice,
+                                            item.Sold, item.Bought, item.RelProfit, item.PotProfit, item.Name));
+        });
 
-    var itemsList: MarketValues[] = [];
-    items.forEach(item => {
-        itemsList.push(new MarketValues(item.SellPrice, item.BuyPrice, item.AvgSellPrice, item.AvgBuyPrice,
-                                        item.Sold, item.Bought, item.RelProfit, item.PotProfit, item.Name));
-    });
-
-    return itemsList
+        return itemsList
+    } catch (error) {
+        setLoading(false);
+        showError(error.toString());
+    }
 }
 
 /**
@@ -108,6 +117,18 @@ async function setLoading(isLoading){
 
     // Wait for transitions to finish.
     await new Promise(resolve => setTimeout(resolve, 150));
+}
+
+function showError(message: string){
+    var div = document.getElementById("error-message") as HTMLDivElement;
+    div.innerText = message;
+    div.style.display = "block";
+}
+
+function hideError(){
+    var div = document.getElementById("error-message") as HTMLDivElement;
+    div.innerText = "";
+    div.style.display = "none";
 }
 
 class MarketValues{
