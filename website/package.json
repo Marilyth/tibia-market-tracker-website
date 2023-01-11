@@ -1,5 +1,6 @@
 {
   "name": "website",
+  "homepage":"https://www.mayiscoding.com/tibia-market-tracker",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

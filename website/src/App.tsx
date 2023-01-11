@@ -2,6 +2,10 @@ import React, { useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image} from 'antd';
 import './App.css';
+import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+} from '@ant-design/icons';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -47,6 +51,7 @@ function setDataColumns(header: string){
   header.split(",").forEach((column: string) => columns.push({
     title: column,
     dataIndex: column,
+    width: 100,
     sorter: (a: any, b: any) => {
       var valA = a[column];
       var valB = b[column];
@@ -55,6 +60,9 @@ function setDataColumns(header: string){
     },
     sortDirections: ['descend', 'ascend', 'descend']
   }));
+
+  // Fix name column.
+  columns[0]["fixed"] = "left";
 
   setColumns([...columns]);
 }
@@ -107,6 +115,7 @@ const App: React.FC = () => {
   [nameFilter, setNameFilter] = useState(nameFilter);
   [minBuyFilter, setMinBuyFilter] = useState(minBuyFilter);
   [maxBuyFilter, setMaxBuyFilter] = useState(maxBuyFilter);
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
   <ConfigProvider
@@ -116,19 +125,18 @@ const App: React.FC = () => {
       components:{
       }
   }}>
-    
+    <title>Test</title>
     <Layout hasSider>
       <Sider
         style={{
           overflow: 'auto',
           height: '100vh',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
           padding: 10,
           borderRight: '1px solid rgba(0,0,0,0.1)',
         }}
+        collapsible
+        collapsed={collapsed}
+        trigger={null}
         theme='light'
       >
           <div id='title' style={{borderBottom: '1px solid rgba(0,0,0,0.1)'}}>
@@ -147,7 +155,13 @@ const App: React.FC = () => {
             Search
           </Button>
       </Sider>
-      <Layout className="site-layout" style={{ marginLeft: 200 }}>
+      <Layout className="site-layout" style={{ width: '100%' }}>
+      <Header style={{backgroundColor: 'white', borderBottom: '1px solid rgba(0,0,0,0.1)'}}>
+          {React.createElement(collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, {
+            className: 'trigger',
+            onClick: () => setCollapsed(!collapsed),
+          })}
+        </Header>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto', height:'97vh' }}>
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} scroll={{y:'83vh'}}></Table>
         </Content>
