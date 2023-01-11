@@ -24,6 +24,14 @@ function doesDataMatchFilter(dataObject: any){
     return false;
   }
 
+  if(Math.min(dataObject["Sold"], dataObject["Bought"]) < minTradesFilter){
+    return false;
+  }
+
+  if(maxTradesFilter > 0 && Math.min(dataObject["Sold"], dataObject["Bought"]) > maxTradesFilter){
+    return false;
+  }
+
   return true;
 }
 
@@ -96,9 +104,13 @@ async function fetchData(){
 var nameFilter: string = "";
 var minBuyFilter: number;
 var maxBuyFilter: number;
+var minTradesFilter: number;
+var maxTradesFilter: number;
 var setNameFilter: any;
 var setMinBuyFilter: any;
 var setMaxBuyFilter: any;
+var setMinTradesFilter: any;
+var setMaxTradesFilter: any;
 
 var isLoading: boolean;
 var setIsLoading: any;
@@ -115,6 +127,8 @@ const App: React.FC = () => {
   [nameFilter, setNameFilter] = useState(nameFilter);
   [minBuyFilter, setMinBuyFilter] = useState(minBuyFilter);
   [maxBuyFilter, setMaxBuyFilter] = useState(maxBuyFilter);
+  [minTradesFilter, setMinTradesFilter] = useState(minTradesFilter);
+  [maxTradesFilter, setMaxTradesFilter] = useState(maxTradesFilter);
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -149,7 +163,9 @@ const App: React.FC = () => {
             </Title>
           <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input><br/><br/>
           <InputNumber placeholder='Minimum buy price' type='number' onChange={(e) => setMinBuyFilter(e)}></InputNumber>
-          <InputNumber value={maxBuyFilter} placeholder='Maximum buy price' type='number' onChange={(e) => setMaxBuyFilter(e)}></InputNumber><br/><br/>
+          <InputNumber placeholder='Maximum buy price' type='number' onChange={(e) => setMaxBuyFilter(e)}></InputNumber><br/><br/>
+          <InputNumber placeholder='Minimum flips/month' type='number' onChange={(e) => setMinTradesFilter(e)}></InputNumber>
+          <InputNumber placeholder='Maximum flips/month' type='number' onChange={(e) => setMaxTradesFilter(e)}></InputNumber><br/><br/>
 
           <Button id='search-button' style={{marginTop: '5%'}} onClick={fetchData} loading={isLoading}>
             Search
