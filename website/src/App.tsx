@@ -1,6 +1,7 @@
 import React, { useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image} from 'antd';
+import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal} from 'antd';
+import {LineChart , XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip} from 'recharts';
 import './App.css';
 import {
   MenuFoldOutlined,
@@ -9,6 +10,18 @@ import {
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
+
+class HistoryData{
+  buyOffer: number;
+  sellOffer: number;
+  time: number;
+
+  constructor(buy: number, sell: number, time: number){
+    this.buyOffer = buy;
+    this.sellOffer = sell;
+    this.time = time;
+  }
+}
 
 function doesDataMatchFilter(dataObject: any){
   // Filter input by user.
@@ -101,6 +114,35 @@ async function fetchData(){
   setIsLoading(false);
 }
 
+async function fetchPriceHistory(itemName: string){
+  var history_data_url: string = `https://raw.githubusercontent.com/Marilyth/tibia-market-tracker-data/main/histories/${encodeURIComponent(itemName.toLowerCase())}.csv`;
+    
+  var items = await fetch(history_data_url).then(response => {
+    if(response.status != 200){
+        setIsLoading(false);
+        throw new Error("Fetching items failed!");
+    }
+
+    return response.text();
+  });
+
+  var graphData: HistoryData[] = []
+  var data = items.split("\n");
+  for(var i = 0; i < data.length; i++){
+    var values = data[i].split(",");
+
+    if(values.length > 1 && !data[i].includes(",-1"))
+      graphData.push(new HistoryData(+values[2], +values[1], +values[values.length - 1]));
+  }
+
+  setModalPriceHistory(graphData);
+}
+
+var modalTitle: string = "";
+var modalPriceHistory: any[] = [];
+var setModalTitle: any;
+var setModalPriceHistory: any;
+
 var nameFilter: string = "";
 var minBuyFilter: number;
 var maxBuyFilter: number;
@@ -129,6 +171,9 @@ const App: React.FC = () => {
   [maxBuyFilter, setMaxBuyFilter] = useState(maxBuyFilter);
   [minTradesFilter, setMinTradesFilter] = useState(minTradesFilter);
   [maxTradesFilter, setMaxTradesFilter] = useState(maxTradesFilter);
+  [modalTitle, setModalTitle] = useState(modalTitle);
+  [modalPriceHistory, setModalPriceHistory] = useState(modalPriceHistory);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -179,7 +224,33 @@ const App: React.FC = () => {
           })}
         </Header>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto', height:'97vh' }}>
-          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} scroll={{y:'83vh'}}></Table>
+          <Modal
+            title={modalTitle}
+            centered
+            open={isModalOpen}
+            onOk={() => setIsModalOpen(false)}
+            onCancel={() => setIsModalOpen(false)}
+            width='50%'
+          >
+            Price history<br/>
+            <ResponsiveContainer  width='100%' aspect={16/9}>
+            <LineChart data={modalPriceHistory}>
+              <XAxis scale={"time"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString()}/>
+              <YAxis/>
+              <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
+              <Tooltip labelFormatter={(date) => new Date(date * 1000).toLocaleString()}></Tooltip>
+              <Line dataKey="buyOffer" stroke="#8884d8" />
+              <Line dataKey="sellOffer" stroke="#82ca9d" />
+            </LineChart>
+            </ResponsiveContainer>
+            
+          </Modal>
+          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} scroll={{y:'83vh'}} onRow={(record, rowIndex) => {
+              return {
+                onClick: (event) => {setModalTitle(record["Name"]); fetchPriceHistory(record["Name"]); setIsModalOpen(true);}
+              };
+            }}>
+        </Table>
         </Content>
       </Layout>
     </Layout>

@@ -19,7 +19,7 @@ def do_market_search(email: str, password: str, tibia_location: str):
     client.open_market()
     
     with open("tracked_items.txt", "r") as t:
-        with open("results/fullscan_tmp.txt", "w") as f:
+        with open("results/fullscan_tmp.csv", "w") as f:
             f.write("Name,SellPrice,BuyPrice,AvgSellPrice,AvgBuyPrice,Sold,Bought,Profit,RelProfit,PotProfit\n")
             for i, item in enumerate(t.readlines()):
 
@@ -37,7 +37,7 @@ def do_market_search(email: str, password: str, tibia_location: str):
                 print(f"{i}. {values}")
                 f.write(str(values) + "\n")
 
-                with open(f"results/histories/{values.name}.txt", "a+") as h:
+                with open(f"results/histories/{values.name.lower()}.csv", "a+") as h:
                     h.write(str(values) + f",{time.time()}" + "\n")
         
     client.exit_tibia()
