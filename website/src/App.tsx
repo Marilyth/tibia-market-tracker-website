@@ -127,6 +127,7 @@ async function fetchPriceHistory(itemName: string){
   });
 
   var graphData: HistoryData[] = []
+
   var data = items.split("\n");
   for(var i = 0; i < data.length; i++){
     var values = data[i].split(",");
@@ -235,8 +236,8 @@ const App: React.FC = () => {
             Price history<br/>
             <ResponsiveContainer  width='100%' aspect={16/9}>
             <LineChart data={modalPriceHistory}>
-              <XAxis scale={"time"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString()}/>
-              <YAxis/>
+              <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString()}/>
+              <YAxis />
               <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
               <Tooltip labelFormatter={(date) => new Date(date * 1000).toLocaleString()}></Tooltip>
               <Line dataKey="buyOffer" stroke="#8884d8" />
