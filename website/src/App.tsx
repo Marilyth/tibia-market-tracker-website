@@ -1,49 +1,112 @@
 import React, { useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination} from 'antd';
+import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image} from 'antd';
 import './App.css';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
 
-function test(){
-  setDataSource([...dataSource]);
+function doesDataMatchFilter(dataObject: any){
+  // Filter input by user.
+  if(nameFilter != "" && !dataObject["Name"].includes(nameFilter)){
+    return false;
+  } 
+
+  if(maxBuyFilter > 0 && dataObject["BuyPrice"] > maxBuyFilter){
+    return false;
+  }
+
+  if(dataObject["BuyPrice"] < minBuyFilter){
+    return false;
+  }
+
+  return true;
 }
 
-var setDataSource: any;
-var dataSource = [
-  {
-    name: 'Mike',
-    age: 32,
-    address: '10 Downing Street',
-  },
-  {
-    name: 'John',
-    age: 42,
-    address: '10 Downing Street',
-  },
-];
+function addDataRow(data: string){
+  var dataObject: any = {}
 
-const columns = [
-  {
-    title: 'Name',
-    dataIndex: 'name',
-    key: 'name',
-  },
-  {
-    title: 'Age',
-    dataIndex: 'age',
-    key: 'age',
-  },
-  {
-    title: 'Address',
-    dataIndex: 'address',
-    key: 'address',
-  },
-];
+  // Filter bad data.
+  if (data.includes("-1"))
+    return;
+
+  var columnData: string[] = data.split(",");
+  for(var j = 0; j < columnData.length; j++){
+    dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? columnData[j] : +columnData[j];
+  }
+
+  if(!doesDataMatchFilter(dataObject)) 
+    return;
+
+  dataSource.push(dataObject);
+}
+
+function setDataColumns(header: string){
+  columns = [];
+  dataSource = [];
+  header.split(",").forEach((column: string) => columns.push({
+    title: column,
+    dataIndex: column,
+    sorter: (a: any, b: any) => {
+      var valA = a[column];
+      var valB = b[column];
+
+      return valA > valB ? 1 : valA == valB ? 0 : -1;
+    },
+    sortDirections: ['descend', 'ascend', 'descend']
+  }));
+
+  setColumns([...columns]);
+}
+
+async function fetchData(){
+  setIsLoading(true);
+
+  var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker-data/main/fullscan.csv"
+    
+  var items = await fetch(market_data_url).then(response => {
+    if(response.status != 200){
+        setIsLoading(false);
+        throw new Error("Fetching items failed!");
+    }
+
+    return response.text();
+  });
+
+  var data = items.split("\n");
+  var header = data[0];
+  setDataColumns(header);
+
+  for(var i = 1; i < data.length; i++){
+    addDataRow(data[i]);
+  }
+
+  setDataSource([...dataSource]);
+  setIsLoading(false);
+}
+
+var nameFilter: string = "";
+var minBuyFilter: number;
+var maxBuyFilter: number;
+var setNameFilter: any;
+var setMinBuyFilter: any;
+var setMaxBuyFilter: any;
+
+var isLoading: boolean;
+var setIsLoading: any;
+
+var setDataSource: any;
+var setColumns: any;
+var dataSource: any[] = [];
+var columns: any[] = [];
 
 const App: React.FC = () => {
   [dataSource, setDataSource] = useState(dataSource);
+  [isLoading, setIsLoading] = useState(false);
+  [columns, setColumns] = useState(columns);
+  [nameFilter, setNameFilter] = useState(nameFilter);
+  [minBuyFilter, setMinBuyFilter] = useState(minBuyFilter);
+  [maxBuyFilter, setMaxBuyFilter] = useState(maxBuyFilter);
 
   return (
   <ConfigProvider
@@ -73,39 +136,20 @@ const App: React.FC = () => {
               Market Tracker
             </Title>
           </div>
+          <Title level={5} style={{textAlign:'center', color:'grey'}}>
+              Filters
+            </Title>
+          <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input><br/><br/>
+          <InputNumber placeholder='Minimum buy price' type='number' onChange={(e) => setMinBuyFilter(e)}></InputNumber>
+          <InputNumber value={maxBuyFilter} placeholder='Maximum buy price' type='number' onChange={(e) => setMaxBuyFilter(e)}></InputNumber><br/><br/>
 
-          <Input id="name-input" placeholder='Name' ></Input><br/><br/>
-          <InputNumber id="min-traded-input" placeholder='Minimum amount traded' type='number'></InputNumber>
-          <InputNumber id="max-traded-input" placeholder='Maximum amount traded' type='number'></InputNumber><br/><br/>
-          <InputNumber id="min-sell-input" placeholder='Minimum sell price' type='number'></InputNumber>
-          <InputNumber id="max-sell-input" placeholder='Maximum sell price' type='number'></InputNumber><br/><br/>
-          <InputNumber id="min-buy-input" placeholder='Minimum buy price' type='number'></InputNumber>
-          <InputNumber id="max-buy-input" placeholder='Maximum buy price' type='number'></InputNumber><br/><br/>
-
-          <Select id='order-by' placeholder='Order by' style={{width:'100%'}} options={[
-            { value: 'x', label: 'Order by', disabled: true},
-            { value: 'Name', label: 'Name'},
-            { value: 'SellPrice', label: 'Sell price'},
-            { value: 'BuyPrice', label: 'Buy price'},
-            { value: 'Profit', label: 'Profit'},
-            { value: 'RelProfit', label: 'Relative profit'},
-            { value: 'PotProfit', label: 'Potential profit'},
-          ]}></Select>
-
-          <Select id='order-dir' placeholder='Order type' style={{width:'100%'}} options={[
-            { value: 11, label: 'Order type', disabled: true},
-            { value: 1, label: 'Ascending'},
-            { value: -1, label: 'Descending'}
-          ]}></Select><br/><br/>
-
-          <Button id='search-button' style={{marginTop: '5%'}} onClick={test}>
+          <Button id='search-button' style={{marginTop: '5%'}} onClick={fetchData} loading={isLoading}>
             Search
           </Button>
       </Sider>
       <Layout className="site-layout" style={{ marginLeft: 200 }}>
-        <Content style={{ margin: '24px 16px 0', overflow: 'initial', height: '97vh' }}>
-          <Table id='items-table' dataSource={dataSource} columns={columns} pagination={false}></Table>
-          <Pagination></Pagination>
+        <Content style={{ margin: '24px 16px 0', overflow: 'auto', height:'97vh' }}>
+          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} scroll={{y:'83vh'}}></Table>
         </Content>
       </Layout>
     </Layout>
