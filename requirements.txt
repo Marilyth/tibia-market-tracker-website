@@ -5,3 +5,5 @@ opencv-python
 numpy
 pandas
 flask-cors
+gitpython
+schedule

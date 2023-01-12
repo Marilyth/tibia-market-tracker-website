@@ -127,7 +127,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-results/*.txt
-results/histories/*.txt
+results/*.csv
+results/histories/*.csv
 
 *.png

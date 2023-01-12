@@ -9,7 +9,7 @@ import requests
 class MarketValues:
     def __init__(self, name: str, time: float, sell_offer: int, buy_offer: int, month_sell_offer: int, month_buy_offer: int, sold: int, bought: int, highest_sell: int, lowest_buy: int):
         self.buy_offer: int = max(buy_offer, lowest_buy)
-        self.sell_offer: int = max(min(sell_offer, highest_sell), buy_offer)
+        self.sell_offer: int = max(min(sell_offer, highest_sell), self.buy_offer) if sold > 0 else sell_offer
         self.month_sell_offer: int = month_sell_offer
         self.month_buy_offer: int = month_buy_offer
         self.sold: int = sold
