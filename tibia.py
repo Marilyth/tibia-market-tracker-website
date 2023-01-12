@@ -103,18 +103,20 @@ class Client:
         Closes Tibia unsafely. Probably better to log out before.
         """
         pyautogui.hotkey("alt", "f4")
-        self._wait_until_find("images/Exit.png", click=True)
+        self._wait_until_find("images/Exit.png", click=True, cache=False)
 
-    def open_market(self):
+    def open_market(self, open_depot=True):
         """
         Searches for an empty depot, and opens the market on it.
         """
         def try_open_market() -> bool:
             x, y = self._wait_until_find("images/SuccessDepotTile.png", timeout=5, cache=False)
             if x >= 0:
-                pyautogui.leftClick(636, 375)
-                self._wait_until_find("images/Market.png", click=True)
-                self._wait_until_find("images/Details.png")
+                if open_depot:
+                    pyautogui.leftClick(636, 375)
+
+                self._wait_until_find("images/Market.png", click=True, cache=False)
+                self._wait_until_find("images/Details.png", cache=False)
 
                 while not self.market_search_position:
                     self.market_search_position = pyautogui.locateCenterOnScreen("images/ItemSearch.png")
@@ -181,6 +183,24 @@ class Client:
             print(f"Market search failed for {name}: {e}")
             return MarketValues(name, time.time(), -1, -1, -1, -1, -1, -1, -1, -1)
 
+    def close_market(self):
+        """
+        Closes the market window using the escape hotkey.
+        """
+        pyautogui.press("escape")
+        time.sleep(0.1)
+        pyautogui.press("escape")
+        time.sleep(0.1)
+
+    def wiggle(self):
+        """
+        Wiggles the character to avoid being afk kicked.
+        """
+        pyautogui.hotkey("ctrl", "right")
+        time.sleep(0.5)
+        pyautogui.hotkey("ctrl", "left")
+        time.sleep(0.5)
+
     def _wait_until_find(self, image: str, timeout: int = 1000, click: bool = False, cache: bool = True) -> Tuple[int, int]:
         start_time = time.time()
 
@@ -188,7 +208,8 @@ class Client:
             if cache and image in self.position_cache:
                 position = self.position_cache[image]
             else:
-                pyautogui.moveTo(1, 1)
+                print(f"Looking for {image}...")
+                pyautogui.moveTo(20, 20)
                 position = pyautogui.locateCenterOnScreen(image)
                 if position:
                     self.position_cache[image] = position

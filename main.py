@@ -27,13 +27,10 @@ def do_market_search(email: str, password: str, tibia_location: str, results_loc
 
                 # Restart Tibia every 13 minutes to avoid afk kick.
                 if time.time() - afk_time > 800:
-                    client.exit_tibia()
-                    time.sleep(2)
-                    client.start_game(tibia_location)
-                    client.login_to_game(email, password)
-                    
+                    client.close_market()
+                    client.wiggle()
                     afk_time = time.time()
-                    client.open_market()
+                    client.open_market(False)
 
                 values = client.search_item(item.replace("\n", ""))
                 print(f"{i}. {values}")
@@ -65,6 +62,7 @@ if __name__ == "__main__":
     with open("config.json", "r") as c:
         config = json.loads(c.read())
 
+    do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"])
     schedule.every().day.at("18:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
 
     while True:
