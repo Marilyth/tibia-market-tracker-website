@@ -40,16 +40,11 @@ def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = 
 
     return cropped_image
 
-def read_image_text(image: Image.Image, psm: int = 3, oem: int = 3, user_words: List[str] = None) -> str:
+def read_image_text(image: Image.Image, psm: int = 3, oem: int = 3, char_white_list: str = "0123456789k") -> str:
     """
     Feeds the image to tesseract, and returns the text it detected.
     """
-    if user_words:
-        with open("user_words.txt", "w") as f:
-            f.write("\n".join(user_words))
-        config = f"--oem {oem} --psm {psm} --user-words \"{os.path.join(os.path.dirname(os.path.abspath(__file__)), 'user_words.txt')}\" outputbase digits"
-    else:
-        config = f"--oem {oem} --psm {psm} outputbase digits"
+    config = f"--oem {oem} --psm {psm} -c tessedit_char_whitelist={char_white_list}"
 
     try:
         return pytesseract.image_to_string(image, config=config)

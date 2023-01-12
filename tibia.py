@@ -160,9 +160,9 @@ class Client:
             buy_offers = offers[1]
 
             interpreted_buy_offer = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(buy_offers.left, buy_offers.top + buy_offers.height + 3, buy_offers.width, buy_offers.height + 3)))\
-                .replace(",", "").replace(".", "").replace(" ", "").split("\n")[0]
+                .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").split("\n")[0]
             interpreted_sell_offer = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(sell_offers.left, sell_offers.top + sell_offers.height + 3, sell_offers.width, sell_offers.height + 3)))\
-                .replace(",", "").replace(".", "").replace(" ", "").split("\n")[0]
+                .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").split("\n")[0]
 
             sell_offer = int(interpreted_sell_offer) if interpreted_sell_offer.isnumeric() else -1
             buy_offer = int(interpreted_buy_offer) if interpreted_buy_offer.isnumeric() else -1
@@ -174,7 +174,7 @@ class Client:
 
             statistics = self.position_cache["images/Statistics.png"]
             interpreted_statistics = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(statistics.left, statistics.top, 300, 140)))\
-                .replace(",", "").replace(".", "").replace(" ", "").splitlines()
+                .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").splitlines()
             interpreted_statistics = [stat for stat in interpreted_statistics if len(stat) > 0]
 
             values = MarketValues(name, time.time(), sell_offer, buy_offer, int(interpreted_statistics[6]), int(interpreted_statistics[2]), int(interpreted_statistics[4]), int(interpreted_statistics[0]), int(interpreted_statistics[5]), int(interpreted_statistics[3]))
