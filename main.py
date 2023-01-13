@@ -3,6 +3,7 @@ import time
 import os
 import json
 import schedule
+import subprocess
 from git.repo import Repo
 
 
@@ -44,6 +45,8 @@ def do_market_search(email: str, password: str, tibia_location: str, results_loc
     os.replace(os.path.join(results_location, "fullscan_tmp.csv"), os.path.join(results_location, "fullscan.csv"))
     push_to_github(results_location)
 
+    turn_off_display()
+
 def push_to_github(results_repo_location: str):
     """
     Pushes the new market data from the results repo to GitHub.
@@ -57,14 +60,22 @@ def push_to_github(results_repo_location: str):
     except Exception as e:
         print(f"Error while pushing to git: {e}")
 
+def turn_off_display():
+    """
+    Turns display off to save power. It will turn on again on pyautogui movement.
+    """
+    subprocess.Popen(["xset", "-display", ":0.0", "dpms", "force", "off"])
+
 if __name__ == "__main__":
     config = None
     with open("config.json", "r") as c:
         config = json.loads(c.read())
 
-    do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"])
-    schedule.every().day.at("18:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
+    turn_off_display()
 
+    #do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"])
+    schedule.every().day.at("18:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
+    
     while True:
         schedule.run_pending()
         time.sleep(60)
