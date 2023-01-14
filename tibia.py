@@ -129,6 +129,7 @@ class Client:
         if pyautogui.locateCenterOnScreen("images/SuccessDepotTile.png") and try_open_market():
             return
 
+        open_depot = True
         for i in range(len(list(pyautogui.locateAllOnScreen("images/DepotTile.png")))):
             print(f"Trying depot {i}...")
             depot_position = list(pyautogui.locateAllOnScreen("images/DepotTile.png"))[i]

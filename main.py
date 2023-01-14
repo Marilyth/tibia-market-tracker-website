@@ -21,10 +21,22 @@ def do_market_search(email: str, password: str, tibia_location: str, results_loc
     afk_time = time.time()
     client.open_market()
 
+    fullscan_mode = "w"
+    scanned_items = 0
+    if os.path.exists(os.path.join(results_location, "fullscan_tmp.csv")):
+        with open(os.path.join(results_location, "fullscan_tmp.csv"), "r") as f:
+            print("Previous run aborted, continuing where stopped.")
+            scanned_items = len(f.readlines()) - 2 # Don't count header, don't count empty line at end.
+            fullscan_mode = "a+"
+
     with open("tracked_items.txt", "r") as t:
-        with open(os.path.join(results_location, "fullscan_tmp.csv"), "w") as f:
-            f.write("Name,SellPrice,BuyPrice,AvgSellPrice,AvgBuyPrice,Sold,Bought,Profit,RelProfit,PotProfit\n")
+        with open(os.path.join(results_location, "fullscan_tmp.csv"), fullscan_mode) as f:
+            if scanned_items == 0:
+                f.write("Name,SellPrice,BuyPrice,AvgSellPrice,AvgBuyPrice,Sold,Bought,Profit,RelProfit,PotProfit\n")
+                
             for i, item in enumerate(t.readlines()):
+                if i + 1 < scanned_items or not item:
+                    continue
 
                 # Restart Tibia every 13 minutes to avoid afk kick.
                 if time.time() - afk_time > 800:
@@ -75,6 +87,7 @@ if __name__ == "__main__":
 
     #do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"])
     schedule.every().day.at("18:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
+    schedule.every().day.at("06:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
     
     while True:
         schedule.run_pending()
