@@ -52,8 +52,8 @@ class Client:
         '''
         # Start Tibia.
         self.tibia: subprocess.Popen = None
-        self.market_search_position = None
         self.position_cache = {}
+        self.market_tab = "offers"
 
     def start_game(self, location:str):
         self.tibia: subprocess.Popen = subprocess.Popen([location])
@@ -118,9 +118,6 @@ class Client:
                 self._wait_until_find("images/Market.png", click=True, cache=False)
                 self._wait_until_find("images/Details.png", cache=False)
 
-                while not self.market_search_position:
-                    self.market_search_position = pyautogui.locateCenterOnScreen("images/ItemSearch.png")
-
                 print("Market open.")
                 return True
             
@@ -145,41 +142,54 @@ class Client:
         Searches for the specified item in the market, and returns its current highest feasible buy and sell offers, and values for the month.
         """
         try:
-            pyautogui.leftClick(self.market_search_position)
-            pyautogui.hotkey("ctrl", "a")
-            pyautogui.press("delete")
+            pyautogui.hotkey("ctrl", "z")
             pyautogui.typewrite(name)
-            self._wait_until_find("images/OffersButton.png", click=True)
+            pyautogui.press("down")
+            time.sleep(0.2)
 
-            x, y = self._wait_until_find("images/AboveFirstItem.png")
-            pyautogui.leftClick(x, y + 25)
+            def scan_details():
+                if "images/Statistics.png" not in self.position_cache:
+                    self.position_cache["images/Statistics.png"] = pyautogui.locateOnScreen("images/Statistics.png")
 
-            if "images/Offers.png" not in self.position_cache:
-                self.position_cache["images/Offers.png"] = list(pyautogui.locateAllOnScreen("images/Offers.png"))
-            offers = self.position_cache["images/Offers.png"]
-            sell_offers = offers[0]
-            buy_offers = offers[1]
+                statistics = self.position_cache["images/Statistics.png"]
+                interpreted_statistics = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(statistics.left, statistics.top, 300, 140)))\
+                    .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").splitlines()
+                interpreted_statistics = [stat for stat in interpreted_statistics if len(stat) > 0]
 
-            interpreted_buy_offer = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(buy_offers.left, buy_offers.top + buy_offers.height + 3, buy_offers.width, buy_offers.height + 3)))\
-                .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").split("\n")[0]
-            interpreted_sell_offer = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(sell_offers.left, sell_offers.top + sell_offers.height + 3, sell_offers.width, sell_offers.height + 3)))\
-                .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").split("\n")[0]
+                return interpreted_statistics
 
-            sell_offer = int(interpreted_sell_offer) if interpreted_sell_offer.isnumeric() else -1
-            buy_offer = int(interpreted_buy_offer) if interpreted_buy_offer.isnumeric() else -1
+            def scan_offers():
+                if "images/Offers.png" not in self.position_cache:
+                    self.position_cache["images/Offers.png"] = list(pyautogui.locateAllOnScreen("images/Offers.png"))
+                offers = self.position_cache["images/Offers.png"]
+                sell_offers = offers[0]
+                buy_offers = offers[1]
 
-            self._wait_until_find("images/Details.png", click=True)
+                interpreted_buy_offer = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(buy_offers.left, buy_offers.top + buy_offers.height + 3, buy_offers.width, buy_offers.height + 3)))\
+                    .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").split("\n")[0]
+                interpreted_sell_offer = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(sell_offers.left, sell_offers.top + sell_offers.height + 3, sell_offers.width, sell_offers.height + 3)))\
+                    .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").split("\n")[0]
 
-            if "images/Statistics.png" not in self.position_cache:
-                self.position_cache["images/Statistics.png"] = pyautogui.locateOnScreen("images/Statistics.png")
+                sell_offer = int(interpreted_sell_offer) if interpreted_sell_offer.isnumeric() else -1
+                buy_offer = int(interpreted_buy_offer) if interpreted_buy_offer.isnumeric() else -1
 
-            statistics = self.position_cache["images/Statistics.png"]
-            interpreted_statistics = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(statistics.left, statistics.top, 300, 140)))\
-                .replace(",", "").replace(".", "").replace(" ", "").replace("k", "000").splitlines()
-            interpreted_statistics = [stat for stat in interpreted_statistics if len(stat) > 0]
+                return buy_offer, sell_offer
+
+            if self.market_tab == "offers":
+                buy_offer, sell_offer = scan_offers()
+                self._wait_until_find("images/Details.png", click=True)
+                interpreted_statistics = scan_details()
+                self.market_tab = "details"
+            else:
+                interpreted_statistics = scan_details()
+                self._wait_until_find("images/OffersButton.png", click=True)
+                buy_offer, sell_offer = scan_offers()
+                self.market_tab = "offers"
 
             values = MarketValues(name, time.time(), sell_offer, buy_offer, int(interpreted_statistics[6]), int(interpreted_statistics[2]), int(interpreted_statistics[4]), int(interpreted_statistics[0]), int(interpreted_statistics[5]), int(interpreted_statistics[3]))
             return values
+        except pyautogui.FailSafeException as e:
+            exit(1)
         except Exception as e:
             print(f"Market search failed for {name}: {e}")
             return MarketValues(name, time.time(), -1, -1, -1, -1, -1, -1, -1, -1)
@@ -201,6 +211,7 @@ class Client:
         time.sleep(0.5)
         pyautogui.hotkey("ctrl", "left")
         time.sleep(0.5)
+        self.market_tab = "offers"
 
     def _wait_until_find(self, image: str, timeout: int = 1000, click: bool = False, cache: bool = True) -> Tuple[int, int]:
         start_time = time.time()
