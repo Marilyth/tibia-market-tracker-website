@@ -43,7 +43,7 @@ class Wiki:
             else:
                 break
 
-        return items
+        return sorted(set([item.split(" (")[0] for item in items]))
 
 class Client:
     def __init__(self):

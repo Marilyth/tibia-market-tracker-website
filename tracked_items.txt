@@ -1,5 +1,5 @@
 25 Years Backpack
-Abacus (Replica)
+Abacus
 Abomination's Eye
 Abomination's Tail
 Abomination's Tongue
@@ -24,7 +24,7 @@ Amazon Armor
 Amazon Disguise Kit
 Amazon Helmet
 Amazon Shield
-Amber (Item)
+Amber
 Amber Staff
 Amber with a Bug
 Amber with a Dragonfly
@@ -34,7 +34,6 @@ Amulet of Loss
 Amulet of Theurgy
 Anatomy Book
 Ancient Amulet
-Ancient Amulet (Quest)
 Ancient Belt Buckle
 Ancient Coin
 Ancient Liche Bone
@@ -70,7 +69,6 @@ Arena Badge
 Armor Rack Kit
 Arrow
 Artist's Brush
-Artist's Brush (with Paint)
 Artist's Canvas
 Artist's Palette
 Assassin Dagger
@@ -81,13 +79,12 @@ Astral Source
 Atlas
 Aubergine
 Avalanche Rune
-Avalanche Rune (Weak)
 Axe
+Axe Ring
 Axe of Carving
 Axe of Destruction
 Axe of Mayhem
 Axe of Remedy
-Axe Ring
 Babel Swimmer
 Baby Rotworm
 Backpack
@@ -95,15 +92,11 @@ Backpack of Holding
 Badbara
 Badger Boots
 Badger Fur
-Badger Fur (Decoration)
 Bag
-Bag (Ahmet)
 Bag of Apple Slices
-Bag of Oriental Spices (Replica)
+Bag of Oriental Spices
 Bait
 Baking Tray
-Baking Tray (Cookie)
-Baking Tray (Reed)
 Bale of White Cloth
 Bale of Yellowed Cloth
 Bamboo Drawer Kit
@@ -128,7 +121,6 @@ Bashmu Fang
 Bashmu Feather
 Bashmu Tongue
 Basket
-Basket (Puppies)
 Bast Legs
 Bast Skirt
 Bat Decoration
@@ -170,7 +162,7 @@ Black Pearl
 Black Pit Demon
 Black Raven Kit
 Black Shield
-Black Skull (Item)
+Black Skull
 Black Wool
 Blacksteel Sword
 Blade of Carving
@@ -193,17 +185,16 @@ Blessed Steak
 Blessed Wooden Stake
 Blood Goblet
 Blood Herb
-Blood of the Mountain (Item)
 Blood Preservation
 Blood Skull
 Blood Tincture in a Vial
+Blood of the Mountain
 Bloodkiss Flower
 Bloody Dwarven Beard
 Bloody Edge
 Bloody Pincers
 Bloody Tears
 Blossom Bag
-Blue and Golden Cordon
 Blue Backpack
 Blue Bag
 Blue Bed Kit
@@ -226,6 +217,7 @@ Blue Rose
 Blue Sphere
 Blue Tapestry
 Blue Tome
+Blue and Golden Cordon
 Blueberry
 Blueberry Cupcake
 Boar Man Hoof
@@ -247,22 +239,21 @@ Bonecarving Knife
 Bonelord Eye
 Bonelord Helmet
 Bonelord Shield
-Bones (Item)
+Bones
 Bones of Zorvorax
 Bonfire Amulet
 Bongo Drum
 Bony Tail
-Book (CGB)
+Book
 Book Backpack
+Book Page
 Book of Lies
 Book of Necromantic Rituals
 Book of Orc Language
 Book of Prayers
-Book Page
 Bookcase Kit
 Boots of Haste
 Boots of Homecoming
-Boots of Homecoming (Used)
 Boots of Renewal
 Boots of Waterwalking
 Botany Almanach
@@ -278,9 +269,6 @@ Bow of Destruction
 Bow of Mayhem
 Bow of Remedy
 Bowl
-Bowl (Gold)
-Bowl (Green)
-Bowl (Silver)
 Bowl of Evergreen Flowers
 Bowl of Glooth Soup
 Bowl of Terror Sweat
@@ -294,7 +282,7 @@ Brain in a Jar
 Brainstealer's Brain
 Brainstealer's Brainwave
 Brainstealer's Tissue
-Branch (Quest)
+Branch
 Brass Armor
 Brass Helmet
 Brass Legs
@@ -381,7 +369,6 @@ Candle Stump
 Candy
 Candy Cane
 Candy Floss
-Candy Floss (Large)
 Canopy Bed Kit
 Cape
 Capricious Heart
@@ -399,7 +386,7 @@ Carrot Cake
 Carrot on a Stick
 Carrying Device
 Case of Rust Bugs
-Cask of Brown Ale (Item)
+Cask of Brown Ale
 Castle Shield
 Cat's Paw
 Cauliflower
@@ -441,8 +428,7 @@ Cherry
 Chicken Feather
 Chimney Kit
 Chisel
-Chitinous Mouth (Baron from Below)
-Chitinous Mouth (Count of the Core)
+Chitinous Mouth
 Chocolate Cake
 Chocolatey Dragon Scale Legs
 Chopper of Carving
@@ -461,8 +447,8 @@ Clerical Mace
 Cliff Strider Claw
 Closed Trap
 Club
-Club of the Fury
 Club Ring
+Club of the Fury
 Cluster of Solace
 Coal
 Coal Basin Kit
@@ -486,11 +472,7 @@ Coconut Shrimp Bake
 Collar of Blue Plasma
 Collar of Green Plasma
 Collar of Red Plasma
-Coloured Egg (Blue)
-Coloured Egg (Green)
-Coloured Egg (Purple)
-Coloured Egg (Red)
-Coloured Egg (Yellow)
+Coloured Egg
 Colourful Feather
 Colourful Feathers
 Colourful Fireworks Rocket
@@ -516,10 +498,7 @@ Corncob
 Corned Fish
 Cornucopia
 Corrupted Flag
-Costume Bag (Common)
-Costume Bag (Deluxe)
-Costume Bag (Retro)
-Costume Bag (Uncommon)
+Costume Bag
 Countess Sorrow's Frozen Tear
 Cow Bell
 Cowbell
@@ -535,7 +514,6 @@ Cream Cake
 Crest of the Deep Seas
 Crimson Rose
 Crimson Sword
-Crimson Sword (Uzgod)
 Crocodile Boots
 Crocodile Steak
 Crossbow
@@ -545,7 +523,6 @@ Crossbow of Mayhem
 Crossbow of Remedy
 Crowbar
 Crown
-Crown (Plant)
 Crown Armor
 Crown Backpack
 Crown Helmet
@@ -574,18 +551,14 @@ Crystal Crossbow
 Crystal Lamp
 Crystal Mace
 Crystal Necklace
-Crystal of Balance
-Crystal of Focus
-Crystal of Power
-Crystal Pedestal (Blue)
-Crystal Pedestal (Cyan)
-Crystal Pedestal (Green)
-Crystal Pedestal (Red)
+Crystal Pedestal
 Crystal Ring
-Crystal Ring (Eleonore)
 Crystal Sword
 Crystal Table Kit
 Crystal Wand
+Crystal of Balance
+Crystal of Focus
+Crystal of Power
 Crystalline Armor
 Crystalline Arrow
 Crystalline Arrow Earth
@@ -600,7 +573,7 @@ Cucumber
 Cultish Mask
 Cultish Robe
 Cultish Symbol
-Cure Poison Rune (Item)
+Cure Poison Rune
 Curious Matter
 Curl of Hair
 Cursed Bone
@@ -623,7 +596,6 @@ Daramian Mace
 Daramian Waraxe
 Dark Armor
 Dark Bell
-Dark Bell (Silver)
 Dark Essence
 Dark Helmet
 Dark Lord's Cape
@@ -634,7 +606,7 @@ Dark Trinity Mace
 Dark Whispers
 Dawnfire Pantaloons
 Dawnfire Sherwani
-Dead Frog (Item)
+Dead Frog
 Dead Weight
 Deadeye Devious' Eye Patch
 Death Amplification
@@ -714,7 +686,7 @@ Document of the Leader
 Document of the Officer
 Dog Collar
 Doll
-Doll of Durin The Almighty (Replica)
+Doll of Durin The Almighty
 Double Axe
 Doublet
 Downy Feather
@@ -727,7 +699,7 @@ Dragon Blood
 Dragon Claw
 Dragon Crown
 Dragon Egg Shells
-Dragon Eye (Replica)
+Dragon Eye
 Dragon Figurine
 Dragon Ham
 Dragon Hammer
@@ -770,7 +742,6 @@ Drum
 Dry Piece of Wood
 Dubious Piece of Cloth
 Dung Ball
-Dung Ball (Quest)
 Dwarf Disguise Kit
 Dwarven Armor
 Dwarven Axe
@@ -859,15 +830,13 @@ Empty Flower Pot
 Empty Goldfish Bowl
 Empty Honey Glass
 Empty Jug
-Empty Potion Flask (Large)
-Empty Potion Flask (Medium)
-Empty Potion Flask (Small)
+Empty Potion Flask
 Enchanted Chicken Wing
 Enchanted Pendulet
 Enchanted Sleep Shawl
 Enchanted Spear
 Enchanted Turtle Amulet
-Encyclopedia (Replica)
+Encyclopedia
 Energetic Backpack
 Energized Demonbone
 Energized Limb
@@ -906,10 +875,7 @@ Epee
 Essence of a Bad Dream
 Eternal Flames
 Ethno Coat
-Ewer (Blue)
-Ewer (Golden)
-Ewer (Green)
-Ewer (Silver)
+Ewer
 Ewer with Holy Water
 Exaltation Chest
 Exalted Core
@@ -924,16 +890,15 @@ Expedition Bag
 Exploding Cookie
 Explorer Brooch
 Explosion Rune
-Explosion Rune (Weak)
 Exquisite Silk
 Exquisite Wood
-Eye of a Deepling
-Eye of a Weeper
-Eye of Corruption
-Eye of the Chasm
-Eye of the Storm
 Eye Patch
 Eye Pod
+Eye of Corruption
+Eye of a Deepling
+Eye of a Weeper
+Eye of the Chasm
+Eye of the Storm
 Eye-Embroidered Veil
 Eyeless Devourer Legs
 Eyeless Devourer Maw
@@ -957,7 +922,7 @@ Falcon Plate
 Falcon Rod
 Falcon Shield
 Falcon Wand
-Family Brooch (Dwarven)
+Family Brooch
 Fan Club Membership Card
 Fan Doll of King Tibianus
 Fanfare
@@ -970,7 +935,7 @@ Ferumbras' Amulet
 Ferumbras' Candy Hat
 Ferumbras' Hat
 Ferumbras' Mana Keg
-Ferumbras' Staff (Blunt)
+Ferumbras' Staff
 Ferumbras' Teddy
 Ferumbras' Teddy Santa
 Festive Backpack
@@ -1018,7 +983,6 @@ Fire Resilience
 Fire Sword
 Fire Wall Rune
 Fireball Rune
-Fireball Rune (Weak)
 Fireborn Giant Armor
 Fireheart Cuirass
 Fireheart Hauberk
@@ -1027,6 +991,7 @@ Firemind Raiment
 Fireproof Horn
 Firesoul Tabard
 Fireworks Capsule
+Fireworks Rocket
 Fireworks in Shape of '0'
 Fireworks in Shape of '1'
 Fireworks in Shape of '2'
@@ -1037,7 +1002,6 @@ Fireworks in Shape of '6'
 Fireworks in Shape of '7'
 Fireworks in Shape of '8'
 Fireworks in Shape of '9'
-Fireworks Rocket
 Firlefanz
 Fish
 Fish Fin
@@ -1072,7 +1036,7 @@ Flower Bouquet
 Flower Bowl
 Flower Dress
 Flower Wreath
-Fly Agaric (Item)
+Fly Agaric
 Focus Cape
 Folded Artefact Carpet I
 Folded Artefact Carpet II
@@ -1099,7 +1063,7 @@ Frazzle Skin
 Frazzle Tongue
 Frazzlemaw Santa
 Fresh Fruit
-Friendship Amulet (Replica)
+Friendship Amulet
 Frost Charm
 Frost Giant Pelt
 Frostbite Herb
@@ -1113,7 +1077,7 @@ Frosty Ear of a Troll
 Frosty Heart
 Frozen Chain
 Frozen Claw
-Frozen Heart (Replica)
+Frozen Heart
 Frozen Lightning
 Frozen Plate
 Frozen Starlight
@@ -1158,8 +1122,6 @@ Giant Pacifier
 Giant Ruby
 Giant Sapphire
 Giant Shimmering Pearl
-Giant Shimmering Pearl (Brown)
-Giant Shimmering Pearl (Green)
 Giant Shrimp
 Giant Smithhammer
 Giant Sword
@@ -1188,8 +1150,8 @@ Glacier Mask
 Glacier Robe
 Glacier Shoes
 Gland
-Glass of Goo
 Glass Tube
+Glass of Goo
 Gleaming Starlight Vial
 Glimmering Soil
 Glistening Bone
@@ -1267,33 +1229,10 @@ Golden Lotus Brooch
 Golden Magic Longsword
 Golden Mask
 Golden Mug
-Golden Newspaper (Replica)
+Golden Newspaper
 Golden Prison Key
 Golden Raid Token
-Golden Rune Emblem (Animate Dead)
-Golden Rune Emblem (Avalanche)
-Golden Rune Emblem (Chameleon)
-Golden Rune Emblem (Destroy Field)
-Golden Rune Emblem (Disintegrate)
-Golden Rune Emblem (Energy Bomb)
-Golden Rune Emblem (Energy Wall)
-Golden Rune Emblem (Explosion)
-Golden Rune Emblem (Fire Field)
-Golden Rune Emblem (Fireball)
-Golden Rune Emblem (Firebomb)
-Golden Rune Emblem (Great Fireball)
-Golden Rune Emblem (Heavy Magic Missile)
-Golden Rune Emblem (Holy Missile)
-Golden Rune Emblem (Icicle)
-Golden Rune Emblem (Light Magic Missile)
-Golden Rune Emblem (Magic Wall)
-Golden Rune Emblem (Paralyze)
-Golden Rune Emblem (Poison Bomb)
-Golden Rune Emblem (Soulfire)
-Golden Rune Emblem (Sudden Death)
-Golden Rune Emblem (Thunderstorm)
-Golden Rune Emblem (Ultimate Healing)
-Golden Rune Emblem (Wild Growth)
+Golden Rune Emblem
 Golden Scorpion Pendant
 Golden Sickle
 Golden Skull
@@ -1315,7 +1254,6 @@ Grasshopper Legs
 Grave Flower
 Great Axe
 Great Fireball Rune
-Great Fireball Rune (Weak)
 Great Health Potion
 Great Mana Potion
 Great Shield
@@ -1390,9 +1328,7 @@ Harness
 Harp Kit
 Harpoon of a Giant Snail
 Harpy Feathers
-Hat for Eclesius (Dark)
-Hat for Eclesius (Pink)
-Hat for Eclesius (Wooden)
+Hat for Eclesius
 Hat of the Mad
 Hatched Rorc Egg
 Hatchet
@@ -1403,8 +1339,7 @@ Haunted Piece of Wood
 Havoc Blade
 Hazardous Heart
 Hazardous Robe
-Head (Brachiodemon)
-Head (Many Faces)
+Head
 Head of Abyssador
 Head of Deathstrike
 Head of Gnomevil
@@ -1412,8 +1347,8 @@ Headache Pill
 Headchopper
 Health Potion
 Heart Backpack
-Heart of the Mountain (Item)
 Heart Pillow
+Heart of the Mountain
 Heat Core
 Heated Worm Punisher
 Heaven Blossom
@@ -1424,7 +1359,6 @@ Heavily Rusted Shield
 Heavy Mace
 Heavy Machete
 Heavy Magic Missile Rune
-Heavy Magic Missile Rune (Weak)
 Heavy Metal T-Shirt
 Heavy Old Tome
 Heavy Package
@@ -1434,11 +1368,11 @@ Hellforged Axe
 Hellhound Slobber
 Hellspawn Tail
 Helmet Adornment
-Helmet of Nature
-Helmet of the Lost
-Helmet of Ultimate Terror
 Helmet Ornament
 Helmet Piece
+Helmet of Nature
+Helmet of Ultimate Terror
+Helmet of the Lost
 Hemp Rope
 Heroic Axe
 Hexagonal Ruby
@@ -1456,7 +1390,6 @@ Holy Ash
 Holy Falcon
 Holy Icon
 Holy Missile Rune
-Holy Missile Rune (Weak)
 Holy Orchid
 Holy Resilience
 Holy Scarab
@@ -1464,7 +1397,7 @@ Holy Soil
 Honey Flower
 Honeycomb
 Hook
-Horn (Ring)
+Horn
 Horned Helmet
 Horoscope
 Horseman Helmet
@@ -1482,8 +1415,8 @@ Hydra Head
 Hydra Tongue
 Hydra Tongue Salad
 Ice Amplification
-Ice Cream Cone (Sprinkles)
-Ice Flower (Item)
+Ice Cream Cone
+Ice Flower
 Ice Flower Seeds
 Ice Hatchet
 Ice Mammoth
@@ -1492,10 +1425,9 @@ Ice Rapier
 Ice Resilience
 Ice Shield
 Iced Soil
-Icicle (Percht)
+Icicle
 Icicle Bow
 Icicle Rune
-Icicle Rune (Weak)
 Icy Barbarian Axe Replica
 Icy Blacksteel Replica
 Icy Clerical Mace Replica
@@ -1525,12 +1457,10 @@ Infernal Bolt
 Infernal Heart
 Infernal Robe
 Inkwell
-Inkwell (Black)
 Insectoid Eggs
 Instable Proto Matter
 Intelligence Reports
-Intense Healing Rune (Item Weak)
-Intense Healing Rune (Item)
+Intense Healing Rune
 Interdimensional Potion
 Interwoven Moss Florets
 Invitation
@@ -1565,7 +1495,6 @@ Jester Doll
 Jester Hat
 Jester Staff
 Jewel Case
-Jewel Case (Nomad)
 Jewelled Backpack
 Jewelled Belt
 Jug of Embalming Fluid
@@ -1578,7 +1507,7 @@ Jungle Rod
 Jungle Wand
 Katana
 Katex' Blood
-Key of Numerous Locks (Replica)
+Key of Numerous Locks
 Key to Knowledge
 Key to the Drowned Library
 Kitchen Knife
@@ -1636,7 +1565,6 @@ Life Preserver
 Life Ring
 Light Mace
 Light Magic Missile Rune
-Light Magic Missile Rune (Weak)
 Light Shovel
 Lightning Boots
 Lightning Headband
@@ -1779,7 +1707,7 @@ Mechanical Fishing Rod
 Medal of Valiance
 Medicine Pouch
 Medusa Shield
-Medusa Skull (Replica)
+Medusa Skull
 Megalomania's Essence
 Megalomania's Skull
 Melon
@@ -1804,7 +1732,6 @@ Mighty Helm of Green Sparks
 Mind Stone
 Mini Mummy
 Mining Helmet
-Mining Helmet (Budrik)
 Mino Lance
 Mino Shield
 Minor Crystalline Token
@@ -1853,11 +1780,7 @@ Mushroom Backpack
 Mushroom Pie
 Mushroom Spores
 Music Box
-Music Box (Replica)
-Music Sheet (First Verse)
-Music Sheet (Fourth Verse)
-Music Sheet (Second Verse)
-Music Sheet (Third Verse)
+Music Sheet
 Musician's Bow
 Mutant Bone Boots
 Mutant Bone Kilt
@@ -1897,7 +1820,6 @@ Necromantic Robe
 Necromantic Rust
 Necrotic Rod
 Net
-Net (Fishing)
 Nettle Blossom
 Nettle Spit
 Neutral Matter
@@ -1911,11 +1833,11 @@ Noble Amulet
 Noble Armor
 Noble Axe
 Noble Cape
-Noble Sword (Replica)
+Noble Sword
 Noble Turban
 Nomad Parchment
 Norse Shield
-Norseman Doll (Replica)
+Norseman Doll
 Northern Fishburger
 Northern Pike
 Northern Star
@@ -1944,7 +1866,6 @@ Ogre Klubba
 Ogre Nose Ring
 Ogre Scepta
 Oil Lamp
-Old and Used Backpack
 Old Cape
 Old Encrypted Text
 Old Girtablilu Carapace
@@ -1954,6 +1875,7 @@ Old Pirate Poem
 Old Power Core
 Old Rag
 Old Royal Diary
+Old and Used Backpack
 Ominous Piece of Cloth
 One Hit Wonder
 Onion
@@ -1975,7 +1897,7 @@ Orc Leather
 Orc Tooth
 Orc Trophy
 Orc Tusk
-Orc's Jaw Shredder (Replica)
+Orc's Jaw Shredder
 Orcish Axe
 Orcish Gear
 Orcish Maul
@@ -2036,17 +1958,10 @@ Panther Head
 Panther Paw
 Paralyse Rune
 Parcel
-Parcel (Watchtower)
-Part of a Rune (Five)
-Part of a Rune (Four)
-Part of a Rune (One)
-Part of a Rune (Six)
-Part of a Rune (Three)
-Part of a Rune (Two)
+Part of a Rune
 Party Cake
 Party Hat
-Party Lampions (Green)
-Party Lampions (Red)
+Party Lampions
 Party Wall Snake
 Party Wall Tinsel
 Patch of Fine Cloth
@@ -2075,14 +1990,12 @@ Pharaoh Sword
 Phoenix Charm
 Phoenix Egg
 Phoenix Shield
-Phoenix Statue (Replica)
+Phoenix Statue
 Physical Amplification
 Physical Resilience
 Piano Kit
 Pick
-Picture (Landscape)
-Picture (Portrait)
-Picture (Still Life)
+Picture
 Piece of Archer Armor
 Piece of Cactus
 Piece of Crocodile Leather
@@ -2158,13 +2071,13 @@ Plate Legs
 Plate Shield
 Platinum Amulet
 Plum
-Plushie of a Deepling
-Plushie of a Hydra
 Plushie of Devovorga
 Plushie of Gaz'Haragoth
 Plushie of King Tibianus
 Plushie of Lavaworm
 Plushie of Tentugly
+Plushie of a Deepling
+Plushie of a Hydra
 Poem Scroll
 Poet's Fencing Quill
 Pointed Rabbitslayer
@@ -2296,7 +2209,6 @@ Rerun's Ring
 Research Notes
 Resizer
 Resonance Crystal
-Resonance Crystal (Recorded)
 Reward Box
 Rhindeer Antlers
 Rhino Hide
@@ -2316,9 +2228,8 @@ Ring of Green Plasma
 Ring of Healing
 Ring of Red Plasma
 Ring of Souls
-Ring of Souls (Depleted)
-Ring of the Sky
 Ring of Wishes
+Ring of the Sky
 Ripper Lance
 Ritual Scissors
 Ritual Tooth
@@ -2328,7 +2239,7 @@ Robe of the Ice Queen
 Robe of the Underworld
 Rocking Chair Kit
 Rocking Horse Kit
-Rod (Creature Product)
+Rod
 Rod of Carving
 Rod of Destruction
 Rod of Mayhem
@@ -2410,16 +2321,14 @@ Scarab Coin
 Scarab Pincers
 Scarab Shield
 Scarf
-Sceptre Part (Cusp)
-Sceptre Part (Emerald)
-Sceptre Part (Shaft)
+Sceptre Part
 Scimitar
 Scorpion Charm
 Scorpion Sceptre
 Scorpion Tail
 Screaming Cherry
 Scribbled Sheet of Paper
-Scroll (TBI)
+Scroll
 Scroll of Ascension
 Scroll of Heroic Deeds
 Scrubbing Brush
@@ -2433,9 +2342,7 @@ Sea Serpent Trophy
 Seacrest Hair
 Seacrest Pearl
 Seacrest Scale
-Seashell Book (Blue)
-Seashell Book (Green)
-Seashell Book (Yellow)
+Seashell Book
 Secret Letter
 Sedge Hat
 Seeds
@@ -2457,7 +2364,7 @@ Shapechanger
 Shapeshifter Ring
 Shard
 Shark Fins
-Shell (Item)
+Shell
 Shield of Care
 Shield of Corruption
 Shield of Honour
@@ -2497,30 +2404,7 @@ Silver Mace
 Silver Necklace
 Silver Prison Key
 Silver Raid Token
-Silver Rune Emblem (Animate Dead)
-Silver Rune Emblem (Avalanche)
-Silver Rune Emblem (Chameleon)
-Silver Rune Emblem (Destroy Field)
-Silver Rune Emblem (Disintegrate)
-Silver Rune Emblem (Energy Bomb)
-Silver Rune Emblem (Energy Wall)
-Silver Rune Emblem (Explosion)
-Silver Rune Emblem (Fire Field)
-Silver Rune Emblem (Fireball)
-Silver Rune Emblem (Firebomb)
-Silver Rune Emblem (Great Fireball)
-Silver Rune Emblem (Heavy Magic Missile)
-Silver Rune Emblem (Holy Missile)
-Silver Rune Emblem (Icicle)
-Silver Rune Emblem (Light Magic Missile)
-Silver Rune Emblem (Magic Wall)
-Silver Rune Emblem (Paralyze)
-Silver Rune Emblem (Poison Bomb)
-Silver Rune Emblem (Soulfire)
-Silver Rune Emblem (Sudden Death)
-Silver Rune Emblem (Thunderstorm)
-Silver Rune Emblem (Ultimate Healing)
-Silver Rune Emblem (Wild Growth)
+Silver Rune Emblem
 Silver Token
 Simple Arrow
 Simple Dress
@@ -2528,14 +2412,14 @@ Simple Fanfare
 Single Human Eye
 Siramal's Golden Bug Trophy
 Skeleton Decoration
-Skull (Item)
+Skull
 Skull Belt
 Skull Fetish
 Skull Helmet
-Skull of a Caveman
-Skull of Ratha
 Skull Shatterer
 Skull Staff
+Skull of Ratha
+Skull of a Caveman
 Skullcracker Armor
 Skullcrusher
 Skunk Tail
@@ -2571,8 +2455,7 @@ Small Flask of Eyedrops
 Small Golden Anchor
 Small Green Pillow
 Small Health Potion
-Small Ice Statue (Bird)
-Small Ice Statue (Fish)
+Small Ice Statue
 Small Ladybug
 Small Lamp
 Small Notebook
@@ -2599,7 +2482,6 @@ Snake Sceptre
 Snake Skin
 Snakebite Rod
 Sneaky Stabber of Eliteness
-Sneaky Stabber of Eliteness (Jammed)
 Sniper Arrow
 Sniper Gloves
 Snow Flake Tapestry
@@ -2615,7 +2497,6 @@ Solitude Charm
 Some Golden Fruits
 Some Grimeleech Wings
 Some Mushrooms
-Some Mushrooms (Brown)
 Some Special Leaves
 Soul Contract
 Soul Net
@@ -2626,7 +2507,7 @@ Soulbiter
 Soulbleeder
 Soulcrusher
 Soulcutter
-Souleater (Axe)
+Souleater
 Souleater Trophy
 Soulfire Rune
 Soulful Legs
@@ -2647,12 +2528,7 @@ Sparkion Legs
 Sparkion Stings
 Sparkion Tail
 Spear
-Special Flask (Fools Guild)
-Special Flask (Holy Water)
-Special Flask (Padreia)
-Special Flask (Quara)
-Special Flask (Slime)
-Special Flask (Stalker)
+Special Flask
 Special Polish
 Spectral Bolt
 Spectral Cloth
@@ -2665,7 +2541,6 @@ Spectral Scrap of Cloth
 Spectral Silver Nugget
 Spectral Stone
 Spellbook
-Spellbook (Alternative)
 Spellbook of Ancient Arcana
 Spellbook of Dark Mysteries
 Spellbook of Enlightenment
@@ -2709,13 +2584,10 @@ Spying Eye
 Spyreport
 Square Table Kit
 Squeezing Gear of Girlpower
-Squeezing Gear of Girlpower (Jammed)
 Srezz' Eye
 Stabilizer
 Staff
-Staff (Simon)
 Stalagmite Rune
-Stalagmite Rune (Weak)
 Stale Bread of Ancientness
 Stamina Extension
 Stamped Parcel
@@ -2724,7 +2596,7 @@ Stampor Talons
 Star Amulet
 Star Herb
 Star Ring
-Starfish (Item)
+Starfish
 Starlight Vial
 Statue of Abyssador
 Statue of Deathstrike
@@ -2740,13 +2612,12 @@ Stockfish
 Stolen Golden Goblet
 Stone Herb
 Stone Nose
-Stone of Insight
-Stone of Wisdom
 Stone Shower Rune
-Stone Shower Rune (Weak)
 Stone Skin Amulet
 Stone Table Kit
 Stone Wing
+Stone of Insight
+Stone of Wisdom
 Stonecutter Axe
 Stonerefiner's Skull
 Strand of Medusa Hair
@@ -2777,7 +2648,6 @@ Stuffed Bunny
 Stuffed Toad
 Sturdy Book
 Sudden Death Rune
-Sudden Death Rune (Weak)
 Sugar Oat
 Sulphurous Demonbone
 Sulphurous Stone
@@ -2789,9 +2659,7 @@ Sun Medal
 Sun Mirror
 Sunray Emblem
 Supreme Health Potion
-Surprise Bag (Blue)
-Surprise Bag (Red)
-Surprise Bag (Yellow)
+Surprise Bag
 Surprise Cube
 Surprise Jar
 Surprise Nest
@@ -2806,9 +2674,9 @@ Swampling Moss
 Swan Feather
 Swan Feather Cloak
 Swarmer Antenna
-Sweet and Sugary Substance
 Sweet Mangonaise Elixir
 Sweet Smelling Bait
+Sweet and Sugary Substance
 Sweetheart Ring
 Sword
 Sword Ring
@@ -2838,8 +2706,8 @@ Telescope Eye
 Telescope Kit
 Tempest Shield
 Templar Scytheblade
-Tentacle of Tentugly
 Tentacle Piece
+Tentacle of Tentugly
 Tentugly's Eye
 Tentugly's Jaws
 Terra Amulet
@@ -2860,8 +2728,7 @@ The Avenger
 The Calamity
 The Carrot of Doom
 The Cobra Amulet
-The Crown of the Percht Queen (Fire)
-The Crown of the Percht Queen (Ice)
+The Crown of the Percht Queen
 The Devileye
 The Dust of Arthei
 The Dust of Boreth
@@ -2880,7 +2747,7 @@ The Lethal Lissy's Shirt
 The Lion's Heart
 The Lower Left Part of a Map
 The Lower Right Part of a Map
-The Mexcalibur (Replica)
+The Mexcalibur
 The Plasmother's Remains
 The Regalia of Suon
 The Ring of the Count
@@ -2909,7 +2776,6 @@ Thunderheart Platemail
 Thundermind Raiment
 Thundersoul Tabard
 Thunderstorm Rune
-Thunderstorm Rune (Weak)
 Tiara
 Tiara of Power
 Tibia Coins
@@ -2941,9 +2807,8 @@ Trap
 Trapped Bad Dream Monster
 Trapped Lightning
 Treader of Torment
-Treasure Chest (Item)
-Treasure Chest (Ornamented)
-Treasure Map (Pirate)
+Treasure Chest
+Treasure Map
 Tremendous Tyrant Head
 Tremendous Tyrant Shell
 Tribal Crest
@@ -2951,11 +2816,11 @@ Tribal Mask
 Triple Bolt Crossbow
 Troll Green
 Trollroot
+Trophy Stand
 Trophy of Feroxa
 Trophy of Jaul
 Trophy of Obujos
 Trophy of Tanjis
-Trophy Stand
 Tropical Fried Terrorbird
 Trough Kit
 Trousers of the Ancients
@@ -2981,8 +2846,7 @@ Twin Axe
 Twin Hooks
 Twin Sun Charm
 Two Handed Sword
-Ultimate Healing Rune (Item Weak)
-Ultimate Healing Rune (Item)
+Ultimate Healing Rune
 Ultimate Health Potion
 Ultimate Mana Potion
 Ultimate Spirit Potion
@@ -3089,9 +2953,7 @@ Voluminous Piece of Cloth
 Vortex Bolt
 Wailing Widow's Necklace
 Waldo's Post Horn
-Wall Mirror (Edged)
-Wall Mirror (Oval)
-Wall Mirror (Round)
+Wall Mirror
 Walnut
 Wand of Carving
 Wand of Cosmic Energy
@@ -3124,17 +2986,14 @@ Waspoid Claw
 Waspoid Wing
 Watch
 Water Pipe
-Water Pipe (Deluxe)
 Waterball
 Watering Can
-Watermelon Tourmaline (Pear)
-Watermelon Tourmaline (Slice)
+Watermelon Tourmaline
 Waterskin
 Wealth Duplex
 Weapon Matrix Crystal
 Weapon Rack Kit
 Weapons Crate
-Weapons Crate (Set)
 Weaver's Wandtip
 Wedding Outfit Box
 Wedding Ring
@@ -3158,7 +3017,6 @@ Werewolf Fangs
 Werewolf Fur
 Werewolf Helmet
 Whacking Driller of Fate
-Whacking Driller of Fate (Jammed)
 Whisper Moss
 White Deer Antlers
 White Deer Skin
@@ -3196,7 +3054,6 @@ Withered Scalp
 Wolf Backpack
 Wolf Paw
 Wolf Tooth Chain
-Wolf Tooth Chain (Ceiron)
 Wolf Trophy
 Wood
 Wood Cape
@@ -3237,7 +3094,6 @@ Yellow Fireworks Rocket
 Yellow Gem
 Yellow Piece of Cloth
 Yellow Pillow
-Yellow Pillow (Supersoft)
 Yellow Powder
 Yellow Rose
 Yellow Tapestry
