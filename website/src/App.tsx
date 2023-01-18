@@ -29,19 +29,19 @@ function doesDataMatchFilter(dataObject: any){
     return false;
   } 
 
-  if(maxBuyFilter > 0 && dataObject["BuyPrice"] > maxBuyFilter){
+  if(maxBuyFilter > 0 && dataObject["BuyPriceValue"] > maxBuyFilter){
     return false;
   }
 
-  if(dataObject["BuyPrice"] < minBuyFilter){
+  if(dataObject["BuyPriceValue"] < minBuyFilter){
     return false;
   }
 
-  if(Math.min(dataObject["Sold"], dataObject["Bought"]) < minTradesFilter){
+  if(Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) < minTradesFilter){
     return false;
   }
 
-  if(maxTradesFilter > 0 && Math.min(dataObject["Sold"], dataObject["Bought"]) > maxTradesFilter){
+  if(maxTradesFilter > 0 && Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) > maxTradesFilter){
     return false;
   }
 
@@ -57,7 +57,9 @@ function addDataRow(data: string){
 
   var columnData: string[] = data.split(",");
   for(var j = 0; j < columnData.length; j++){
-    dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? columnData[j] : +columnData[j];
+    // Keep dataValue for sorting by localised number.
+    dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? columnData[j] : (+columnData[j]).toLocaleString();
+    dataObject[`${columns[j]["dataIndex"]}Value`] = columns[j]["dataIndex"] == "Name" ? columnData[j] : +columnData[j];
   }
 
   if(!doesDataMatchFilter(dataObject)) 
@@ -74,8 +76,9 @@ function setDataColumns(header: string){
     dataIndex: column,
     width: 100,
     sorter: (a: any, b: any) => {
-      var valA = a[column];
-      var valB = b[column];
+      // Sort by original value, not modified expression.
+      var valA = a[`${column}Value`];
+      var valB = b[`${column}Value`];
 
       return valA > valB ? 1 : valA == valB ? 0 : -1;
     },
@@ -208,10 +211,10 @@ const App: React.FC = () => {
               Filters
             </Title>
           <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input><br/><br/>
-          <InputNumber placeholder='Minimum buy price' type='number' onChange={(e) => setMinBuyFilter(e)}></InputNumber>
-          <InputNumber placeholder='Maximum buy price' type='number' onChange={(e) => setMaxBuyFilter(e)}></InputNumber><br/><br/>
-          <InputNumber placeholder='Minimum flips/month' type='number' onChange={(e) => setMinTradesFilter(e)}></InputNumber>
-          <InputNumber placeholder='Maximum flips/month' type='number' onChange={(e) => setMaxTradesFilter(e)}></InputNumber><br/><br/>
+          <InputNumber placeholder='Minimum buy price' onChange={(e) => setMinBuyFilter(e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <InputNumber placeholder='Maximum buy price' onChange={(e) => setMaxBuyFilter(e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
+          <InputNumber placeholder='Minimum flips/month' onChange={(e) => setMinTradesFilter(e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <InputNumber placeholder='Maximum flips/month' onChange={(e) => setMaxTradesFilter(e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
 
           <Button id='search-button' style={{marginTop: '5%'}} onClick={fetchData} loading={isLoading}>
             Search
@@ -239,7 +242,7 @@ const App: React.FC = () => {
               <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString()}/>
               <YAxis />
               <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-              <Tooltip labelFormatter={(date) => new Date(date * 1000).toLocaleString()}></Tooltip>
+              <Tooltip labelFormatter={(date) => new Date(date * 1000).toLocaleString()} formatter={(x) => x.toLocaleString()}></Tooltip>
               <Line dataKey="buyOffer" stroke="#8884d8" />
               <Line dataKey="sellOffer" stroke="#82ca9d" />
             </LineChart>
