@@ -11,7 +11,7 @@ def take_screenshot(left, top, width, height) -> Image.Image:
     """
     return ImageGrab.grab((left, top, left + width, top + height))
 
-def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = None, invert = True) -> Image.Image:
+def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = None, invert = True, rescale_factor: int = 1) -> Image.Image:
     """
     Converts the image into a more AI readable format. The endresult can be seen under selection_showcase.png and ai_image_input.png.
     relative_box in this format (relative_left, relative_top, relative_width, relative_height).
@@ -29,6 +29,11 @@ def process_image(image: Image.Image, relative_box: Tuple[int, int, int, int] = 
     image.save("selection_showcase.png")
 
     img = np.asarray(cropped_image, dtype="uint8")
+
+    # Bigger images yield better accuracy with tesseract. Use this if OCR is yielding nonsense.
+    if rescale_factor > 0 and rescale_factor != 1: 
+        y, x = len(img), len(img[0])
+        img = cv2.resize(img, [int(x * rescale_factor), int(y * rescale_factor)], interpolation = cv2.INTER_CUBIC)
     img = cv2.threshold(img, 128, 255, (cv2.THRESH_BINARY_INV if invert else cv2.THRESH_BINARY) | cv2.THRESH_OTSU)
     
     # Force black text on white background.

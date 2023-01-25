@@ -78,19 +78,19 @@ def do_market_search(email: str, password: str, tibia_location: str, results_loc
 
     afk_time = time.time()
     client.open_market()
-
+    
     fullscan_mode = "w"
     scanned_items = 0
     if os.path.exists(os.path.join(results_location, "fullscan_tmp.csv")):
         with open(os.path.join(results_location, "fullscan_tmp.csv"), "r") as f:
             print("Previous run aborted, continuing where stopped.")
-            scanned_items = len(f.readlines()) - 2 # Don't count header, don't count empty line at end.
+            scanned_items = len(f.readlines()) - 1 # Don't count header.
             fullscan_mode = "a+"
 
     with open("tracked_items.txt", "r") as t:
         with open(os.path.join(results_location, "fullscan_tmp.csv"), fullscan_mode) as f:
             if scanned_items == 0:
-                f.write("Name,SellPrice,BuyPrice,AvgSellPrice,AvgBuyPrice,Sold,Bought,Profit,RelProfit,PotProfit\n")
+                f.write("Name,SellPrice,BuyPrice,AvgSellPrice,AvgBuyPrice,Sold,Bought,Profit,RelProfit,PotProfit,ApproxOffers\n")
                 
             for i, item in enumerate(t.readlines()):
                 if i + 1 < scanned_items or not item:
@@ -142,11 +142,12 @@ if __name__ == "__main__":
 
     turn_off_display()
     
-    schedule.every().day.at("10:30:00").do(lambda: observe_items(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
+    #schedule.every().day.at("10:15:00").do(lambda: observe_items(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
+    #observe_items(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"])
     #do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"])
 
-    #schedule.every().day.at("18:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
-    #schedule.every().day.at("06:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
+    schedule.every().day.at("18:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
+    schedule.every().day.at("06:00:00").do(lambda: do_market_search(config["email"], config["password"], config["tibiaLocation"], config["resultsLocation"]))
     
     while True:
         schedule.run_pending()

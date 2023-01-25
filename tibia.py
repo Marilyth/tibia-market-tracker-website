@@ -4,10 +4,11 @@ import time
 from typing import *
 import screenshot
 import requests
+from datetime import datetime, timedelta
 
 
 class MarketValues:
-    def __init__(self, name: str, time: float, sell_offer: int, buy_offer: int, month_sell_offer: int, month_buy_offer: int, sold: int, bought: int, highest_sell: int, lowest_buy: int):
+    def __init__(self, name: str, time: float, sell_offer: int, buy_offer: int, month_sell_offer: int, month_buy_offer: int, sold: int, bought: int, highest_sell: int, lowest_buy: int, approx_offers: int):
         self.buy_offer: int = max(buy_offer, lowest_buy)
         self.sell_offer: int = max(min(sell_offer, highest_sell), self.buy_offer) if sold > 0 else sell_offer
         self.month_sell_offer: int = month_sell_offer
@@ -17,10 +18,11 @@ class MarketValues:
         self.profit: int = self.sell_offer - self.buy_offer
         self.rel_profit: float = round(self.profit / self.buy_offer, 2) if self.buy_offer > 0 else 0
         self.potential_profit: int = self.profit * min(sold, bought)
+        self.approx_offers: int = approx_offers
         self.name = name
 
     def __str__(self) -> str:
-        return f"{self.name.lower()},{self.sell_offer},{self.buy_offer},{self.month_sell_offer},{self.month_buy_offer},{self.sold},{self.bought},{self.profit},{self.rel_profit},{self.potential_profit}"
+        return f"{self.name.lower()},{self.sell_offer},{self.buy_offer},{self.month_sell_offer},{self.month_buy_offer},{self.sold},{self.bought},{self.profit},{self.rel_profit},{self.potential_profit},{self.approx_offers}"
 
 
 class Wiki:
@@ -172,27 +174,67 @@ class Client:
 
                 sell_offer = int(interpreted_sell_offer) if interpreted_sell_offer.isnumeric() else -1
                 buy_offer = int(interpreted_buy_offer) if interpreted_buy_offer.isnumeric() else -1
+                
+                sellers = self.get_traders_per_day() if sell_offer > 0 else 0
+                buyers = self.get_traders_per_day(False) if buy_offer > 0 else 0
 
-                return buy_offer, sell_offer
+                return buy_offer, sell_offer, max([sellers, buyers])
 
             if self.market_tab == "offers":
-                buy_offer, sell_offer = scan_offers()
+                buy_offer, sell_offer, approx_offers = scan_offers()
                 self._wait_until_find("images/Details.png", click=True)
                 interpreted_statistics = scan_details()
                 self.market_tab = "details"
             else:
                 interpreted_statistics = scan_details()
                 self._wait_until_find("images/OffersButton.png", click=True)
-                buy_offer, sell_offer = scan_offers()
+                buy_offer, sell_offer, approx_offers = scan_offers()
                 self.market_tab = "offers"
 
-            values = MarketValues(name, time.time(), sell_offer, buy_offer, int(interpreted_statistics[6]), int(interpreted_statistics[2]), int(interpreted_statistics[4]), int(interpreted_statistics[0]), int(interpreted_statistics[5]), int(interpreted_statistics[3]))
+            values = MarketValues(name, time.time(), sell_offer, buy_offer, int(interpreted_statistics[6]), int(interpreted_statistics[2]), int(interpreted_statistics[4]), int(interpreted_statistics[0]), int(interpreted_statistics[5]), int(interpreted_statistics[3]), approx_offers)
+
             return values
         except pyautogui.FailSafeException as e:
             exit(1)
         except Exception as e:
             print(f"Market search failed for {name}: {e}")
-            return MarketValues(name, time.time(), -1, -1, -1, -1, -1, -1, -1, -1)
+            return MarketValues(name, time.time(), -1, -1, -1, -1, -1, -1, -1, -1, -1)
+
+    def get_traders_per_day(self, sell_offers: bool = True) -> int:
+        """
+        Reads the "Ends At" column of the market window and approximates the amount of traders per day.
+        """
+        if "images/EndsAt.png" not in self.position_cache:
+            self.position_cache["images/EndsAt.png"] = list(pyautogui.locateAllOnScreen("images/EndsAt.png"))
+
+        statistics = self.position_cache["images/EndsAt.png"][0 if sell_offers else 1]
+        interpreted_dates = screenshot.read_image_text(screenshot.process_image(screenshot.take_screenshot(statistics.left, statistics.top + statistics.height + 3, statistics.width, statistics.height * 8), rescale_factor=4), char_white_list="0123456789-,:")\
+            .replace(" ", "").splitlines()
+        
+        now = datetime.now() + timedelta(30)
+        dates = []
+        for line in interpreted_dates:
+            if len(line) == 19:
+                dates.append(datetime.strptime(line, "%Y-%m-%d,%H:%M:%S"))
+        
+        # Only take offers of the past day.
+        dates = [date for date in dates if (now - date).days < 1]
+
+        if not dates:
+            return 0
+
+        approx_offers = len(dates)
+
+        if len(dates) >= 6:
+            # We would have to scroll to get all of todays offers.
+            # Approximate instead.
+            lowest_date = min(dates)
+
+            # Linearly extrapolate trade offers per day.
+            hours_between = (now - lowest_date).total_seconds() / 3600
+            approx_offers = (24 / hours_between) * len(dates)
+
+        return int(approx_offers)
 
     def close_market(self):
         """
