@@ -215,7 +215,10 @@ class Client:
         dates = []
         for line in interpreted_dates:
             if len(line) == 19:
-                dates.append(datetime.strptime(line, "%Y-%m-%d,%H:%M:%S"))
+                try:
+                    dates.append(datetime.strptime(line, "%Y-%m-%d,%H:%M:%S"))
+                except Exception as e:
+                    print(f"Failed date parsing, skipping value: {e}")
         
         # Only take offers of the past day.
         dates = [date for date in dates if (now - date).days < 1]
