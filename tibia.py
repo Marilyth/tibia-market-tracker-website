@@ -242,11 +242,20 @@ class Client:
     def close_market(self):
         """
         Closes the market window using the escape hotkey.
+        Also clears the cache to avoid clicking before the market opens.
         """
         pyautogui.press("escape")
         time.sleep(0.1)
         pyautogui.press("escape")
         time.sleep(0.1)
+        self.clear_cache()
+
+    def clear_cache(self):
+        """
+        Clears the position cache.
+        Use this to avoid clicking on places that aren't yet loaded.
+        """
+        self.position_cache = {}
 
     def wiggle(self):
         """
