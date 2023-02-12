@@ -1,6 +1,6 @@
 import React, { useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal} from 'antd';
+import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal } from 'antd';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip} from 'recharts';
 import './App.css';
 import {
@@ -24,12 +24,11 @@ class HistoryData{
 }
 
 class WeekdayData{
-  private totalOffers: number = 0;
-  private totalBuyPrice: number = 0;
-  private totalSellPrice: number = 0;
+  private buyOffers: number[] = [];
+  private sellOffers: number[] = [];
   public static weekdays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  public avgBuyOffer: number = 0;
-  public avgSellOffer: number = 0;
+  public medianBuyOffer: number = 0;
+  public medianSellOffer: number = 0;
 
   weekday: number;
 
@@ -41,11 +40,10 @@ class WeekdayData{
    * Adds the prices to the weekday and recalculates the average.
    */
   public addOffer(buyPrice: number, sellPrice: number) {
-    this.totalOffers += 1;
-    this.totalBuyPrice += buyPrice;
-    this.totalSellPrice += sellPrice;
-    this.avgBuyOffer = this.totalBuyPrice / this.totalOffers;
-    this.avgSellOffer = this.totalSellPrice / this.totalOffers;
+    this.buyOffers.push(buyPrice);
+    this.sellOffers.push(sellPrice);
+    this.medianBuyOffer = this.buyOffers[Math.trunc(this.buyOffers.length / 2)];
+    this.medianSellOffer = this.sellOffers[Math.trunc(this.sellOffers.length / 2)];
   }
 }
 
@@ -280,8 +278,8 @@ const App: React.FC = () => {
               <BarChart data={modalWeekdayHistory}>
                 <XAxis dataKey="weekday" tickFormatter={(day) => WeekdayData.weekdays[day]}/>
                 <YAxis />
-                <Bar dataKey="avgSellOffer" barSize={30} fill="#82ca9d"/>
-                <Bar dataKey="avgBuyOffer" barSize={30} fill="#8884d8"/>
+                <Bar dataKey="medianSellOffer" barSize={30} fill="#82ca9d"/>
+                <Bar dataKey="medianBuyOffer" barSize={30} fill="#8884d8"/>
                 <Tooltip cursor={{fill: '#00000011'}} labelFormatter={(day) => WeekdayData.weekdays[day]} formatter={(x) => x.toLocaleString()}></Tooltip>
               </BarChart>
             </ResponsiveContainer>
