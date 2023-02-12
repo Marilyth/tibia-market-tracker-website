@@ -1,7 +1,7 @@
 import React, { useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal} from 'antd';
-import {LineChart , XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip} from 'recharts';
+import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip} from 'recharts';
 import './App.css';
 import {
   MenuFoldOutlined,
@@ -20,6 +20,32 @@ class HistoryData{
     this.buyOffer = buy;
     this.sellOffer = sell;
     this.time = time;
+  }
+}
+
+class WeekdayData{
+  private totalOffers: number = 0;
+  private totalBuyPrice: number = 0;
+  private totalSellPrice: number = 0;
+  public static weekdays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  public avgBuyOffer: number = 0;
+  public avgSellOffer: number = 0;
+
+  weekday: number;
+
+  constructor(weekday: number){
+    this.weekday = weekday;
+  }
+
+  /**
+   * Adds the prices to the weekday and recalculates the average.
+   */
+  public addOffer(buyPrice: number, sellPrice: number) {
+    this.totalOffers += 1;
+    this.totalBuyPrice += buyPrice;
+    this.totalSellPrice += sellPrice;
+    this.avgBuyOffer = this.totalBuyPrice / this.totalOffers;
+    this.avgSellOffer = this.totalSellPrice / this.totalOffers;
   }
 }
 
@@ -140,16 +166,26 @@ const App: React.FC = () => {
     });
 
     var graphData: HistoryData[] = []
+    var weekdayData: WeekdayData[] = []
+    for(var i = 0; i < 7; i++){
+      weekdayData.push(new WeekdayData(i));
+    }
 
     var data = items.split("\n");
     for(var i = 0; i < data.length; i++){
       var values = data[i].split(",");
 
-      if(values.length > 1 && !data[i].includes(",-1"))
-        graphData.push(new HistoryData(+values[2], +values[1], +values[values.length - 1]));
+      if(values.length > 1 && !data[i].includes(",-1")){
+        var historyData = new HistoryData(+values[2], +values[1], +values[values.length - 1]);
+        graphData.push(historyData);
+
+        var date: number = new Date(historyData.time * 1000).getDay();
+        weekdayData[date].addOffer(historyData.buyOffer, historyData.sellOffer);
+      }
     }
 
     setModalPriceHistory(graphData);
+    setmodalWeekdayHistory(weekdayData);
   }
 
   var [dataSource, setDataSource] = useState<any[]>([]);
@@ -164,8 +200,12 @@ const App: React.FC = () => {
   var [maxOffersFilter, setMaxOffersFilter] = useState(0);
   var [modalTitle, setModalTitle] = useState("");
   var [modalPriceHistory, setModalPriceHistory] = useState<HistoryData[]>([]);
+  var [modalWeekdayHistory, setmodalWeekdayHistory] = useState<WeekdayData[]>([]);
   var [isModalOpen, setIsModalOpen] = useState(false);
   var [collapsed, setCollapsed] = useState(false);
+
+  var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
+  var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
 
   return (
   <ConfigProvider
@@ -225,22 +265,31 @@ const App: React.FC = () => {
             onCancel={() => setIsModalOpen(false)}
             width='50%'
           >
-            Price history<br/>
-            <ResponsiveContainer  width='100%' aspect={16/9}>
-            <LineChart data={modalPriceHistory}>
-              <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString()}/>
-              <YAxis />
-              <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-              <Tooltip labelFormatter={(date) => new Date(date * 1000).toLocaleString()} formatter={(x) => x.toLocaleString()}></Tooltip>
-              <Line type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
-              <Line type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
-            </LineChart>
+            <ResponsiveContainer width='100%' height={200}>
+              <LineChart data={modalPriceHistory}>
+                <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
+                <YAxis />
+                <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
+                <Tooltip labelFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)} formatter={(x) => x.toLocaleString()}></Tooltip>
+                <Line type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
+                <Line type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+
+            <ResponsiveContainer width='100%' height={200}>
+              <BarChart data={modalWeekdayHistory}>
+                <XAxis dataKey="weekday" tickFormatter={(day) => WeekdayData.weekdays[day]}/>
+                <YAxis />
+                <Bar dataKey="avgSellOffer" barSize={30} fill="#82ca9d"/>
+                <Bar dataKey="avgBuyOffer" barSize={30} fill="#8884d8"/>
+                <Tooltip cursor={{fill: '#00000011'}} labelFormatter={(day) => WeekdayData.weekdays[day]} formatter={(x) => x.toLocaleString()}></Tooltip>
+              </BarChart>
             </ResponsiveContainer>
             
           </Modal>
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} scroll={{y:'83vh'}} onRow={(record, rowIndex) => {
               return {
-                onClick: (event) => {setModalTitle(record["Name"]); fetchPriceHistory(record["Name"]); setIsModalOpen(true);}
+                onClick: (event) => {setModalTitle("price history: " + record["Name"]); fetchPriceHistory(record["Name"]); setIsModalOpen(true);}
               };
             }}>
         </Table>
