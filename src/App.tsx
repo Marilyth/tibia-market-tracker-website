@@ -10,16 +10,19 @@ import {
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
+var events: { [date: string]: string[]} = {}
 
 class HistoryData{
   buyOffer: number;
   sellOffer: number;
   time: number;
+  events: string[];
 
-  constructor(buy: number, sell: number, time: number){
+  constructor(buy: number, sell: number, time: number, events: string[]){
     this.buyOffer = buy;
     this.sellOffer = sell;
     this.time = time;
+    this.events = events;
   }
 }
 
@@ -45,6 +48,13 @@ class WeekdayData{
     this.medianBuyOffer = this.buyOffers.sort()[Math.trunc(this.buyOffers.length / 2)];
     this.medianSellOffer = this.sellOffers.sort()[Math.trunc(this.sellOffers.length / 2)];
   }
+}
+
+function timestampToEvents(unixTimestamp: number){
+  var dateTime: Date = new Date(unixTimestamp * 1000);
+  var dateKey = `${dateTime.getUTCFullYear()}.${(dateTime.getUTCMonth() + 1).toString().padStart(2, "0")}.${(dateTime.getUTCDate() + 1).toString().padStart(2, "0")}`;
+
+  return dateKey in events ? events[dateKey] : [];
 }
 
 const App: React.FC = () => {
@@ -148,7 +158,33 @@ const App: React.FC = () => {
     }
 
     setDataSource([...dataSource]);
+
+    await fetchEventHistory();
     setIsLoading(false);
+  }
+
+  /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
+  async function fetchEventHistory(){
+    var history_data_url: string = `https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/data/events.csv`;
+      
+    var eventFile = await fetch(history_data_url).then(response => {
+      if(response.status != 200){
+          setIsLoading(false);
+          throw new Error("Fetching items failed!");
+      }
+
+      return response.text();
+    });
+
+    var eventEntries = eventFile.split("\n");
+    for(var i = 0; i < eventEntries.length; i++){
+      if(eventEntries[i].length > 10){
+        var eventInfo = eventEntries[i].split(",");
+        var date = eventInfo[0];
+        var eventNames = eventInfo.slice(1);
+        events[date] = eventNames;
+      }
+    }
   }
 
   async function fetchPriceHistory(itemName: string){
@@ -174,11 +210,14 @@ const App: React.FC = () => {
       var values = data[i].split(",");
 
       if(values.length > 1 && !data[i].includes(",-1")){
-        var historyData = new HistoryData(+values[2], +values[1], +values[values.length - 1]);
+        // Find events during the time of the price point.
+        var dateTime: Date = new Date((+values[values.length - 1] - 32400) * 1000);
+
+        var historyData = new HistoryData(+values[2], +values[1], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
         graphData.push(historyData);
         
         // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
-        var date: number = new Date((historyData.time - 32400) * 1000).getDay();
+        var date: number = new Date((historyData.time - 32400) * 1000).getUTCDay();
         weekdayData[date].addOffer(historyData.buyOffer, historyData.sellOffer);
       }
     }
@@ -269,7 +308,10 @@ const App: React.FC = () => {
                 <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
                 <YAxis />
                 <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-                <Tooltip labelFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)} formatter={(x) => x.toLocaleString()}></Tooltip>
+                <Tooltip labelFormatter={(date) => <div>
+                                                        {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
+                                                        <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
+                                                   </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
                 <Line type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
                 <Line type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
               </LineChart>
