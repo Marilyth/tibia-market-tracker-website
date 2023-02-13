@@ -176,8 +176,9 @@ const App: React.FC = () => {
       if(values.length > 1 && !data[i].includes(",-1")){
         var historyData = new HistoryData(+values[2], +values[1], +values[values.length - 1]);
         graphData.push(historyData);
-
-        var date: number = new Date(historyData.time * 1000).getDay();
+        
+        // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
+        var date: number = new Date((historyData.time - 32400) * 1000).getDay();
         weekdayData[date].addOffer(historyData.buyOffer, historyData.sellOffer);
       }
     }
