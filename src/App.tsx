@@ -42,8 +42,8 @@ class WeekdayData{
   public addOffer(buyPrice: number, sellPrice: number) {
     this.buyOffers.push(buyPrice);
     this.sellOffers.push(sellPrice);
-    this.medianBuyOffer = this.buyOffers[Math.trunc(this.buyOffers.length / 2)];
-    this.medianSellOffer = this.sellOffers[Math.trunc(this.sellOffers.length / 2)];
+    this.medianBuyOffer = this.buyOffers.sort()[Math.trunc(this.buyOffers.length / 2)];
+    this.medianSellOffer = this.sellOffers.sort()[Math.trunc(this.sellOffers.length / 2)];
   }
 }
 
