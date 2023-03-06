@@ -53,7 +53,7 @@ class WeekdayData{
 
 function timestampToEvents(unixTimestamp: number){
   var dateTime: Date = new Date(unixTimestamp * 1000);
-  var dateKey = `${dateTime.getUTCFullYear()}.${(dateTime.getUTCMonth() + 1).toString().padStart(2, "0")}.${(dateTime.getUTCDate() + 1).toString().padStart(2, "0")}`;
+  var dateKey = `${dateTime.getUTCFullYear()}.${(dateTime.getUTCMonth() + 1).toString().padStart(2, "0")}.${(dateTime.getUTCDate()).toString().padStart(2, "0")}`;
 
   return dateKey in events ? events[dateKey] : [];
 }
