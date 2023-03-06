@@ -139,7 +139,6 @@ const App: React.FC = () => {
 
       // Include image if Name column.
       render: (text: any, record: any) => {
-        console.log(text);
         if(column == "Name")
           return <div>
             <img src={itemToImage(text)}/> <br></br>
@@ -203,9 +202,8 @@ const App: React.FC = () => {
 
       return response.text();
     });
-    console.log(items);
+    
     for(var item of items.split("\n")){
-      console.log(item);
       itemNames[item.toLowerCase()] = item;
     }
   }
