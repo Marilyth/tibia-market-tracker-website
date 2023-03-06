@@ -11,6 +11,7 @@ import {
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
 var events: { [date: string]: string[]} = {}
+var itemNames: {[lowerCaseName: string]: string} = {}
 
 class HistoryData{
   buyOffer: number;
@@ -58,6 +59,15 @@ function timestampToEvents(unixTimestamp: number){
 }
 
 const App: React.FC = () => {
+  /**
+   * Returns the nabbot image url of the item.
+   * @param itemName The item name to return the image url for.
+   */
+  function itemToImage(itemName: string): string{
+    var originalItemName: string = itemNames[itemName.toLowerCase().trim()];
+    return `https://static.nabbot.xyz/tibiawiki/item/${originalItemName}.gif`
+  }
+
   function doesDataMatchFilter(dataObject: any){
     // Filter input by user.
     if(nameFilter != "" && !dataObject["Name"].toLowerCase().includes(nameFilter.toLowerCase())){
@@ -101,7 +111,7 @@ const App: React.FC = () => {
     var columnData: string[] = data.split(",");
     for(var j = 0; j < columnData.length; j++){
       // Keep dataValue for sorting by localised number.
-      dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? columnData[j] : (+columnData[j]).toLocaleString();
+      dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? itemNames[columnData[j]] : (+columnData[j]).toLocaleString();
       dataObject[`${columns[j]["dataIndex"]}Value`] = columns[j]["dataIndex"] == "Name" ? columnData[j] : +columnData[j];
     }
 
@@ -125,7 +135,18 @@ const App: React.FC = () => {
 
         return valA > valB ? 1 : valA == valB ? 0 : -1;
       },
-      sortDirections: ['descend', 'ascend', 'descend']
+      sortDirections: ['descend', 'ascend', 'descend'],
+
+      // Include image if Name column.
+      render: (text: any, record: any) => {
+        console.log(text);
+        if(column == "Name")
+          return <div>
+            <img src={itemToImage(text)}/> <br></br>
+            {text}
+            </div>;
+        return text;
+      }
     }));
 
     // Fix name column.
@@ -136,6 +157,10 @@ const App: React.FC = () => {
 
   async function fetchData(){
     setIsLoading(true);
+
+    // Load tracked item names if not already loaded.
+    if(!("sword" in itemNames))
+      await fetchItemNamesAsync();
 
     var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/data/fullscan.csv"
       
@@ -160,7 +185,29 @@ const App: React.FC = () => {
     setDataSource([...dataSource]);
 
     await fetchEventHistory();
+
     setIsLoading(false);
+  }
+
+  /**
+   * Fetches all tracked item names from tracked_items.txt, and maps their lowercase version to original version
+   * in the itemNames dictionary.
+   */
+  async function fetchItemNamesAsync(){
+    var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/main/tracked_items.txt"
+        
+    var items = await fetch(market_data_url).then(response => {
+      if(response.status != 200){
+          throw new Error("Fetching tracked items failed!");
+      }
+
+      return response.text();
+    });
+    console.log(items);
+    for(var item of items.split("\n")){
+      console.log(item);
+      itemNames[item.toLowerCase()] = item;
+    }
   }
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
@@ -240,7 +287,6 @@ const App: React.FC = () => {
   var [modalPriceHistory, setModalPriceHistory] = useState<HistoryData[]>([]);
   var [modalWeekdayHistory, setmodalWeekdayHistory] = useState<WeekdayData[]>([]);
   var [isModalOpen, setIsModalOpen] = useState(false);
-  var [collapsed, setCollapsed] = useState(false);
 
   var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
   var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
@@ -258,12 +304,9 @@ const App: React.FC = () => {
       <Sider
         style={{
           overflow: 'auto',
-          height: '100vh',
           padding: 10,
           borderRight: '1px solid rgba(0,0,0,0.1)',
         }}
-        collapsible
-        collapsed={collapsed}
         trigger={null}
         theme='light'
       >
@@ -288,12 +331,6 @@ const App: React.FC = () => {
           </Button>
       </Sider>
       <Layout className="site-layout" style={{ width: '100%' }}>
-      <Header style={{backgroundColor: 'white', borderBottom: '1px solid rgba(0,0,0,0.1)'}}>
-          {React.createElement(collapsed ? MenuUnfoldOutlined : MenuFoldOutlined, {
-            className: 'trigger',
-            onClick: () => setCollapsed(!collapsed),
-          })}
-        </Header>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto', height:'97vh' }}>
           <Modal
             title={modalTitle}
