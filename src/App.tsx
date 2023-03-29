@@ -46,8 +46,14 @@ class WeekdayData{
   public addOffer(buyPrice: number, sellPrice: number) {
     this.buyOffers.push(buyPrice);
     this.sellOffers.push(sellPrice);
-    this.medianBuyOffer = this.buyOffers.sort()[Math.trunc(this.buyOffers.length / 2)];
-    this.medianSellOffer = this.sellOffers.sort()[Math.trunc(this.sellOffers.length / 2)];
+  }
+
+  /**
+   * Calculates and sets the median buy and sell offers for this weekday.
+   */
+  public calculateMedian() {
+    this.medianBuyOffer = this.buyOffers.sort((a, b) => a - b)[Math.trunc(this.buyOffers.length / 2)];
+    this.medianSellOffer = this.sellOffers.sort((a, b) => a - b)[Math.trunc(this.sellOffers.length / 2)];
   }
 }
 
@@ -255,9 +261,6 @@ const App: React.FC = () => {
       var values = data[i].split(",");
 
       if(values.length > 1 && !data[i].includes(",-1")){
-        // Find events during the time of the price point.
-        var dateTime: Date = new Date((+values[values.length - 1] - 32400) * 1000);
-
         var historyData = new HistoryData(+values[2], +values[1], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
         graphData.push(historyData);
         
@@ -265,6 +268,10 @@ const App: React.FC = () => {
         var date: number = new Date((historyData.time - 32400) * 1000).getUTCDay();
         weekdayData[date].addOffer(historyData.buyOffer, historyData.sellOffer);
       }
+    }
+
+    for(var i = 0; i < weekdayData.length; i++){
+      weekdayData[i].calculateMedian();
     }
 
     setModalPriceHistory(graphData);
