@@ -1,4 +1,4 @@
-import React, { useState }  from 'react';
+import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal } from 'antd';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip} from 'recharts';
@@ -278,6 +278,12 @@ const App: React.FC = () => {
     setmodalWeekdayHistory(weekdayData);
   }
 
+  const { defaultAlgorithm, darkAlgorithm } = theme;
+  var [isLightMode, setIsLightMode] = useState(localStorage.getItem("isLightModeKey") != "false");
+  useEffect(() => {
+    localStorage.setItem("isLightModeKey", isLightMode.toString());
+  }, [isLightMode]);
+
   var [dataSource, setDataSource] = useState<any[]>([]);
   var [isLoading, setIsLoading] = useState(false);
   var [columns, setColumns] = useState<any[]>([]);
@@ -299,10 +305,7 @@ const App: React.FC = () => {
   return (
   <ConfigProvider
     theme={{
-      token:{
-      },
-      components:{
-      }
+      algorithm: isLightMode ? defaultAlgorithm : darkAlgorithm,
   }}>
     <title>Test</title>
     <Layout hasSider>
@@ -331,9 +334,10 @@ const App: React.FC = () => {
           <InputNumber placeholder='Minimum trade offers' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
           <InputNumber placeholder='Maximum trade offers' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
 
-          <Button id='search-button' style={{marginTop: '5%'}} onClick={fetchData} loading={isLoading}>
+          <Button id='search-button' onClick={fetchData} loading={isLoading}>
             Search
-          </Button>
+          </Button><br/><br/>
+          <Switch checkedChildren="Light" unCheckedChildren="Dark" defaultChecked={isLightMode} style={{marginTop: "90%"}} onChange={setIsLightMode}></Switch>
       </Sider>
       <Layout className="site-layout" style={{ width: '100%' }}>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto', height:'97vh' }}>
@@ -350,7 +354,7 @@ const App: React.FC = () => {
                 <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
                 <YAxis />
                 <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-                <Tooltip labelFormatter={(date) => <div>
+                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFF" : "#141414"}} labelFormatter={(date) => <div>
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                         <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
                                                    </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
@@ -365,7 +369,7 @@ const App: React.FC = () => {
                 <YAxis />
                 <Bar dataKey="medianSellOffer" barSize={30} fill="#82ca9d"/>
                 <Bar dataKey="medianBuyOffer" barSize={30} fill="#8884d8"/>
-                <Tooltip cursor={{fill: '#00000011'}} labelFormatter={(day) => WeekdayData.weekdays[day]} formatter={(x) => x.toLocaleString()}></Tooltip>
+                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFF" : "#141414"}} cursor={{fill: '#00000011'}} labelFormatter={(day) => WeekdayData.weekdays[day]} formatter={(x) => x.toLocaleString()}></Tooltip>
               </BarChart>
             </ResponsiveContainer>
             

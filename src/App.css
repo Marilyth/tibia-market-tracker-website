@@ -2,11 +2,11 @@
   text-align: center;
 }
 
-.ant-input, .ant-input-number, .ant-select {
+.ant-input, .ant-input-number, .ant-select, .ant-switch {
   margin-top: 5%;
   width: 100%;
 }
 
-.ant-switch, .ant-button {
+.ant-button {
   margin-top: 5%;
 }
