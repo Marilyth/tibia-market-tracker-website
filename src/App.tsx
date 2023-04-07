@@ -110,12 +110,12 @@ const App: React.FC = () => {
   function addDataRow(data: string){
     var dataObject: any = {}
 
-    // Filter bad data.
-    if (data.includes("-1"))
-      return;
-
     var columnData: string[] = data.split(",");
     for(var j = 0; j < columnData.length; j++){
+      // Skip data if the price is invalid.
+      if((columns[j]["dataIndex"] == "SellPrice" || columns[j]["dataIndex"] == "BuyPrice") && +columnData[j] == -1)
+        return;
+
       // Keep dataValue for sorting by localised number.
       dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? itemNames[columnData[j]] : (+columnData[j]).toLocaleString();
       dataObject[`${columns[j]["dataIndex"]}Value`] = columns[j]["dataIndex"] == "Name" ? columnData[j] : +columnData[j];
