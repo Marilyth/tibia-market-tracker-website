@@ -307,18 +307,17 @@ const App: React.FC = () => {
     theme={{
       algorithm: isLightMode ? defaultAlgorithm : darkAlgorithm,
   }}>
-    <title>Test</title>
-    <Layout hasSider>
+    <Layout hasSider style={{height:'100vh'}}>
       <Sider
         style={{
           overflow: 'auto',
           padding: 10,
-          borderRight: '1px solid rgba(0,0,0,0.1)',
+          borderRight: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
         }}
         trigger={null}
         theme='light'
       >
-          <div id='title' style={{borderBottom: '1px solid rgba(0,0,0,0.1)'}}>
+          <div id='title' style={{borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)'}}>
             <Title level={4} style={{textAlign:'center'}}>
               Market Tracker
             </Title>
@@ -337,10 +336,10 @@ const App: React.FC = () => {
           <Button id='search-button' onClick={fetchData} loading={isLoading}>
             Search
           </Button><br/><br/>
-          <Switch checkedChildren="Light" unCheckedChildren="Dark" defaultChecked={isLightMode} style={{marginTop: "90%"}} onChange={setIsLightMode}></Switch>
+          <Switch checkedChildren="Light" unCheckedChildren="Dark" defaultChecked={isLightMode} onChange={setIsLightMode}></Switch>
       </Sider>
       <Layout className="site-layout" style={{ width: '100%' }}>
-        <Content style={{ margin: '24px 16px 0', overflow: 'auto', height:'97vh' }}>
+        <Content style={{ margin: '24px 16px 0', overflow: 'auto' }}>
           <Modal
             title={modalTitle}
             centered
