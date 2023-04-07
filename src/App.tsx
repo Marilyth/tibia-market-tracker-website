@@ -261,7 +261,7 @@ const App: React.FC = () => {
       var values = data[i].split(",");
 
       if(values.length > 1 && !data[i].includes(",-1")){
-        var historyData = new HistoryData(+values[2], +values[1], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
+        var historyData = new HistoryData(+values[1], +values[0], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
         graphData.push(historyData);
         
         // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
