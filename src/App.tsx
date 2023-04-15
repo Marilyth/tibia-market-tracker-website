@@ -111,6 +111,13 @@ const App: React.FC = () => {
     var dataObject: any = {}
 
     var columnData: string[] = data.split(",");
+
+    // If there are more than 11 columns in the data, merge the beginning until there are 11 columns.
+    while(columnData.length > 11){
+      columnData[0] += `,${columnData[1]}`;
+      columnData.splice(1, 1);
+    }
+
     for(var j = 0; j < columnData.length; j++){
       // Skip data if the price is invalid.
       if((columns[j]["dataIndex"] == "SellPrice" || columns[j]["dataIndex"] == "BuyPrice") && +columnData[j] == -1)
@@ -183,8 +190,9 @@ const App: React.FC = () => {
     setDataColumns(header);
 
     for(var i = 1; i < data.length; i++){
-      if(data[i].length > 0)
+      if(data[i].length > 0){
         addDataRow(data[i]);
+      }
     }
 
     setDataSource([...dataSource]);
@@ -199,7 +207,7 @@ const App: React.FC = () => {
    * in the itemNames dictionary.
    */
   async function fetchItemNamesAsync(){
-    var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/main/tracked_items.txt"
+    var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/main/items.csv"
         
     var items = await fetch(market_data_url).then(response => {
       if(response.status != 200){
@@ -208,8 +216,16 @@ const App: React.FC = () => {
 
       return response.text();
     });
-    
+
     for(var item of items.split("\n")){
+      if(item.length == 0)
+        continue;
+
+      var values = item.split(",");
+      var id = values[values.length - 1];
+      // Take every index of the values array except the last one.
+      item = values.slice(0, values.length - 1).join(",");
+
       itemNames[item.toLowerCase()] = item;
     }
   }
