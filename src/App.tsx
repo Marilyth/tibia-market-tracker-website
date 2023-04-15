@@ -1,7 +1,7 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal } from 'antd';
-import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip} from 'recharts';
+import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush} from 'recharts';
 import './App.css';
 import {
   MenuFoldOutlined,
@@ -375,6 +375,7 @@ const App: React.FC = () => {
                                                    </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
                 <Line type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
                 <Line type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
+                <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
               </LineChart>
             </ResponsiveContainer>
 
