@@ -88,19 +88,19 @@ const App: React.FC = () => {
       return false;
     }
 
-    if(Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) < minTradesFilter){
+    if(Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) < minFlipsFilter){
       return false;
     }
 
-    if(maxTradesFilter > 0 && Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) > maxTradesFilter){
+    if(maxFlipsFilter > 0 && Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) > maxFlipsFilter){
       return false;
     }
 
-    if(maxOffersFilter > 0 && dataObject["ApproxOffers"] > maxOffersFilter){
+    if(maxTradersFilter > 0 && dataObject["ActiveTraders"] > maxTradersFilter){
       return false;
     }
 
-    if(dataObject["ApproxOffers"] < minOffersFilter){
+    if(dataObject["ActiveTraders"] < minTradersFilter){
       return false;
     }
 
@@ -306,10 +306,10 @@ const App: React.FC = () => {
   var [nameFilter, setNameFilter] = useState("");
   var [minBuyFilter, setMinBuyFilter] = useState(0);
   var [maxBuyFilter, setMaxBuyFilter] = useState(0);
-  var [minTradesFilter, setMinTradesFilter] = useState(0);
-  var [maxTradesFilter, setMaxTradesFilter] = useState(0);
-  var [minOffersFilter, setMinOffersFilter] = useState(0);
-  var [maxOffersFilter, setMaxOffersFilter] = useState(0);
+  var [minFlipsFilter, setMinTradesFilter] = useState(0);
+  var [maxFlipsFilter, setMaxTradesFilter] = useState(0);
+  var [minTradersFilter, setMinOffersFilter] = useState(0);
+  var [maxTradersFilter, setMaxOffersFilter] = useState(0);
   var [modalTitle, setModalTitle] = useState("");
   var [modalPriceHistory, setModalPriceHistory] = useState<HistoryData[]>([]);
   var [modalWeekdayHistory, setmodalWeekdayHistory] = useState<WeekdayData[]>([]);
@@ -346,8 +346,8 @@ const App: React.FC = () => {
           <InputNumber placeholder='Maximum buy price' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
           <InputNumber placeholder='Minimum flips/month' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
           <InputNumber placeholder='Maximum flips/month' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
-          <InputNumber placeholder='Minimum trade offers' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-          <InputNumber placeholder='Maximum trade offers' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
+          <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
 
           <Button id='search-button' onClick={fetchData} loading={isLoading}>
             Search
