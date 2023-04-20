@@ -66,11 +66,23 @@ function timestampToEvents(unixTimestamp: number){
 
 const App: React.FC = () => {
   /**
+   * Returns the original name of the item, including spaces and capitalisation.
+   * @param dataName The name of the item to return the original name for.
+   * @returns 
+   */
+  function dataNameToOriginalName(dataName: string){
+    if (dataName.toLowerCase().trim() in itemNames)
+      return itemNames[dataName.toLowerCase().trim()];
+    else
+      return dataName;
+  }
+
+  /**
    * Returns the nabbot image url of the item.
    * @param itemName The item name to return the image url for.
    */
   function itemToImage(itemName: string): string{
-    var originalItemName: string = itemNames[itemName.toLowerCase().trim()];
+    var originalItemName: string = dataNameToOriginalName(itemName);
     return `https://static.nabbot.xyz/tibiawiki/item/${originalItemName}.gif`
   }
 
@@ -124,7 +136,7 @@ const App: React.FC = () => {
         return;
 
       // Keep dataValue for sorting by localised number.
-      dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? itemNames[columnData[j]] : (+columnData[j]).toLocaleString();
+      dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? dataNameToOriginalName(columnData[j]) : (+columnData[j]).toLocaleString();
       dataObject[`${columns[j]["dataIndex"]}Value`] = columns[j]["dataIndex"] == "Name" ? columnData[j] : +columnData[j];
     }
 
@@ -226,7 +238,7 @@ const App: React.FC = () => {
       // Take every index of the values array except the last one.
       item = values.slice(0, values.length - 1).join(",");
 
-      itemNames[item.toLowerCase()] = item;
+      itemNames[item.toLowerCase().trim()] = item;
     }
   }
 
