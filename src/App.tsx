@@ -7,9 +7,14 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
+import ReactGA from 'react-ga4';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
+const TRACKING_ID = "G-PQTKQ22GF1";
+ReactGA.initialize(TRACKING_ID);
+ReactGA.send("pageview");
+
 var events: { [date: string]: string[]} = {}
 var itemNames: {[lowerCaseName: string]: string} = {}
 
@@ -65,6 +70,27 @@ function timestampToEvents(unixTimestamp: number){
 }
 
 const App: React.FC = () => {
+  /**
+   * Gets called when the pagination, filter or sorter changes.
+   * @param pagination 
+   * @param filters 
+   * @param sorter 
+   */
+  function handleTableChanged(pagination: any, filters: any, sorter: any){
+    ReactGA.event({
+      category: 'Search',
+      action: 'Changed page, filter or sorter',
+      label: `Page: ${pagination.current}/${pagination.pageSize}, Sorter: ${sorter.field}, Order: ${sorter.order}`
+    });
+  }
+
+  /**
+   * Returns all search filters as a string. Joined by a comma.
+   */
+  function getCurrentFilterString(){
+    return `Name: ${nameFilter}, Min Buy: ${minBuyFilter}, Max Buy: ${maxBuyFilter}, Min Flips: ${minFlipsFilter}, Max Flips: ${maxFlipsFilter}, Min Traders: ${minTradersFilter}, Max Traders: ${maxTradersFilter}`;
+  }
+
   /**
    * Returns the original name of the item, including spaces and capitalisation.
    * @param dataName The name of the item to return the original name for.
@@ -182,6 +208,12 @@ const App: React.FC = () => {
   async function fetchData(){
     setIsLoading(true);
 
+    ReactGA.event({
+      category: 'Search',
+      action: 'User pressed search button',
+      label: getCurrentFilterString()
+    });
+
     // Load tracked item names if not already loaded.
     if(!("sword" in itemNames))
       await fetchItemNamesAsync();
@@ -267,6 +299,12 @@ const App: React.FC = () => {
   }
 
   async function fetchPriceHistory(itemName: string){
+    ReactGA.event({
+      category: 'Search',
+      action: 'User requested history for item',
+      label: itemName
+    });
+
     var history_data_url: string = `https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/data/histories/${encodeURIComponent(itemName.toLowerCase())}.csv`;
       
     var items = await fetch(history_data_url).then(response => {
@@ -406,7 +444,7 @@ const App: React.FC = () => {
               return {
                 onClick: (event) => {setModalTitle("price history: " + record["Name"]); fetchPriceHistory(record["Name"]); setIsModalOpen(true);}
               };
-            }}>
+            }} onChange={handleTableChanged}>
         </Table>
         </Content>
       </Layout>
