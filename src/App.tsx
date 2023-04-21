@@ -1,6 +1,6 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal } from 'antd';
+import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps } from 'antd';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush} from 'recharts';
 import './App.css';
 import {
@@ -112,6 +112,10 @@ const App: React.FC = () => {
     return `https://static.nabbot.xyz/tibiawiki/item/${originalItemName}.gif`
   }
 
+  function itemToWikiLink(itemName: string){
+    return <a href={'https://tibia.fandom.com/wiki/' + itemName} target='_blank'>{itemName}</a>
+  }
+
   function doesDataMatchFilter(dataObject: any){
     // Filter input by user.
     if(nameFilter != "" && !dataObject["Name"].toLowerCase().includes(nameFilter.toLowerCase())){
@@ -193,7 +197,7 @@ const App: React.FC = () => {
         if(column == "Name")
           return <div>
             <img src={itemToImage(text)}/> <br></br>
-            {text}
+            {itemToWikiLink(text)}
             </div>;
         return text;
       }
@@ -360,13 +364,20 @@ const App: React.FC = () => {
   var [maxFlipsFilter, setMaxTradesFilter] = useState(0);
   var [minTradersFilter, setMinOffersFilter] = useState(0);
   var [maxTradersFilter, setMaxOffersFilter] = useState(0);
-  var [modalTitle, setModalTitle] = useState("");
+  var [selectedItem, setSelectedItem] = useState("");
   var [modalPriceHistory, setModalPriceHistory] = useState<HistoryData[]>([]);
   var [modalWeekdayHistory, setmodalWeekdayHistory] = useState<WeekdayData[]>([]);
   var [isModalOpen, setIsModalOpen] = useState(false);
 
   var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
   var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
+
+  useEffect(() => {
+    const yourFunction = async () => {
+      await fetchData();
+    };
+    yourFunction();
+  }, []);
 
   return (
   <ConfigProvider
@@ -407,7 +418,7 @@ const App: React.FC = () => {
       <Layout className="site-layout" style={{ width: '100%' }}>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto' }}>
           <Modal
-            title={modalTitle}
+            title=<div>Price History: {itemToWikiLink(selectedItem)}</div>
             centered
             open={isModalOpen}
             onOk={() => setIsModalOpen(false)}
@@ -440,9 +451,10 @@ const App: React.FC = () => {
             </ResponsiveContainer>
             
           </Modal>
-          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} scroll={{y:'83vh'}} onRow={(record, rowIndex) => {
+          <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable />
+          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
-                onClick: (event) => {setModalTitle("price history: " + record["Name"]); fetchPriceHistory(record["Name"]); setIsModalOpen(true);}
+                onClick: (event) => {setSelectedItem(record["Name"]); fetchPriceHistory(record["Name"]); setIsModalOpen(true);}
               };
             }} onChange={handleTableChanged}>
         </Table>
