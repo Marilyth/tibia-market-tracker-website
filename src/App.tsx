@@ -1,6 +1,6 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps } from 'antd';
+import { Layout, Collapse, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form } from 'antd';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush} from 'recharts';
 import './App.css';
 import {
@@ -11,6 +11,7 @@ import ReactGA from 'react-ga4';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
+const { Panel } = Collapse;
 const TRACKING_ID = "G-PQTKQ22GF1";
 ReactGA.initialize(TRACKING_ID);
 ReactGA.send("pageview");
@@ -21,12 +22,19 @@ var itemNames: {[lowerCaseName: string]: string} = {}
 class HistoryData{
   buyOffer: number;
   sellOffer: number;
+  buyAmount: number;
+  sellAmount: number;
+  activeTraders: number;
   time: number;
   events: string[];
 
-  constructor(buy: number, sell: number, time: number, events: string[]){
+  constructor(buy: number, sell: number, buyAmount: number, sellAmount: number, activeTraders: number, time: number, events: string[]){
     this.buyOffer = buy;
     this.sellOffer = sell;
+    this.buyAmount = buyAmount;
+    this.sellAmount = sellAmount;
+    this.activeTraders = activeTraders;
+
     this.time = time;
     this.events = events;
   }
@@ -331,7 +339,7 @@ const App: React.FC = () => {
       var values = data[i].split(",");
 
       if(values.length > 1 && !data[i].includes(",-1")){
-        var historyData = new HistoryData(+values[1], +values[0], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
+        var historyData = new HistoryData(+values[1], +values[0], +values[3], +values[2], +values[4], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
         graphData.push(historyData);
         
         // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
@@ -394,43 +402,59 @@ const App: React.FC = () => {
         trigger={null}
         theme='light'
       >
-          <div id='title' style={{borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)'}}>
-            <Title level={4} style={{textAlign:'center'}}>
-              Market Tracker
-            </Title>
-          </div>
-          <Title level={5} style={{textAlign:'center', color:'grey'}}>
-              Filters
-            </Title>
-          <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input><br/><br/>
-          <InputNumber placeholder='Minimum buy price' onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-          <InputNumber placeholder='Maximum buy price' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
-          <InputNumber placeholder='Minimum flips/month' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-          <InputNumber placeholder='Maximum flips/month' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
-          <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-          <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber><br/><br/>
-
-          <Button id='search-button' onClick={fetchData} loading={isLoading}>
-            Search
-          </Button><br/><br/>
-          <Switch checkedChildren="Light" unCheckedChildren="Dark" defaultChecked={isLightMode} onChange={setIsLightMode}></Switch>
+        <div id='title' style={{borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)'}}>
+          <Title level={4} style={{textAlign:'center'}}>
+            Market Tracker
+          </Title>
+        </div>
+        <Title level={5} style={{textAlign:'center', color:'grey'}}>
+          Filters
+        </Title>
+        
+        <Form layout='vertical'>
+          <Form.Item name="Name">
+            <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input>
+          </Form.Item>
+          <Form.Item name="Buy limits">
+            <InputNumber placeholder='Minimum buy price' onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            <InputNumber placeholder='Maximum buy price' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          </Form.Item>
+          <Form.Item name="Flips">
+            <InputNumber placeholder='Minimum flips' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            <InputNumber placeholder='Maximum flips' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          </Form.Item>
+          <Form.Item name="Traders">
+            <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          </Form.Item>
+          <Form.Item>
+            <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading}>
+              Search
+            </Button>
+          </Form.Item>
+          <Form.Item label="Appearance">
+            <Switch checkedChildren="Light" unCheckedChildren="Dark" defaultChecked={isLightMode} onChange={setIsLightMode}></Switch>
+          </Form.Item>
+        </Form>
       </Sider>
       <Layout className="site-layout" style={{ width: '100%' }}>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto' }}>
           <Modal
-            title=<div>Price History: {itemToWikiLink(selectedItem)}</div>
+            title=<div>Item history for {itemToWikiLink(selectedItem)}</div>
             centered
             open={isModalOpen}
             onOk={() => setIsModalOpen(false)}
             onCancel={() => setIsModalOpen(false)}
             width='50%'
           >
-            <ResponsiveContainer width='100%' height={200}>
+            <Collapse defaultActiveKey={1}>
+            <Panel header="Buy and Sell price over time" key="1">
+              <ResponsiveContainer width='100%' height={200}>
               <LineChart data={modalPriceHistory}>
                 <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
                 <YAxis />
                 <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFF" : "#141414"}} labelFormatter={(date) => <div>
+                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} labelFormatter={(date) => <div>
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                         <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
                                                    </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
@@ -439,17 +463,52 @@ const App: React.FC = () => {
                 <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
               </LineChart>
             </ResponsiveContainer>
-
-            <ResponsiveContainer width='100%' height={200}>
+            </Panel>
+            <Panel header="Bought and Sold amount over time" key="2">
+            <Alert message="These are the cummulative amount of bought and sold items within a 1 month window." showIcon type="info" closable />
+              <ResponsiveContainer width='100%' height={200}>
+                <LineChart data={modalPriceHistory}>
+                  <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
+                  <YAxis />
+                  <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
+                  <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} labelFormatter={(date) => <div>
+                                                          {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
+                                                          <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
+                                                    </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
+                  <Line type='monotone' dataKey="buyAmount" stroke="#8884d8" dot={false} />
+                  <Line type='monotone' dataKey="sellAmount" stroke="#82ca9d" dot={false} />
+                  <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </Panel>
+            <Panel header="Active Traders over time" key="3">
+            <Alert message="This is the amount of new buy or sell offers within a 24 hour period, whichever one is smaller. I.e. the amount of other flippers." showIcon type="info" closable />
+              <ResponsiveContainer width='100%' height={200}>
+                <LineChart data={modalPriceHistory}>
+                  <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
+                  <YAxis />
+                  <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
+                  <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} labelFormatter={(date) => <div>
+                                                          {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
+                                                          <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
+                                                    </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
+                  <Line type='monotone' dataKey="activeTraders" stroke="#d884d8" dot={false} />
+                  <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
+                </LineChart>
+              </ResponsiveContainer>
+            </Panel>
+            <Panel header="Median Buy and Sell price per weekday" key="4">
+              <ResponsiveContainer width='100%' height={200}>
               <BarChart data={modalWeekdayHistory}>
                 <XAxis dataKey="weekday" tickFormatter={(day) => WeekdayData.weekdays[day]}/>
                 <YAxis />
                 <Bar dataKey="medianSellOffer" barSize={30} fill="#82ca9d"/>
                 <Bar dataKey="medianBuyOffer" barSize={30} fill="#8884d8"/>
-                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFF" : "#141414"}} cursor={{fill: '#00000011'}} labelFormatter={(day) => WeekdayData.weekdays[day]} formatter={(x) => x.toLocaleString()}></Tooltip>
+                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} cursor={{fill: '#00000011'}} labelFormatter={(day) => WeekdayData.weekdays[day]} formatter={(x) => x.toLocaleString()}></Tooltip>
               </BarChart>
             </ResponsiveContainer>
-            
+            </Panel>
+            </Collapse>
           </Modal>
           <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable />
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
