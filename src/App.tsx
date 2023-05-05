@@ -338,7 +338,7 @@ const App: React.FC = () => {
     for(var i = 0; i < data.length; i++){
       var values = data[i].split(",");
 
-      if(values.length > 1 && !data[i].includes(",-1")){
+      if(values.length > 1 && !data[i].includes("-1")){
         var historyData = new HistoryData(+values[1], +values[0], +values[3], +values[2], +values[4], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
         graphData.push(historyData);
         
