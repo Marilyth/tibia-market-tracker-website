@@ -1,13 +1,11 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Collapse, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form } from 'antd';
+import { Layout, Collapse, Tooltip as AntTooltip, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form } from 'antd';
+import { QuestionCircleOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush} from 'recharts';
 import './App.css';
-import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-} from '@ant-design/icons';
 import ReactGA from 'react-ga4';
+import { ColumnType } from 'antd/es/table';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -18,6 +16,65 @@ ReactGA.send("pageview");
 
 var events: { [date: string]: string[]} = {}
 var itemNames: {[lowerCaseName: string]: string} = {}
+
+class Metric{
+  name: string;
+  value: number;
+  localisedValue: string;
+  description: string;
+  isHidden: boolean;
+
+  constructor(name: string, value: number, description: string, isHidden: boolean = false){
+    this.name = name;
+    this.value = value;
+    this.localisedValue = value.toLocaleString();
+    this.description = description;
+    this.isHidden = isHidden;
+  }
+}
+
+class ItemData{
+  sellPrice: Metric;
+  buyPrice: Metric;
+  averageSellPrice: Metric;
+  averageBuyPrice: Metric;
+  deltaSellPrice: Metric;
+  deltaBuyPrice: Metric;
+  soldAmount: Metric;
+  boughtAmount: Metric;
+  profit: Metric;
+  averageProfit: Metric;
+  potProfit: Metric;
+  activeTraders: Metric;
+  name: string;
+
+  constructor(name: string, ...values: any[]){
+    this.name = name;
+    values = values[0];
+
+    // Available data.
+    this.sellPrice = new Metric("Sell Price", +values[0], "The current sell price of the item.");
+    this.buyPrice = new Metric("Buy Price", +values[1], "The current buy price of the item.");
+    this.averageSellPrice = new Metric("Avg. Sell Price", +values[2], "The average sell price of the item.", true);
+    this.averageBuyPrice = new Metric("Avg. Buy Price", +values[3], "The average buy price of the item.", true);
+    this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value - this.averageSellPrice.value, "The difference between the current sell price and the average sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.");
+    this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value - this.averageBuyPrice.value, "The difference between the current buy price and the average buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.");
+    this.soldAmount = new Metric("Sold", +values[4], "The amount of items sold in the last 30 days.");
+    this.boughtAmount = new Metric("Bought", +values[5], "The amount of items bought in the last 30 days.");
+    this.activeTraders = new Metric("Traders", +values[values.length - 1], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.");
+
+    // Calculated data.
+    this.profit = new Metric("Profit", this.sellPrice.value - this.buyPrice.value, "The profit you would get for flipping this item right now.");
+    if(this.boughtAmount.value == 0 || this.soldAmount.value == 0)
+      this.averageProfit = new Metric("Avg. Profit", 0, "The profit you would get on average for flipping this item.");
+    else
+      this.averageProfit = new Metric("Avg. Profit", this.averageSellPrice.value - this.averageBuyPrice.value, "The profit you would get on average for flipping this item.");
+
+    this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmount.value, this.boughtAmount.value), "The potential profit of the item, if you were the only trader for 1 month.", true);
+  }
+}
+
+var exampleItem: ItemData = new ItemData("Example", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]);
 
 class HistoryData{
   buyOffer: number;
@@ -124,33 +181,33 @@ const App: React.FC = () => {
     return <a href={'https://tibia.fandom.com/wiki/' + itemName} target='_blank'>{itemName}</a>
   }
 
-  function doesDataMatchFilter(dataObject: any){
+  function doesDataMatchFilter(dataObject: ItemData){
     // Filter input by user.
-    if(nameFilter != "" && !dataObject["Name"].toLowerCase().includes(nameFilter.toLowerCase())){
+    if(nameFilter != "" && !dataObject.name.toLowerCase().includes(nameFilter.toLowerCase())){
       return false;
     } 
 
-    if(maxBuyFilter > 0 && dataObject["BuyPriceValue"] > maxBuyFilter){
+    if(maxBuyFilter > 0 && dataObject.buyPrice.value > maxBuyFilter){
       return false;
     }
 
-    if(dataObject["BuyPriceValue"] < minBuyFilter){
+    if(dataObject.buyPrice.value < minBuyFilter){
       return false;
     }
 
-    if(Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) < minFlipsFilter){
+    if(Math.min(dataObject.soldAmount.value, dataObject.boughtAmount.value) < minFlipsFilter){
       return false;
     }
 
-    if(maxFlipsFilter > 0 && Math.min(dataObject["SoldValue"], dataObject["BoughtValue"]) > maxFlipsFilter){
+    if(maxFlipsFilter > 0 && Math.min(dataObject.soldAmount.value, dataObject.boughtAmount.value) > maxFlipsFilter){
       return false;
     }
 
-    if(maxTradersFilter > 0 && dataObject["ActiveTraders"] > maxTradersFilter){
+    if(maxTradersFilter > 0 && dataObject.activeTraders.value > maxTradersFilter){
       return false;
     }
 
-    if(dataObject["ActiveTraders"] < minTradersFilter){
+    if(dataObject.activeTraders.value < minTradersFilter){
       return false;
     }
 
@@ -158,8 +215,6 @@ const App: React.FC = () => {
   }
 
   function addDataRow(data: string){
-    var dataObject: any = {}
-
     var columnData: string[] = data.split(",");
 
     // If there are more than 11 columns in the data, merge the beginning until there are 11 columns.
@@ -168,15 +223,8 @@ const App: React.FC = () => {
       columnData.splice(1, 1);
     }
 
-    for(var j = 0; j < columnData.length; j++){
-      // Skip data if the price is invalid.
-      if((columns[j]["dataIndex"] == "SellPrice" || columns[j]["dataIndex"] == "BuyPrice") && +columnData[j] == -1)
-        return;
-
-      // Keep dataValue for sorting by localised number.
-      dataObject[columns[j]["dataIndex"]] = columns[j]["dataIndex"] == "Name" ? dataNameToOriginalName(columnData[j]) : (+columnData[j]).toLocaleString();
-      dataObject[`${columns[j]["dataIndex"]}Value`] = columns[j]["dataIndex"] == "Name" ? columnData[j] : +columnData[j];
-    }
+    var name = dataNameToOriginalName(columnData[0]);
+    var dataObject: ItemData = new ItemData(name, columnData.splice(1, columnData.length - 1));
 
     if(!doesDataMatchFilter(dataObject)) 
       return;
@@ -184,35 +232,38 @@ const App: React.FC = () => {
     dataSource.push(dataObject);
   }
 
-  function setDataColumns(header: string){
+  function setDataColumns(exampleItem: ItemData){
     columns = [];
-    dataSource = [];
-    header.split(",").forEach((column: string) => columns.push({
-      title: column,
-      dataIndex: column,
+
+    // Add name column.
+    columns.push({
+      title: 'Name',
+      dataIndex: 'name',
       width: 100,
-      sorter: (a: any, b: any) => {
-        // Sort by original value, not modified expression.
-        var valA = a[`${column}Value`];
-        var valB = b[`${column}Value`];
-
-        return valA > valB ? 1 : valA == valB ? 0 : -1;
-      },
+      fixed: 'left',
+      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
       sortDirections: ['descend', 'ascend', 'descend'],
-
-      // Include image if Name column.
       render: (text: any, record: any) => {
-        if(column == "Name")
-          return <div>
-            <img src={itemToImage(text)}/> <br></br>
-            {itemToWikiLink(text)}
-            </div>;
-        return text;
+        return <div>
+          <img src={itemToImage(text)}/> <br></br>
+          {itemToWikiLink(text)}
+          </div>;
       }
-    }));
+    });
+    
+    // Add all other columns.
+    for (const [key, value] of Object.entries(exampleItem)) {
+      if(key == "name" || value.isHidden)
+        continue;
 
-    // Fix name column.
-    columns[0]["fixed"] = "left";
+      columns.push({
+        title: <div>{value.name} <AntTooltip title={value.description}><QuestionCircleOutlined /></AntTooltip></div>,
+        dataIndex: [key, 'localisedValue'],
+        width: 50,
+        sorter: (a: any, b: any) => a[key].value - b[key].value,
+        sortDirections: ['descend', 'ascend', 'descend'],
+      });
+    }
 
     setColumns([...columns]);
   }
@@ -243,7 +294,7 @@ const App: React.FC = () => {
 
     var data = items.split("\n");
     var header = data[0];
-    setDataColumns(header);
+    dataSource = [];
 
     for(var i = 1; i < data.length; i++){
       if(data[i].length > 0){
@@ -251,6 +302,7 @@ const App: React.FC = () => {
       }
     }
 
+    setDataColumns(exampleItem);
     setDataSource([...dataSource]);
 
     await fetchEventHistory();
@@ -362,9 +414,9 @@ const App: React.FC = () => {
     localStorage.setItem("isLightModeKey", isLightMode.toString());
   }, [isLightMode]);
 
-  var [dataSource, setDataSource] = useState<any[]>([]);
+  var [dataSource, setDataSource] = useState<ItemData[]>([]);
   var [isLoading, setIsLoading] = useState(false);
-  var [columns, setColumns] = useState<any[]>([]);
+  var [columns, setColumns] = useState<ColumnType<ItemData>[]>([]);
   var [nameFilter, setNameFilter] = useState("");
   var [minBuyFilter, setMinBuyFilter] = useState(0);
   var [maxBuyFilter, setMaxBuyFilter] = useState(0);
@@ -510,10 +562,11 @@ const App: React.FC = () => {
             </Panel>
             </Collapse>
           </Modal>
+          <Alert message="Some values can be false! If they seem unreal, they probably are." showIcon type="warning" closable />
           <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable />
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
-                onClick: (event) => {setSelectedItem(record["Name"]); fetchPriceHistory(record["Name"]); setIsModalOpen(true);}
+                onClick: (event) => {setSelectedItem(record.name); fetchPriceHistory(record.name); setIsModalOpen(true);}
               };
             }} onChange={handleTableChanged}>
         </Table>
