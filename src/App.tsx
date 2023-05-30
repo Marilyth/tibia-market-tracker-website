@@ -24,10 +24,10 @@ class Metric{
   description: string;
   isHidden: boolean;
 
-  constructor(name: string, value: number, description: string, isHidden: boolean = false){
+  constructor(name: string, value: number, description: string, isHidden: boolean = false, canBeNegative: boolean = true){
     this.name = name;
     this.value = value;
-    this.localisedValue = value.toLocaleString();
+    this.localisedValue = value < 0 && !canBeNegative ? "None" : value.toLocaleString();
     this.description = description;
     this.isHidden = isHidden;
   }
@@ -53,22 +53,24 @@ class ItemData{
     values = values[0];
 
     // Available data.
-    this.sellPrice = new Metric("Sell Price", +values[0], "The current sell price of the item.");
-    this.buyPrice = new Metric("Buy Price", +values[1], "The current buy price of the item.");
-    this.averageSellPrice = new Metric("Avg. Sell Price", +values[2], "The average sell price of the item.", true);
-    this.averageBuyPrice = new Metric("Avg. Buy Price", +values[3], "The average buy price of the item.", true);
-    this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value - this.averageSellPrice.value, "The difference between the current sell price and the average sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.");
-    this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value - this.averageBuyPrice.value, "The difference between the current buy price and the average buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.");
-    this.soldAmount = new Metric("Sold", +values[4], "The amount of items sold in the last 30 days.");
-    this.boughtAmount = new Metric("Bought", +values[5], "The amount of items bought in the last 30 days.");
-    this.activeTraders = new Metric("Traders", +values[values.length - 1], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.");
+    this.sellPrice = new Metric("Sell Price", +values[0], "The current sell price of the item.", false, false);
+    this.buyPrice = new Metric("Buy Price", +values[1], "The current buy price of the item.", false, false);
+    this.averageSellPrice = new Metric("Avg. Sell Price", +values[2], "The average sell price of the item.", true, false);
+    this.averageBuyPrice = new Metric("Avg. Buy Price", +values[3], "The average buy price of the item.", true, false);
+    this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value > 0 ? this.sellPrice.value - this.averageSellPrice.value : 0, "The difference between the current sell price and the average sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", false, this.sellPrice.value >= 0);
+    this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value > 0 ? this.buyPrice.value - this.averageBuyPrice.value : 0, "The difference between the current buy price and the average buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", false, this.buyPrice.value >= 0);
+    this.soldAmount = new Metric("Sold", +values[4], "The amount of items sold in the last 30 days.", false, false);
+    this.boughtAmount = new Metric("Bought", +values[5], "The amount of items bought in the last 30 days.", false, false);
+    this.activeTraders = new Metric("Traders", +values[values.length - 1], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", false, false);
+
+    const tax: number = 0.02;
+    const maxTax: number = 250000;
 
     // Calculated data.
-    this.profit = new Metric("Profit", this.sellPrice.value - this.buyPrice.value, "The profit you would get for flipping this item right now.");
-    if(this.boughtAmount.value == 0 || this.soldAmount.value == 0)
-      this.averageProfit = new Metric("Avg. Profit", 0, "The profit you would get on average for flipping this item.");
-    else
-      this.averageProfit = new Metric("Avg. Profit", this.averageSellPrice.value - this.averageBuyPrice.value, "The profit you would get on average for flipping this item.");
+    var profit = this.sellPrice.value > 0 && this.buyPrice.value > 0 ? Math.round((this.sellPrice.value - this.buyPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : 0;
+    this.profit = new Metric("Profit", profit, `The profit you would get for flipping this item right now. Minus ${tax} tax.`);
+    var avgProfit = this.averageSellPrice.value > 0 && this.averageBuyPrice.value > 0 ? Math.round((this.averageSellPrice.value - this.averageBuyPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : 0;
+    this.averageProfit = new Metric("Avg. Profit", avgProfit, `The profit you would get on average for flipping this item. Minus ${tax} tax.`);
 
     this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmount.value, this.boughtAmount.value), "The potential profit of the item, if you were the only trader for 1 month.", true);
   }
@@ -217,8 +219,8 @@ const App: React.FC = () => {
   function addDataRow(data: string){
     var columnData: string[] = data.split(",");
 
-    // If there are more than 11 columns in the data, merge the beginning until there are 11 columns.
-    while(columnData.length > 11){
+    // If there are more than 8 columns in the data, merge the beginning until there are 8 columns.
+    while(columnData.length > 8){
       columnData[0] += `,${columnData[1]}`;
       columnData.splice(1, 1);
     }
@@ -260,7 +262,9 @@ const App: React.FC = () => {
         title: <div>{value.name} <AntTooltip title={value.description}><QuestionCircleOutlined /></AntTooltip></div>,
         dataIndex: [key, 'localisedValue'],
         width: 50,
-        sorter: (a: any, b: any) => a[key].value - b[key].value,
+        sorter: (a: any, b: any) => {
+          return a[key].value - b[key].value;
+        },
         sortDirections: ['descend', 'ascend', 'descend'],
       });
     }
@@ -390,7 +394,7 @@ const App: React.FC = () => {
     for(var i = 0; i < data.length; i++){
       var values = data[i].split(",");
 
-      if(values.length > 1 && !data[i].includes("-1")){
+      if(values.length > 1){
         var historyData = new HistoryData(+values[1], +values[0], +values[3], +values[2], +values[4], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
         graphData.push(historyData);
         

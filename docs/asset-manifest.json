@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/tibia-market-tracker/static/css/main.d0c3da94.css",
-    "main.js": "/tibia-market-tracker/static/js/main.df1984e1.js",
+    "main.js": "/tibia-market-tracker/static/js/main.05907fd0.js",
     "static/js/787.71e672d5.chunk.js": "/tibia-market-tracker/static/js/787.71e672d5.chunk.js",
     "index.html": "/tibia-market-tracker/index.html",
     "main.d0c3da94.css.map": "/tibia-market-tracker/static/css/main.d0c3da94.css.map",
-    "main.df1984e1.js.map": "/tibia-market-tracker/static/js/main.df1984e1.js.map",
+    "main.05907fd0.js.map": "/tibia-market-tracker/static/js/main.05907fd0.js.map",
     "787.71e672d5.chunk.js.map": "/tibia-market-tracker/static/js/787.71e672d5.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.d0c3da94.css",
-    "static/js/main.df1984e1.js"
+    "static/js/main.05907fd0.js"
   ]
 }
