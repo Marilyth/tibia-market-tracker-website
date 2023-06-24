@@ -79,20 +79,20 @@ class ItemData{
 var exampleItem: ItemData = new ItemData("Example", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]);
 
 class HistoryData{
-  buyOffer: number;
-  sellOffer: number;
-  buyAmount: number;
-  sellAmount: number;
-  activeTraders: number;
+  buyOffer: number | null;
+  sellOffer: number | null;
+  buyAmount: number | null;
+  sellAmount: number | null;
+  activeTraders: number | null;
   time: number;
   events: string[];
 
   constructor(buy: number, sell: number, buyAmount: number, sellAmount: number, activeTraders: number, time: number, events: string[]){
-    this.buyOffer = buy;
-    this.sellOffer = sell;
-    this.buyAmount = buyAmount;
-    this.sellAmount = sellAmount;
-    this.activeTraders = activeTraders;
+    this.buyOffer = buy > 0 ? buy : null;
+    this.sellOffer = sell > 0 ? sell : null;
+    this.buyAmount = buyAmount >= 0 ? buyAmount : null;
+    this.sellAmount = sellAmount >= 0 ? sellAmount : null;
+    this.activeTraders = activeTraders >= 0 ? activeTraders : null;
 
     this.time = time;
     this.events = events;
@@ -400,7 +400,7 @@ const App: React.FC = () => {
         
         // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
         var date: number = new Date((historyData.time - 32400) * 1000).getUTCDay();
-        weekdayData[date].addOffer(historyData.buyOffer, historyData.sellOffer);
+        weekdayData[date].addOffer(historyData.buyOffer ?? 0, historyData.sellOffer ?? 0);
       }
     }
 
@@ -514,8 +514,8 @@ const App: React.FC = () => {
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                         <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
                                                    </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
-                <Line type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
-                <Line type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
+                <Line connectNulls type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
+                <Line connectNulls type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
                 <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
               </LineChart>
             </ResponsiveContainer>
@@ -531,8 +531,8 @@ const App: React.FC = () => {
                                                           {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                           <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
                                                     </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
-                  <Line type='monotone' dataKey="buyAmount" stroke="#8884d8" dot={false} />
-                  <Line type='monotone' dataKey="sellAmount" stroke="#82ca9d" dot={false} />
+                  <Line connectNulls type='monotone' dataKey="buyAmount" stroke="#8884d8" dot={false} />
+                  <Line connectNulls type='monotone' dataKey="sellAmount" stroke="#82ca9d" dot={false} />
                   <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
                 </LineChart>
               </ResponsiveContainer>
@@ -548,7 +548,7 @@ const App: React.FC = () => {
                                                           {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                           <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
                                                     </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
-                  <Line type='monotone' dataKey="activeTraders" stroke="#d884d8" dot={false} />
+                  <Line connectNulls type='monotone' dataKey="activeTraders" stroke="#d884d8" dot={false} />
                   <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
                 </LineChart>
               </ResponsiveContainer>
