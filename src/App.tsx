@@ -1,21 +1,18 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Collapse, Tooltip as AntTooltip, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form } from 'antd';
+import { Layout, Collapse, Tooltip as AntTooltip, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush} from 'recharts';
 import './App.css';
-import ReactGA from 'react-ga4';
 import { ColumnType } from 'antd/es/table';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
 const { Panel } = Collapse;
-const TRACKING_ID = "G-PQTKQ22GF1";
-ReactGA.initialize(TRACKING_ID);
-ReactGA.send("pageview");
 
 var events: { [date: string]: string[]} = {}
 var itemNames: {[lowerCaseName: string]: string} = {}
+var cachedMarketResponses: {[server: string]: string} = {};
 
 class Metric{
   name: string;
@@ -48,20 +45,19 @@ class ItemData{
   activeTraders: Metric;
   name: string;
 
-  constructor(name: string, ...values: any[]){
+  constructor(name: string, sellPrice: number, buyPrice: number, averageSellPrice: number, averageBuyPrice: number, soldAmount: number, boughtAmount: number, activeTraders: number){
     this.name = name;
-    values = values[0];
 
     // Available data.
-    this.sellPrice = new Metric("Sell Price", +values[0], "The current sell price of the item.", false, false);
-    this.buyPrice = new Metric("Buy Price", +values[1], "The current buy price of the item.", false, false);
-    this.averageSellPrice = new Metric("Avg. Sell Price", +values[2], "The average sell price of the item.", true, false);
-    this.averageBuyPrice = new Metric("Avg. Buy Price", +values[3], "The average buy price of the item.", true, false);
+    this.sellPrice = new Metric("Sell Price", sellPrice, "The current sell price of the item.", false, false);
+    this.buyPrice = new Metric("Buy Price", buyPrice, "The current buy price of the item.", false, false);
+    this.averageSellPrice = new Metric("Avg. Sell Price", averageSellPrice, "The average sell price of the item.", true, false);
+    this.averageBuyPrice = new Metric("Avg. Buy Price", averageBuyPrice, "The average buy price of the item.", true, false);
     this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value > 0 ? this.sellPrice.value - this.averageSellPrice.value : 0, "The difference between the current sell price and the average sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", false, this.sellPrice.value >= 0);
     this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value > 0 ? this.buyPrice.value - this.averageBuyPrice.value : 0, "The difference between the current buy price and the average buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", false, this.buyPrice.value >= 0);
-    this.soldAmount = new Metric("Sold", +values[4], "The amount of items sold in the last 30 days.", false, false);
-    this.boughtAmount = new Metric("Bought", +values[5], "The amount of items bought in the last 30 days.", false, false);
-    this.activeTraders = new Metric("Traders", +values[values.length - 1], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", false, false);
+    this.soldAmount = new Metric("Sold", soldAmount, "The amount of items sold in the last 30 days.", false, false);
+    this.boughtAmount = new Metric("Bought", boughtAmount, "The amount of items bought in the last 30 days.", false, false);
+    this.activeTraders = new Metric("Traders", activeTraders, "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", false, false);
 
     const tax: number = 0.02;
     const maxTax: number = 250000;
@@ -76,7 +72,7 @@ class ItemData{
   }
 }
 
-var exampleItem: ItemData = new ItemData("Example", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"]);
+var exampleItem: ItemData = new ItemData("Example", 1, 2, 3, 4, 5, 6, 7);
 
 class HistoryData{
   buyOffer: number | null;
@@ -144,11 +140,7 @@ const App: React.FC = () => {
    * @param sorter 
    */
   function handleTableChanged(pagination: any, filters: any, sorter: any){
-    ReactGA.event({
-      category: 'Search',
-      action: 'Changed page, filter or sorter',
-      label: `Page: ${pagination.current}/${pagination.pageSize}, Sorter: ${sorter.field}, Order: ${sorter.order}`
-    });
+    //console.log(pagination, filters, sorter);
   }
 
   /**
@@ -193,7 +185,7 @@ const App: React.FC = () => {
       return false;
     }
 
-    if(dataObject.buyPrice.value < minBuyFilter){
+    if(minBuyFilter > -1 && dataObject.buyPrice.value < minBuyFilter){
       return false;
     }
 
@@ -216,20 +208,13 @@ const App: React.FC = () => {
     return true;
   }
 
-  function addDataRow(data: string){
-    var columnData: string[] = data.split(",");
+  function addDataRow(data: any){
+    var name = dataNameToOriginalName(data.name);
+    var dataObject: ItemData = new ItemData(name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.sold, data.bought, data.active_traders);
 
-    // If there are more than 8 columns in the data, merge the beginning until there are 8 columns.
-    while(columnData.length > 8){
-      columnData[0] += `,${columnData[1]}`;
-      columnData.splice(1, 1);
-    }
-
-    var name = dataNameToOriginalName(columnData[0]);
-    var dataObject: ItemData = new ItemData(name, columnData.splice(1, columnData.length - 1));
-
-    if(!doesDataMatchFilter(dataObject)) 
+    if(!doesDataMatchFilter(dataObject)){
       return;
+    }
 
     dataSource.push(dataObject);
   }
@@ -273,37 +258,38 @@ const App: React.FC = () => {
   }
 
   async function fetchData(){
-    setIsLoading(true);
+    if (isLoading)
+      return;
 
-    ReactGA.event({
-      category: 'Search',
-      action: 'User pressed search button',
-      label: getCurrentFilterString()
-    });
+    setIsLoading(true);
 
     // Load tracked item names if not already loaded.
     if(!("sword" in itemNames))
       await fetchItemNamesAsync();
 
-    var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/data/fullscan.csv"
+    // Check if marketServer is in cachedMarketResponse.
+    if (!(marketServer in cachedMarketResponses)){
+      var market_data_url: string = `https://api.mayiscoding.com:8001/market_values?limit=4000&server=${marketServer}`;
       
-    var items = await fetch(market_data_url).then(response => {
-      if(response.status != 200){
-          setIsLoading(false);
-          throw new Error("Fetching items failed!");
-      }
+      var items = await fetch(market_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
+        if(response.status != 200){
+            setIsLoading(false);
+            throw new Error("Fetching items failed!");
+        }
 
-      return response.text();
-    });
+        return response.text();
+      });
 
-    var data = items.split("\n");
-    var header = data[0];
+      cachedMarketResponses[marketServer] = items;
+    }
+
+    var marketValues = JSON.parse(cachedMarketResponses[marketServer]);
+
+    var data = marketValues.values;
     dataSource = [];
 
     for(var i = 1; i < data.length; i++){
-      if(data[i].length > 0){
-        addDataRow(data[i]);
-      }
+      addDataRow(data[i]);
     }
 
     setDataColumns(exampleItem);
@@ -344,9 +330,9 @@ const App: React.FC = () => {
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
-    var history_data_url: string = `https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/data/events.csv`;
+    var history_data_url: string = `https://api.mayiscoding.com:8001/events`;
       
-    var eventFile = await fetch(history_data_url).then(response => {
+    var eventResponse = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
       if(response.status != 200){
           setIsLoading(false);
           throw new Error("Fetching items failed!");
@@ -355,27 +341,20 @@ const App: React.FC = () => {
       return response.text();
     });
 
-    var eventEntries = eventFile.split("\n");
+    var eventValues = JSON.parse(eventResponse);
+    var eventEntries = eventValues.events;
+
     for(var i = 0; i < eventEntries.length; i++){
-      if(eventEntries[i].length > 10){
-        var eventInfo = eventEntries[i].split(",");
-        var date = eventInfo[0];
-        var eventNames = eventInfo.slice(1);
-        events[date] = eventNames;
-      }
+      var date = eventEntries[i].date;
+      var eventNames = eventEntries[i].events;
+      events[date] = eventNames;
     }
   }
 
   async function fetchPriceHistory(itemName: string){
-    ReactGA.event({
-      category: 'Search',
-      action: 'User requested history for item',
-      label: itemName
-    });
-
-    var history_data_url: string = `https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/data/histories/${encodeURIComponent(itemName.toLowerCase())}.csv`;
+    var history_data_url: string = `https://api.mayiscoding.com:8001/item_history?server=${marketServer}&item=${encodeURIComponent(itemName.toLowerCase())}`;
       
-    var items = await fetch(history_data_url).then(response => {
+    var item = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
       if(response.status != 200){
           setIsLoading(false);
           throw new Error("Fetching items failed!");
@@ -390,18 +369,16 @@ const App: React.FC = () => {
       weekdayData.push(new WeekdayData(i));
     }
 
-    var data = items.split("\n");
-    for(var i = 0; i < data.length; i++){
-      var values = data[i].split(",");
+    var itemValues = JSON.parse(item);
 
-      if(values.length > 1){
-        var historyData = new HistoryData(+values[1], +values[0], +values[3], +values[2], +values[4], +values[values.length - 1], timestampToEvents(+values[values.length - 1]));
-        graphData.push(historyData);
-        
-        // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
-        var date: number = new Date((historyData.time - 32400) * 1000).getUTCDay();
-        weekdayData[date].addOffer(historyData.buyOffer ?? 0, historyData.sellOffer ?? 0);
-      }
+    var data = itemValues.history;
+    for(var i = 0; i < data.length; i++){
+      var historyData = new HistoryData(data[i].buy_offer, data[i].sell_offer, data[i].bought, data[i].sold, data[i].active_traders, data[i].time, timestampToEvents(data[i].time));
+      graphData.push(historyData);
+      
+      // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
+      var date: number = new Date((historyData.time - 32400) * 1000).getUTCDay();
+      weekdayData[date].addOffer(historyData.buyOffer ?? 0, historyData.sellOffer ?? 0);
     }
 
     for(var i = 0; i < weekdayData.length; i++){
@@ -418,15 +395,26 @@ const App: React.FC = () => {
     localStorage.setItem("isLightModeKey", isLightMode.toString());
   }, [isLightMode]);
 
+  var [marketServer, setMarketServer] = useState(localStorage.getItem("marketServerKey") ?? "Antica");
+  useEffect(() => {
+    localStorage.setItem("marketServerKey", marketServer);
+  }, [marketServer]);
+
+  var [apiKey, setApiKey] = useState(localStorage.getItem("apiKeyKey") ?? "demo");
+  useEffect(() => {
+    localStorage.setItem("apiKeyKey", apiKey);
+  }, [apiKey]);
+  
+  var [marketServerOptions, setMarketServerOptions] = useState<SelectProps['options']>([{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"}]);
   var [dataSource, setDataSource] = useState<ItemData[]>([]);
   var [isLoading, setIsLoading] = useState(false);
   var [columns, setColumns] = useState<ColumnType<ItemData>[]>([]);
   var [nameFilter, setNameFilter] = useState("");
-  var [minBuyFilter, setMinBuyFilter] = useState(0);
+  var [minBuyFilter, setMinBuyFilter] = useState(-1);
   var [maxBuyFilter, setMaxBuyFilter] = useState(0);
-  var [minFlipsFilter, setMinTradesFilter] = useState(0);
+  var [minFlipsFilter, setMinTradesFilter] = useState(-1);
   var [maxFlipsFilter, setMaxTradesFilter] = useState(0);
-  var [minTradersFilter, setMinOffersFilter] = useState(0);
+  var [minTradersFilter, setMinOffersFilter] = useState(-1);
   var [maxTradersFilter, setMaxOffersFilter] = useState(0);
   var [selectedItem, setSelectedItem] = useState("");
   var [modalPriceHistory, setModalPriceHistory] = useState<HistoryData[]>([]);
@@ -468,18 +456,21 @@ const App: React.FC = () => {
         </Title>
         
         <Form layout='vertical'>
-          <Form.Item name="Name">
+          <Form.Item>
+            <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
+          </Form.Item>
+          <Form.Item>
             <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input>
           </Form.Item>
-          <Form.Item name="Buy limits">
+          <Form.Item>
             <InputNumber placeholder='Minimum buy price' onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             <InputNumber placeholder='Maximum buy price' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
           </Form.Item>
-          <Form.Item name="Flips">
+          <Form.Item>
             <InputNumber placeholder='Minimum flips' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             <InputNumber placeholder='Maximum flips' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
           </Form.Item>
-          <Form.Item name="Traders">
+          <Form.Item>
             <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
           </Form.Item>
