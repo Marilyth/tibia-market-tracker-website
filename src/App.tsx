@@ -265,6 +265,10 @@ const App: React.FC = () => {
     if(!("sword" in itemNames))
       await fetchItemNamesAsync();
 
+    // Load events if not already loaded.
+    if(Object.keys(events).length == 0)
+      await fetchEventHistory();
+
     // Check if marketServer is in cachedMarketResponse.
     if (!(marketServer in cachedMarketResponses)){
       var market_data_url: string = `https://api.tibiamarket.top:8001/market_values?limit=4000&server=${marketServer}`;
@@ -298,8 +302,6 @@ const App: React.FC = () => {
 
     setDataColumns(exampleItem);
     setDataSource([...dataSource]);
-
-    await fetchEventHistory();
 
     setIsLoading(false);
   }
