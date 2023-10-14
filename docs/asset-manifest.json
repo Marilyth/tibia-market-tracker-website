@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/tibia-market-tracker/static/css/main.481e6608.css",
-    "main.js": "/tibia-market-tracker/static/js/main.75abdf46.js",
-    "static/js/787.71e672d5.chunk.js": "/tibia-market-tracker/static/js/787.71e672d5.chunk.js",
-    "index.html": "/tibia-market-tracker/index.html",
-    "main.481e6608.css.map": "/tibia-market-tracker/static/css/main.481e6608.css.map",
-    "main.75abdf46.js.map": "/tibia-market-tracker/static/js/main.75abdf46.js.map",
-    "787.71e672d5.chunk.js.map": "/tibia-market-tracker/static/js/787.71e672d5.chunk.js.map"
+    "main.css": "/static/css/main.481e6608.css",
+    "main.js": "/static/js/main.ea3af0f7.js",
+    "static/js/787.71e672d5.chunk.js": "/static/js/787.71e672d5.chunk.js",
+    "index.html": "/index.html",
+    "main.481e6608.css.map": "/static/css/main.481e6608.css.map",
+    "main.ea3af0f7.js.map": "/static/js/main.ea3af0f7.js.map",
+    "787.71e672d5.chunk.js.map": "/static/js/787.71e672d5.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.481e6608.css",
-    "static/js/main.75abdf46.js"
+    "static/js/main.ea3af0f7.js"
   ]
 }
