@@ -19,14 +19,12 @@ class Metric{
   value: number;
   localisedValue: string;
   description: string;
-  isHidden: boolean;
 
-  constructor(name: string, value: number, description: string, isHidden: boolean = false, canBeNegative: boolean = true){
+  constructor(name: string, value: number, description: string, canBeNegative: boolean = true){
     this.name = name;
     this.value = value;
     this.localisedValue = value < 0 && !canBeNegative ? "None" : value.toLocaleString();
     this.description = description;
-    this.isHidden = isHidden;
   }
 }
 
@@ -49,15 +47,15 @@ class ItemData{
     this.name = name;
 
     // Available data.
-    this.sellPrice = new Metric("Sell Price", sellPrice, "The current sell price of the item.", false, false);
-    this.buyPrice = new Metric("Buy Price", buyPrice, "The current buy price of the item.", false, false);
-    this.averageSellPrice = new Metric("Avg. Sell Price", averageSellPrice, "The average sell price of the item.", true, false);
-    this.averageBuyPrice = new Metric("Avg. Buy Price", averageBuyPrice, "The average buy price of the item.", true, false);
-    this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value > 0 ? this.sellPrice.value - this.averageSellPrice.value : 0, "The difference between the current sell price and the average sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", false, this.sellPrice.value >= 0);
-    this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value > 0 ? this.buyPrice.value - this.averageBuyPrice.value : 0, "The difference between the current buy price and the average buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", false, this.buyPrice.value >= 0);
-    this.soldAmount = new Metric("Sold", soldAmount, "The amount of items sold in the last 30 days.", false, false);
-    this.boughtAmount = new Metric("Bought", boughtAmount, "The amount of items bought in the last 30 days.", false, false);
-    this.activeTraders = new Metric("Traders", activeTraders, "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", false, false);
+    this.sellPrice = new Metric("Sell Price", sellPrice, "The current sell price of the item.", false);
+    this.buyPrice = new Metric("Buy Price", buyPrice, "The current buy price of the item.", false);
+    this.averageSellPrice = new Metric("Avg. Sell Price", averageSellPrice, "The average sell price of the item.", true);
+    this.averageBuyPrice = new Metric("Avg. Buy Price", averageBuyPrice, "The average buy price of the item.", true);
+    this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value > 0 ? this.sellPrice.value - this.averageSellPrice.value : 0, "The difference between the current sell price and the average sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", this.sellPrice.value >= 0);
+    this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value > 0 ? this.buyPrice.value - this.averageBuyPrice.value : 0, "The difference between the current buy price and the average buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", this.buyPrice.value >= 0);
+    this.soldAmount = new Metric("Sold", soldAmount, "The amount of items sold in the last 30 days.", false);
+    this.boughtAmount = new Metric("Bought", boughtAmount, "The amount of items bought in the last 30 days.", false);
+    this.activeTraders = new Metric("Traders", activeTraders, "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", false);
 
     const tax: number = 0.02;
     const maxTax: number = 250000;
@@ -68,7 +66,7 @@ class ItemData{
     var avgProfit = this.averageSellPrice.value > 0 && this.averageBuyPrice.value > 0 ? Math.round((this.averageSellPrice.value - this.averageBuyPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : 0;
     this.averageProfit = new Metric("Avg. Profit", avgProfit, `The profit you would get on average for flipping this item. Minus ${tax} tax.`);
 
-    this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmount.value, this.boughtAmount.value), "The potential profit of the item, if you were the only trader for 1 month.", true);
+    this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmount.value, this.boughtAmount.value), "The potential profit of the item, if you were the only trader for 1 month.");
   }
 }
 
@@ -240,7 +238,7 @@ const App: React.FC = () => {
     
     // Add all other columns.
     for (const [key, value] of Object.entries(exampleItem)) {
-      if(key == "name" || value.isHidden)
+      if(key == "name" || value.isHidden || !marketColumns.includes(key))
         continue;
 
       columns.push({
@@ -400,12 +398,30 @@ const App: React.FC = () => {
     localStorage.setItem("marketServerKey", marketServer);
   }, [marketServer]);
 
+  var [marketColumns, setMarketColumns] = useState(JSON.parse(localStorage.getItem("selectedMarketColumnsKey") ?? JSON.stringify(["sellPrice", "buyPrice"])));
+  useEffect(() => {
+    localStorage.setItem("selectedMarketColumnsKey", JSON.stringify(marketColumns));
+    setDataColumns(exampleItem);
+  }, [marketColumns]);
+
   var [apiKey, setApiKey] = useState(localStorage.getItem("apiKeyKey") ?? "demo");
   useEffect(() => {
     localStorage.setItem("apiKeyKey", apiKey);
   }, [apiKey]);
   
-  var [marketServerOptions, setMarketServerOptions] = useState<SelectProps['options']>([{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"}]);
+  var marketServerOptions: SelectProps['options'] = [{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"}];
+  // Make all columns optional.
+  var marketColumnOptions: SelectProps['options'] = [];
+  for (const [key, value] of Object.entries(exampleItem)) {
+    if(key == "name")
+      continue;
+
+    marketColumnOptions.push({
+      value: key,
+      label: value.name
+    });
+  }
+
   var [dataSource, setDataSource] = useState<ItemData[]>([]);
   var [isLoading, setIsLoading] = useState(false);
   var [columns, setColumns] = useState<ColumnType<ItemData>[]>([]);
@@ -559,6 +575,15 @@ const App: React.FC = () => {
           </Modal>
           <Alert message="Some values can be false! If they seem unreal, they probably are." showIcon type="warning" closable />
           <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable />
+          <Select
+            mode="multiple"
+            allowClear
+            style={{ width: '100%' }}
+            placeholder="Select the table columns you want to see"
+            defaultValue={marketColumns}
+            onChange={setMarketColumns}
+            options={marketColumnOptions}
+          />
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
                 onClick: (event) => {setSelectedItem(record.name); fetchPriceHistory(record.name); setIsModalOpen(true);}
