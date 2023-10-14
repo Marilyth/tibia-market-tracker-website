@@ -267,7 +267,7 @@ const App: React.FC = () => {
 
     // Check if marketServer is in cachedMarketResponse.
     if (!(marketServer in cachedMarketResponses)){
-      var market_data_url: string = `https://api.mayiscoding.com:8001/market_values?limit=4000&server=${marketServer}`;
+      var market_data_url: string = `https://api.tibiamarket.top:8001/market_values?limit=4000&server=${marketServer}`;
       
       var items = await fetch(market_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
         if(response.status != 200){
@@ -328,7 +328,7 @@ const App: React.FC = () => {
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
-    var history_data_url: string = `https://api.mayiscoding.com:8001/events`;
+    var history_data_url: string = `https://api.tibiamarket.top:8001/events`;
       
     var eventResponse = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
       if(response.status != 200){
@@ -350,7 +350,7 @@ const App: React.FC = () => {
   }
 
   async function fetchPriceHistory(itemName: string){
-    var history_data_url: string = `https://api.mayiscoding.com:8001/item_history?server=${marketServer}&item=${encodeURIComponent(itemName.toLowerCase())}`;
+    var history_data_url: string = `https://api.tibiamarket.top:8001/item_history?server=${marketServer}&item=${encodeURIComponent(itemName.toLowerCase())}`;
       
     var item = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
       if(response.status != 200){
