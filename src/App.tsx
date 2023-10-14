@@ -1,6 +1,6 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Collapse, Tooltip as AntTooltip, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
+import { Layout, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush} from 'recharts';
 import './App.css';
@@ -269,9 +269,15 @@ const App: React.FC = () => {
     if (!(marketServer in cachedMarketResponses)){
       var market_data_url: string = `https://api.tibiamarket.top:8001/market_values?limit=4000&server=${marketServer}`;
       
-      var items = await fetch(market_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
+      var items = await fetch(market_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
         if(response.status != 200){
             setIsLoading(false);
+            messageApi.error(`Fetching market data failed, please try again in a bit!\n${response.statusText}`, 10);
+
+            var responseMessage = await response.text();
+            if(responseMessage)
+              messageApi.error(responseMessage, 10);
+
             throw new Error("Fetching items failed!");
         }
 
@@ -305,8 +311,15 @@ const App: React.FC = () => {
   async function fetchItemNamesAsync(){
     var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/main/items.csv"
         
-    var items = await fetch(market_data_url).then(response => {
+    var items = await fetch(market_data_url).then(async response => {
       if(response.status != 200){
+          var responseText = response.text();
+          messageApi.error(`Fetching item names failed, please try again in a bit!\n${response.statusText}`, 10);
+
+          var responseMessage = await response.text();
+          if(responseMessage)
+            messageApi.error(responseMessage, 10);
+
           throw new Error("Fetching tracked items failed!");
       }
 
@@ -330,9 +343,15 @@ const App: React.FC = () => {
   async function fetchEventHistory(){
     var history_data_url: string = `https://api.tibiamarket.top:8001/events`;
       
-    var eventResponse = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
+    var eventResponse = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           setIsLoading(false);
+          messageApi.error(`Fetching events failed, please try again in a bit!\n${response.statusText}`, 10);
+
+          var responseMessage = await response.text();
+          if(responseMessage)
+            messageApi.error(responseMessage, 10);
+
           throw new Error("Fetching items failed!");
       }
 
@@ -351,18 +370,27 @@ const App: React.FC = () => {
 
   async function fetchPriceHistory(itemName: string){
     var history_data_url: string = `https://api.tibiamarket.top:8001/item_history?server=${marketServer}&item=${encodeURIComponent(itemName.toLowerCase())}`;
-      
-    var item = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(response => {
+    
+    setModalPriceHistory([]);
+    setmodalWeekdayHistory([]);
+
+    var item = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           setIsLoading(false);
+          messageApi.error(`Fetching item history for ${itemName} failed, please try again in a bit!\n${response.statusText}`, 10);
+
+          var responseMessage = await response.text();
+          if(responseMessage)
+            messageApi.error(responseMessage, 10);
+
           throw new Error("Fetching items failed!");
       }
 
       return response.text();
     });
 
-    var graphData: HistoryData[] = []
-    var weekdayData: WeekdayData[] = []
+    var graphData: HistoryData[] = [];
+    var weekdayData: WeekdayData[] = [];
     for(var i = 0; i < 7; i++){
       weekdayData.push(new WeekdayData(i));
     }
@@ -387,6 +415,7 @@ const App: React.FC = () => {
     setmodalWeekdayHistory(weekdayData);
   }
 
+  const [messageApi, contextHolder] = message.useMessage(); 
   const { defaultAlgorithm, darkAlgorithm } = theme;
   var [isLightMode, setIsLightMode] = useState(localStorage.getItem("isLightModeKey") != "false");
   useEffect(() => {
@@ -452,6 +481,7 @@ const App: React.FC = () => {
     theme={{
       algorithm: isLightMode ? defaultAlgorithm : darkAlgorithm,
   }}>
+    {contextHolder}
     <Layout hasSider style={{height:'100vh'}}>
       <Sider
         style={{
