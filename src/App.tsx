@@ -242,7 +242,7 @@ const App: React.FC = () => {
         continue;
 
       columns.push({
-        title: <div>{value.name} <AntTooltip title={value.description}><QuestionCircleOutlined /></AntTooltip></div>,
+        title: value.name,
         dataIndex: [key, 'localisedValue'],
         width: 50,
         sorter: (a: any, b: any) => {
@@ -457,7 +457,7 @@ const App: React.FC = () => {
 
     marketColumnOptions.push({
       value: key,
-      label: value.name
+      label: <div>{value.name} <AntTooltip title={value.description}><QuestionCircleOutlined /></AntTooltip></div>,
     });
   }
 
