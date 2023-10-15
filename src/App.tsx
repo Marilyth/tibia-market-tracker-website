@@ -276,16 +276,18 @@ const App: React.FC = () => {
       var items = await fetch(market_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
         if(response.status != 200){
             setIsLoading(false);
-            messageApi.error(`Fetching market data failed, please try again in a bit!\n${response.statusText}`, 10);
 
-            var responseMessage = await response.text();
-            if(responseMessage)
-              messageApi.error(responseMessage, 10);
-
-            throw new Error("Fetching items failed!");
+            var errorMessage = `${response.statusText}. ${await response.text()}`;
+            throw new Error(errorMessage);
         }
 
         return response.text();
+      }).catch((error) => {
+        setIsLoading(false);
+        messageApi.error(`Fetching market data failed, please try again in a bit!`, 10);
+        messageApi.error(error.message, 10);
+
+        throw new Error("Fetching items failed!");
       });
 
       cachedMarketResponses[marketServer] = items;
@@ -312,20 +314,19 @@ const App: React.FC = () => {
    */
   async function fetchItemNamesAsync(){
     var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/main/items.csv"
-        
+
     var items = await fetch(market_data_url).then(async response => {
       if(response.status != 200){
-          var responseText = response.text();
-          messageApi.error(`Fetching item names failed, please try again in a bit!\n${response.statusText}`, 10);
-
-          var responseMessage = await response.text();
-          if(responseMessage)
-            messageApi.error(responseMessage, 10);
-
-          throw new Error("Fetching tracked items failed!");
+          var errorMessage = `${response.statusText}. ${await response.text()}`;
+          throw new Error(errorMessage);
       }
 
       return response.text();
+    }).catch((error) => {
+      messageApi.error(`Fetching item names failed, please try again in a bit!`, 10);
+      messageApi.error(error.message, 10);
+
+      throw new Error("Fetching tracked items failed!");
     });
 
     for(var item of items.split("\n")){
@@ -344,20 +345,22 @@ const App: React.FC = () => {
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
     var history_data_url: string = `https://api.tibiamarket.top:8001/events`;
-      
+
     var eventResponse = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           setIsLoading(false);
-          messageApi.error(`Fetching events failed, please try again in a bit!\n${response.statusText}`, 10);
 
-          var responseMessage = await response.text();
-          if(responseMessage)
-            messageApi.error(responseMessage, 10);
-
-          throw new Error("Fetching items failed!");
+          var errorMessage = `${response.statusText}. ${await response.text()}`;
+          throw new Error(errorMessage);
       }
 
       return response.text();
+    }).catch((error) => {
+      setIsLoading(false);
+      messageApi.error(`Fetching item history failed, please try again in a bit!`, 10);
+      messageApi.error(error.message, 10);
+      
+      throw new Error("Fetching items failed!");
     });
 
     var eventValues = JSON.parse(eventResponse);
@@ -372,23 +375,26 @@ const App: React.FC = () => {
 
   async function fetchPriceHistory(itemName: string){
     var history_data_url: string = `https://api.tibiamarket.top:8001/item_history?server=${marketServer}&item=${encodeURIComponent(itemName.toLowerCase())}`;
-    
+    setIsLoading(true);
+
     setModalPriceHistory([]);
     setmodalWeekdayHistory([]);
 
     var item = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           setIsLoading(false);
-          messageApi.error(`Fetching item history for ${itemName} failed, please try again in a bit!\n${response.statusText}`, 10);
 
-          var responseMessage = await response.text();
-          if(responseMessage)
-            messageApi.error(responseMessage, 10);
-
-          throw new Error("Fetching items failed!");
+          var errorMessage = `${response.statusText}. ${await response.text()}`;
+          throw new Error(errorMessage);
       }
 
       return response.text();
+    }).catch((error) => {
+      setIsLoading(false);
+      messageApi.error(`Fetching item history for ${itemName} failed, please try again in a bit!`, 10);
+      messageApi.error(error.message, 10);
+
+      throw new Error("Fetching items failed!");
     });
 
     var graphData: HistoryData[] = [];
@@ -415,6 +421,8 @@ const App: React.FC = () => {
 
     setModalPriceHistory(graphData);
     setmodalWeekdayHistory(weekdayData);
+
+    setIsLoading(false);
   }
 
   const [messageApi, contextHolder] = message.useMessage(); 
@@ -435,9 +443,9 @@ const App: React.FC = () => {
     setDataColumns(exampleItem);
   }, [marketColumns]);
 
-  var [apiKey, setApiKey] = useState(localStorage.getItem("apiKeyKey") ?? "demo");
+  var [apiKey, setApiKey] = useState(localStorage.getItem("accessTokenKey") ?? "");
   useEffect(() => {
-    localStorage.setItem("apiKeyKey", apiKey);
+    localStorage.setItem("accessTokenKey", apiKey);
   }, [apiKey]);
   
   var marketServerOptions: SelectProps['options'] = [{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"}];
@@ -467,6 +475,7 @@ const App: React.FC = () => {
   var [modalPriceHistory, setModalPriceHistory] = useState<HistoryData[]>([]);
   var [modalWeekdayHistory, setmodalWeekdayHistory] = useState<WeekdayData[]>([]);
   var [isModalOpen, setIsModalOpen] = useState(false);
+  var [passwordVisible, setPasswordVisible] = useState(false);
 
   var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
   var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
@@ -521,6 +530,9 @@ const App: React.FC = () => {
           <Form.Item>
             <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          </Form.Item>
+          <Form.Item>
+            <Input.Password placeholder="Access token" defaultValue={apiKey} onChange={(e) => setApiKey(e.target.value)} />
           </Form.Item>
           <Form.Item>
             <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading}>
@@ -618,7 +630,7 @@ const App: React.FC = () => {
           />
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
-                onClick: (event) => {setSelectedItem(record.name); fetchPriceHistory(record.name); setIsModalOpen(true);}
+                onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.name); setIsModalOpen(true);}
               };
             }} onChange={handleTableChanged}>
         </Table>
