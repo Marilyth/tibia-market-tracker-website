@@ -313,7 +313,7 @@ const App: React.FC = () => {
    * in the itemNames dictionary.
    */
   async function fetchItemNamesAsync(){
-    var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker/main/items.csv"
+    var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker-website/main/items.csv"
 
     var items = await fetch(market_data_url).then(async response => {
       if(response.status != 200){
