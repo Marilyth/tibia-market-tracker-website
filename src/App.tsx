@@ -35,15 +35,21 @@ class ItemData{
   averageBuyPrice: Metric;
   deltaSellPrice: Metric;
   deltaBuyPrice: Metric;
+  lowestSellPrice: Metric;
+  lowestBuyPrice: Metric;
+  highestSellPrice: Metric;
+  highestBuyPrice: Metric;
   soldAmount: Metric;
   boughtAmount: Metric;
   profit: Metric;
   averageProfit: Metric;
   potProfit: Metric;
+  sellOffers: Metric;
+  buyOffers: Metric;
   activeTraders: Metric;
   name: string;
 
-  constructor(name: string, sellPrice: number, buyPrice: number, averageSellPrice: number, averageBuyPrice: number, soldAmount: number, boughtAmount: number, activeTraders: number){
+  constructor(name: string, sellPrice: number, buyPrice: number, averageSellPrice: number, averageBuyPrice: number, lowestSellPrice: number, lowestBuyPrice: number, highestSellPrice: number, highestBuyPrice: number, soldAmount: number, boughtAmount: number, sellOffers: number, buyOffers: number, activeTraders: number){
     this.name = name;
 
     // Available data.
@@ -53,8 +59,14 @@ class ItemData{
     this.averageBuyPrice = new Metric("Avg. Buy Price", averageBuyPrice, "The average buy price of the item.", true);
     this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value > 0 ? this.sellPrice.value - this.averageSellPrice.value : 0, "The difference between the current sell price and the average sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", this.sellPrice.value >= 0);
     this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value > 0 ? this.buyPrice.value - this.averageBuyPrice.value : 0, "The difference between the current buy price and the average buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", this.buyPrice.value >= 0);
+    this.lowestSellPrice = new Metric("Lowest Sell Price", lowestSellPrice, "The lowest sell price of the item in the last 30 days.", false);
+    this.lowestBuyPrice = new Metric("Lowest Buy Price", lowestBuyPrice, "The lowest buy price of the item in the last 30 days.", false);
+    this.highestSellPrice = new Metric("Highest Sell Price", highestSellPrice, "The highest sell price of the item in the last 30 days.", false);
+    this.highestBuyPrice = new Metric("Highest Buy Price", highestBuyPrice, "The highest buy price of the item in the last 30 days.", false);
     this.soldAmount = new Metric("Sold", soldAmount, "The amount of items sold in the last 30 days.", false);
     this.boughtAmount = new Metric("Bought", boughtAmount, "The amount of items bought in the last 30 days.", false);
+    this.sellOffers = new Metric("Sell Offers", sellOffers, "The current amount of sell offers for this item.", false);
+    this.buyOffers = new Metric("Buy Offers", buyOffers, "The current amount of buy offers for this item.", false);
     this.activeTraders = new Metric("Traders", activeTraders, "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", false);
 
     const tax: number = 0.02;
@@ -70,7 +82,7 @@ class ItemData{
   }
 }
 
-var exampleItem: ItemData = new ItemData("Example", 1, 2, 3, 4, 5, 6, 7);
+var exampleItem: ItemData = new ItemData("Example", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
 
 class HistoryData{
   buyOffer: number | null;
@@ -208,7 +220,18 @@ const App: React.FC = () => {
 
   function addDataRow(data: any){
     var name = dataNameToOriginalName(data.name);
-    var dataObject: ItemData = new ItemData(name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.sold, data.bought, data.active_traders);
+
+    // Some data is not up to date. If it is old, add the missing values as -1.
+    if(!("lowest_sell" in data)){
+      data.lowest_sell = -1;
+      data.lowest_buy = -1;
+      data.highest_sell = -1;
+      data.highest_buy = -1;
+      data.sell_offers = -1;
+      data.buy_offers = -1;
+    }
+
+    var dataObject: ItemData = new ItemData(name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
