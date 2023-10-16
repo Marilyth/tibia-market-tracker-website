@@ -14,3 +14,7 @@
 .ant-alert {
   margin-bottom: 1%;
 }
+
+.recharts-surface {
+  overflow: visible;
+}
