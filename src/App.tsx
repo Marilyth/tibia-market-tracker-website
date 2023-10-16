@@ -651,13 +651,22 @@ const App: React.FC = () => {
             onChange={setMarketColumns}
             options={marketColumnOptions}
           />
-          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
+          <Table id='items-table' scroll={{ y: '60vh'}} dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
                 onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.name); setIsModalOpen(true);}
               };
             }} onChange={handleTableChanged}>
         </Table>
         </Content>
+        
+        <Footer style={{
+          borderTop: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
+          
+          textAlign: 'center',
+        }}>
+          ❤️ Please consider donating a few TC or gold to <a href="https://www.tibia.com/community/?name=leenia">Leenia</a> on Antica to help out! ❤️ <br></br>
+          For support or to request access, please join the <a href="https://discord.gg/Rvc8mXtmZH">Discord server</a>.
+        </Footer>
       </Layout>
     </Layout>
   </ConfigProvider>
