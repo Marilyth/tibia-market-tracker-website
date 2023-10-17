@@ -2,10 +2,12 @@ import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush} from 'recharts';
+import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush, TooltipProps} from 'recharts';
+import { ValueType, NameType, DefaultTooltipContent } from 'recharts/types/component/DefaultTooltipContent';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
 import { HistoryData, ItemData, WeekdayData, Metric, exampleItem } from './utils/data';
+import { linearRegressionLeastSquares } from './utils/math'
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -318,6 +320,15 @@ const App: React.FC = () => {
       weekdayData[date].addOffer(historyData.buyOffer ?? 0, historyData.sellOffer ?? 0);
     }
 
+    // Set the buyTrend and sellTrend values of graphData.
+    var buyRegression = linearRegressionLeastSquares(graphData.map(x => x.time), graphData.map(x => x.buyOffer ?? 0));
+    var sellRegression = linearRegressionLeastSquares(graphData.map(x => x.time), graphData.map(x => x.sellOffer ?? 0));
+
+    for(var i = 0; i < graphData.length; i++){
+      graphData[i].buyTrend = buyRegression.m * graphData[i].time + buyRegression.b;
+      graphData[i].sellTrend = sellRegression.m * graphData[i].time + sellRegression.b;
+    }
+
     for(var i = 0; i < weekdayData.length; i++){
       weekdayData[i].calculateMedian();
     }
@@ -461,16 +472,23 @@ const App: React.FC = () => {
             <Panel header="Buy and Sell price over time" key="1">
               <ResponsiveContainer width='100%' height={200}>
               <LineChart data={modalPriceHistory}>
-                <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
+                <XAxis domain={["dataMin", "dataMax + 1"]} allowDuplicatedCategory={false} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
                 <YAxis />
                 <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
                 <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} labelFormatter={(date) => <div>
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                         <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
-                                                   </div>} formatter={(x) => x.toLocaleString()}></Tooltip>
-                <Line connectNulls type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
-                <Line connectNulls type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
-                <Brush fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
+                                                   </div>} formatter={(value, name) => value.toLocaleString()}></Tooltip>
+                <Line name="Buy Price" connectNulls type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
+                <Line name="Sell Price" connectNulls type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
+                
+                {/*
+                This shows the trend in the tooltip and I can't figure out how to remove it...
+                <Line connectNulls type='monotone' dataKey="buyTrend" stroke="#8884d8" strokeDasharray="3 3" dot={false} activeDot={false} />
+                <Line connectNulls type='monotone' dataKey="sellTrend" stroke="#82ca9d" strokeDasharray="3 3" dot={false} activeDot={false}/>
+                */}
+                
+                <Brush data={modalPriceHistory} fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
               </LineChart>
             </ResponsiveContainer>
             </Panel>

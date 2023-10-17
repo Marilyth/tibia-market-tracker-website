@@ -1,4 +1,3 @@
-
 export class Metric{
     name: string;
     value: number;
@@ -71,7 +70,9 @@ export var exampleItem: ItemData = new ItemData("Example", 1, 2, 3, 4, 5, 6, 7, 
   
 export class HistoryData{
     buyOffer: number | null;
+    buyTrend: number | null;
     sellOffer: number | null;
+    sellTrend: number | null;
     buyAmount: number | null;
     sellAmount: number | null;
     activeTraders: number | null;
@@ -84,6 +85,8 @@ export class HistoryData{
       this.buyAmount = buyAmount >= 0 ? buyAmount : null;
       this.sellAmount = sellAmount >= 0 ? sellAmount : null;
       this.activeTraders = activeTraders >= 0 ? activeTraders : null;
+      this.buyTrend = null;
+      this.sellTrend = null;
   
       this.time = time;
       this.events = events;
