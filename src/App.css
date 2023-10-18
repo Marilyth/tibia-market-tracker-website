@@ -18,3 +18,7 @@
 .recharts-surface {
   overflow: visible;
 }
+
+.custom-tooltip {
+  margin: 200;
+}

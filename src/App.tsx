@@ -2,12 +2,13 @@ import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
 import { QuestionCircleOutlined } from '@ant-design/icons';
-import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush, TooltipProps} from 'recharts';
-import { ValueType, NameType, DefaultTooltipContent } from 'recharts/types/component/DefaultTooltipContent';
+import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
 import { HistoryData, ItemData, WeekdayData, Metric, exampleItem } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
+import { CustomTooltip } from './utils/CustomToolTip';
+import { Timestamp } from './utils/Timestamp';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -165,6 +166,7 @@ const App: React.FC = () => {
       return;
 
     setIsLoading(true);
+    setLastUpdated(0);
 
     // Load tracked item names if not already loaded.
     if(!("sword" in itemNames))
@@ -209,6 +211,11 @@ const App: React.FC = () => {
 
     setDataColumns(exampleItem);
     setDataSource([...dataSource]);
+
+    // If data has values, set the last updated timestamp to the maximum timestamp of the data.
+    if(data.length > 0){
+      setLastUpdated(Math.max(...data.map((x: any) => x.time)));
+    }
 
     setIsLoading(false);
   }
@@ -390,6 +397,7 @@ const App: React.FC = () => {
   var [modalWeekdayHistory, setmodalWeekdayHistory] = useState<WeekdayData[]>([]);
   var [isModalOpen, setIsModalOpen] = useState(false);
   var [passwordVisible, setPasswordVisible] = useState(false);
+  var [lastUpdated, setLastUpdated] = useState(0);
 
   var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
   var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
@@ -429,6 +437,7 @@ const App: React.FC = () => {
         <Form layout='vertical'>
           <Form.Item>
             <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
+            <Timestamp relative={true} timestamp={lastUpdated}/>
           </Form.Item>
           <Form.Item>
             <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input>
