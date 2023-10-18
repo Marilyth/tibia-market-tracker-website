@@ -7,7 +7,6 @@ export function unixTimeToTimeAgo(unixTime: number) {
 
     const now = new Date().getTime();
     const diff = now - unixTime;
-    console.log(unixTime, now, diff);
 
     const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(seconds / 60);
