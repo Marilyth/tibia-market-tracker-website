@@ -327,13 +327,24 @@ const App: React.FC = () => {
       weekdayData[date].addOffer(historyData.buyOffer ?? 0, historyData.sellOffer ?? 0);
     }
 
-    // Set the buyTrend and sellTrend values of graphData.
-    var buyRegression = linearRegressionLeastSquares(graphData.map(x => x.time), graphData.map(x => x.buyOffer ?? 0));
-    var sellRegression = linearRegressionLeastSquares(graphData.map(x => x.time), graphData.map(x => x.sellOffer ?? 0));
+    var filteredBuyGraphData = graphData.filter(x => x.buyOffer != null);
+    var filteredSellGraphData = graphData.filter(x => x.sellOffer != null);
 
-    for(var i = 0; i < graphData.length; i++){
-      graphData[i].buyTrend = buyRegression.m * graphData[i].time + buyRegression.b;
-      graphData[i].sellTrend = sellRegression.m * graphData[i].time + sellRegression.b;
+    // Draw trendlines if there are at least 3 data points.
+    if(filteredBuyGraphData.length >= 3){
+      var buyRegression = linearRegressionLeastSquares(filteredBuyGraphData.map(x => x.time), filteredBuyGraphData.map(x => x.buyOffer!));
+
+        for(var i = 0; i < filteredBuyGraphData.length; i++){
+          filteredBuyGraphData[i].buyTrend = buyRegression.m * filteredBuyGraphData[i].time + buyRegression.b;
+        }
+    }
+
+    if(filteredSellGraphData.length >= 3){
+      var sellRegression = linearRegressionLeastSquares(filteredSellGraphData.map(x => x.time), filteredSellGraphData.map(x => x.sellOffer!));
+
+        for(var i = 0; i < filteredSellGraphData.length; i++){
+          filteredSellGraphData[i].sellTrend = sellRegression.m * filteredSellGraphData[i].time + sellRegression.b;
+        }
     }
 
     for(var i = 0; i < weekdayData.length; i++){
@@ -484,18 +495,15 @@ const App: React.FC = () => {
                 <XAxis domain={["dataMin", "dataMax + 1"]} allowDuplicatedCategory={false} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
                 <YAxis />
                 <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
-                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} labelFormatter={(date) => <div>
+                <Tooltip content={<CustomTooltip/>} contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB", border: isLightMode ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.5)'}} labelFormatter={(date) => <div>
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                         <p style={{ color: "#ffb347"}}>{timestampToEvents(date).join(", ")}</p>
                                                    </div>} formatter={(value, name) => value.toLocaleString()}></Tooltip>
                 <Line name="Buy Price" connectNulls type='monotone' dataKey="buyOffer" stroke="#8884d8" dot={false} />
                 <Line name="Sell Price" connectNulls type='monotone' dataKey="sellOffer" stroke="#82ca9d" dot={false} />
                 
-                {/*
-                This shows the trend in the tooltip and I can't figure out how to remove it...
-                <Line connectNulls type='monotone' dataKey="buyTrend" stroke="#8884d8" strokeDasharray="3 3" dot={false} activeDot={false} />
-                <Line connectNulls type='monotone' dataKey="sellTrend" stroke="#82ca9d" strokeDasharray="3 3" dot={false} activeDot={false}/>
-                */}
+                <Line connectNulls type='monotone' dataKey="buyTrend" name="Buy Trend Hidden" stroke="#8884d877" strokeDasharray="3 3" dot={false} activeDot={false} />
+                <Line connectNulls type='monotone' dataKey="sellTrend" name="Sell Trend Hidden" stroke="#82ca9d77" strokeDasharray="3 3" dot={false} activeDot={false}/>
                 
                 <Brush data={modalPriceHistory} fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
               </LineChart>
