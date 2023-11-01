@@ -380,7 +380,7 @@ const App: React.FC = () => {
     localStorage.setItem("accessTokenKey", apiKey);
   }, [apiKey]);
   
-  var marketServerOptions: SelectProps['options'] = [{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"}];
+  var marketServerOptions: SelectProps['options'] = [{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"},  {value: "Vunira", label: "Vunira"}];
   // Make all columns optional.
   var marketColumnOptions: SelectProps['options'] = [];
   for (const [key, value] of Object.entries(exampleItem)) {
