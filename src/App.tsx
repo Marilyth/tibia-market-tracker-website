@@ -17,6 +17,7 @@ const { Panel } = Collapse;
 var events: { [date: string]: string[]} = {}
 var itemNames: {[lowerCaseName: string]: string} = {}
 var cachedMarketResponses: {[server: string]: string} = {};
+var urlParams = new URLSearchParams(window.location.search);
 
 function timestampToEvents(unixTimestamp: number){
   var dateTime: Date = new Date(unixTimestamp * 1000);
@@ -34,6 +35,42 @@ const App: React.FC = () => {
    */
   function handleTableChanged(pagination: any, filters: any, sorter: any){
     //console.log(pagination, filters, sorter);
+  }
+
+  /**
+   * Gets the value of a parameter from the url, localstorage, or the default value if the parameter is not set.
+   * @param paramName The name of the parameter to get the value for.
+   * @param defaultValue The default value to return if the parameter is not set.
+   * @returns The value of the parameter, or the default value if the parameter is not set.
+   */
+  function getLocalParamValue(paramName: string, defaultValue: string){
+    var paramValue = urlParams.get(paramName);
+    if(paramValue == null){
+      var localValue = localStorage.getItem(`${paramName}Key`);
+
+      if(localValue == null){
+        return defaultValue;
+      }
+
+      return localValue;
+    }
+
+    return paramValue;
+  }
+
+  /**
+   * Sets the value of a parameter in the url and localstorage.
+   * @param paramName The name of the parameter to set the value for.
+   * @param paramValue The value to set the parameter to.
+   */
+  function setLocalParamValue(paramName: string, paramValue: string, hideFromUrl: boolean){
+    if(!hideFromUrl){
+      urlParams.set(paramName, paramValue);
+      // TODO: Make this work without refresh.
+      //window.location.search = urlParams.toString();
+    }
+
+    localStorage.setItem(`${paramName}Key`, paramValue);
   }
 
   /**
@@ -359,25 +396,25 @@ const App: React.FC = () => {
 
   const [messageApi, contextHolder] = message.useMessage(); 
   const { defaultAlgorithm, darkAlgorithm } = theme;
-  var [isLightMode, setIsLightMode] = useState(localStorage.getItem("isLightModeKey") != "false");
+  var [isLightMode, setIsLightMode] = useState(getLocalParamValue("isLightMode", "false") != "false");
   useEffect(() => {
-    localStorage.setItem("isLightModeKey", isLightMode.toString());
+    setLocalParamValue("isLightMode", isLightMode.toString(), false);
   }, [isLightMode]);
 
-  var [marketServer, setMarketServer] = useState(localStorage.getItem("marketServerKey") ?? "Antica");
+  var [marketServer, setMarketServer] = useState(getLocalParamValue("marketServer", "Antica"));
   useEffect(() => {
-    localStorage.setItem("marketServerKey", marketServer);
+    setLocalParamValue("marketServer", marketServer, false);
   }, [marketServer]);
 
-  var [marketColumns, setMarketColumns] = useState(JSON.parse(localStorage.getItem("selectedMarketColumnsKey") ?? JSON.stringify(["sellPrice", "buyPrice"])));
+  var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketColumnsKey", JSON.stringify(["sellPrice", "buyPrice"]))));
   useEffect(() => {
-    localStorage.setItem("selectedMarketColumnsKey", JSON.stringify(marketColumns));
+    setLocalParamValue("selectedMarketColumns", JSON.stringify(marketColumns), true);
     setDataColumns(exampleItem);
   }, [marketColumns]);
 
-  var [apiKey, setApiKey] = useState(localStorage.getItem("accessTokenKey") ?? "");
+  var [apiKey, setApiKey] = useState(getLocalParamValue("accessToken", ""));
   useEffect(() => {
-    localStorage.setItem("accessTokenKey", apiKey);
+    setLocalParamValue("accessToken", apiKey, true);
   }, [apiKey]);
   
   var marketServerOptions: SelectProps['options'] = [{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"},  {value: "Vunira", label: "Vunira"}];
