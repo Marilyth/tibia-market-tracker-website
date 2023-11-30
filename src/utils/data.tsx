@@ -1,3 +1,23 @@
+export class NPCSaleData{
+    price: number;
+    name: string;
+    location: string;
+    currency_object_type_id: number;
+    currency_quest_flag_display_name: string;
+  
+    constructor(price: number, name: string, location: string, currency_object_type_id: number = 0, currency_quest_flag_display_name: string = ""){
+      this.price = price;
+      this.name = name;
+      this.location = location;
+      this.currency_object_type_id = currency_object_type_id;
+      this.currency_quest_flag_display_name = currency_quest_flag_display_name;
+    }
+
+    public static isGold(data: NPCSaleData) : boolean {
+      return data.currency_object_type_id == 0 && data.currency_quest_flag_display_name == "";
+    }
+}
+
 export class Metric{
     name: string;
     value: number;
@@ -23,17 +43,20 @@ export class Metric{
     lowestBuyPrice: Metric;
     highestSellPrice: Metric;
     highestBuyPrice: Metric;
+    npcSellPrice: Metric;
+    npcBuyPrice: Metric;
     soldAmount: Metric;
     boughtAmount: Metric;
     profit: Metric;
     averageProfit: Metric;
     potProfit: Metric;
+    npcProfit: Metric;
     sellOffers: Metric;
     buyOffers: Metric;
     activeTraders: Metric;
     name: string;
   
-    constructor(name: string, sellPrice: number, buyPrice: number, averageSellPrice: number, averageBuyPrice: number, lowestSellPrice: number, lowestBuyPrice: number, highestSellPrice: number, highestBuyPrice: number, soldAmount: number, boughtAmount: number, sellOffers: number, buyOffers: number, activeTraders: number){
+    constructor(name: string, sellPrice: number, buyPrice: number, averageSellPrice: number, averageBuyPrice: number, lowestSellPrice: number, lowestBuyPrice: number, highestSellPrice: number, highestBuyPrice: number, soldAmount: number, boughtAmount: number, sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = []) {
       this.name = name;
   
       // Available data.
@@ -52,7 +75,13 @@ export class Metric{
       this.sellOffers = new Metric("Sell Offers", sellOffers, "The current amount of sell offers for this item.", false);
       this.buyOffers = new Metric("Buy Offers", buyOffers, "The current amount of buy offers for this item.", false);
       this.activeTraders = new Metric("Traders", activeTraders, "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", false);
-  
+      
+      // NPC data.
+      npcSell = npcSell.filter((x) => NPCSaleData.isGold(x));
+      npcBuy = npcBuy.filter((x) => NPCSaleData.isGold(x));
+      this.npcSellPrice = new Metric("NPC Sell Price", npcSell.length > 0 ? Math.min(...npcSell.map((x) => x.price)) : -1, "The lowest price NPCs sell this item for.", false);
+      this.npcBuyPrice = new Metric("NPC Buy Price", npcBuy.length > 0 ? Math.max(...npcBuy.map((x) => x.price)) : -1, "The highest price NPCs buy this item for.", false);
+
       const tax: number = 0.02;
       const maxTax: number = 250000;
   
@@ -61,7 +90,13 @@ export class Metric{
       this.profit = new Metric("Profit", profit, `The profit you would get for flipping this item right now. Minus ${tax} tax.`);
       var avgProfit = this.averageSellPrice.value > 0 && this.averageBuyPrice.value > 0 ? Math.round((this.averageSellPrice.value - this.averageBuyPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : 0;
       this.averageProfit = new Metric("Avg. Profit", avgProfit, `The profit you would get on average for flipping this item. Minus ${tax} tax.`);
-  
+
+      var sellToNPCProfit = this.buyPrice.value > 0 && this.npcBuyPrice.value > 0 ? Math.round((this.npcBuyPrice.value - this.buyPrice.value) - Math.min(this.buyPrice.value * tax, maxTax)) : -1;
+      var sellToMarketProfit = this.sellPrice.value > 0 && this.npcSellPrice.value > 0 ? Math.round((this.sellPrice.value - this.npcSellPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : -1;
+      var npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
+
+      this.npcProfit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs. Minus 2% tax.");
+
       this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmount.value, this.boughtAmount.value), "The potential profit of the item, if you were the only trader for 1 month.");
     }
 }

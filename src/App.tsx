@@ -5,7 +5,7 @@ import { QuestionCircleOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { HistoryData, ItemData, WeekdayData, Metric, exampleItem } from './utils/data';
+import { HistoryData, ItemData, WeekdayData, Metric, exampleItem, NPCSaleData } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip } from './utils/CustomToolTip';
 import { Timestamp } from './utils/Timestamp';
@@ -151,7 +151,12 @@ const App: React.FC = () => {
       data.buy_offers = -1;
     }
 
-    var dataObject: ItemData = new ItemData(name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders);
+    if (!("pretty_name" in data)){
+      data.npc_buy = [];
+      data.npc_sell = [];
+    }
+
+    var dataObject: ItemData = new ItemData(name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders, data.npc_sell, data.npc_buy);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
