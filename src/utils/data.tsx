@@ -51,6 +51,7 @@ export class Metric{
     averageProfit: Metric;
     potProfit: Metric;
     npcProfit: Metric;
+    npcImmediateProfit: Metric;
     sellOffers: Metric;
     buyOffers: Metric;
     activeTraders: Metric;
@@ -95,7 +96,13 @@ export class Metric{
       var sellToMarketProfit = this.sellPrice.value > 0 && this.npcSellPrice.value > 0 ? Math.round((this.sellPrice.value - this.npcSellPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : -1;
       var npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
-      this.npcProfit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs. Minus 2% tax.");
+      this.npcProfit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.");
+
+      sellToNPCProfit = this.sellPrice.value > 0 && this.npcBuyPrice.value > 0 ? Math.round((this.npcBuyPrice.value - this.sellPrice.value)) : -1;
+      sellToMarketProfit = this.npcSellPrice.value > 0 && this.buyPrice.value > 0 ? Math.round((this.buyPrice.value - this.npcSellPrice.value)) : -1;
+      npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
+
+      this.npcImmediateProfit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by taking existing offers.");
 
       this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmount.value, this.boughtAmount.value), "The potential profit of the item, if you were the only trader for 1 month.");
     }
