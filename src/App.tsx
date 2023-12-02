@@ -5,7 +5,7 @@ import { QuestionCircleOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { HistoryData, ItemData, WeekdayData, Metric, exampleItem, NPCSaleData } from './utils/data';
+import { HistoryData, ItemData, WeekdayData, Metric, exampleItem, NPCSaleData, ItemMetaData } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip } from './utils/CustomToolTip';
 import { Timestamp } from './utils/Timestamp';
@@ -15,8 +15,8 @@ const { Title } = Typography;
 const { Panel } = Collapse;
 
 var events: { [date: string]: string[]} = {}
-var itemNames: {[lowerCaseName: string]: string} = {}
 var cachedMarketResponses: {[server: string]: string} = {};
+var itemMetaData: {[id: number]: ItemMetaData} = {};
 var urlParams = new URLSearchParams(window.location.search);
 
 function timestampToEvents(unixTimestamp: number){
@@ -27,6 +27,29 @@ function timestampToEvents(unixTimestamp: number){
 }
 
 const App: React.FC = () => {
+  /**
+   * Send a request to the api to fetch data. Automatically handles errors.
+   * @param endpoint The endpoint to fetch data from.
+   */
+  async function getDataAsync(endpoint: string){
+    var items = await fetch(`https://api.tibiamarket.top:8001/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
+      if(response.status != 200){
+          var errorMessage = `${response.statusText}. ${await response.text()}`;
+          throw new Error(errorMessage);
+      }
+  
+      return response.text();
+    }).catch((error) => {
+      var endpointWithoutParams = endpoint.split("?")[0];
+      messageApi.error(`Fetching ${endpointWithoutParams} failed, please try again in a bit!`, 10);
+      messageApi.error(error.message, 10);
+  
+      throw new Error("Fetching tracked items failed!");
+    });
+
+    return items;
+  }
+
   /**
    * Gets called when the pagination, filter or sorter changes.
    * @param pagination 
@@ -81,27 +104,14 @@ const App: React.FC = () => {
   }
 
   /**
-   * Returns the original name of the item, including spaces and capitalisation.
-   * @param dataName The name of the item to return the original name for.
-   * @returns 
-   */
-  function dataNameToOriginalName(dataName: string){
-    if (dataName.toLowerCase().trim() in itemNames)
-      return itemNames[dataName.toLowerCase().trim()];
-    else
-      return dataName;
-  }
-
-  /**
    * Returns the nabbot image url of the item.
    * @param itemName The item name to return the image url for.
    */
-  function itemToImage(itemName: string): string{
-    var originalItemName: string = dataNameToOriginalName(itemName);
-    return `https://static.nabbot.xyz/tibiawiki/item/${originalItemName}.gif`
+  function nameToImage(itemName: string): string{
+    return `https://static.nabbot.xyz/tibiawiki/item/${itemName}.gif`
   }
 
-  function itemToWikiLink(itemName: string){
+  function nameToWikiLink(itemName: string){
     return <a href={'https://tibia.fandom.com/wiki/' + itemName} target='_blank'>{itemName}</a>
   }
 
@@ -139,7 +149,7 @@ const App: React.FC = () => {
   }
 
   function addDataRow(data: any){
-    var name = dataNameToOriginalName(data.name);
+    var metaData = itemMetaData[data.id];
 
     // Some data is not up to date. If it is old, add the missing values as -1.
     if(!("lowest_sell" in data)){
@@ -151,12 +161,7 @@ const App: React.FC = () => {
       data.buy_offers = -1;
     }
 
-    if (!("pretty_name" in data)){
-      data.npc_buy = [];
-      data.npc_sell = [];
-    }
-
-    var dataObject: ItemData = new ItemData(name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders, data.npc_sell, data.npc_buy);
+    var dataObject: ItemData = new ItemData(data.id, metaData.wiki_name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
@@ -178,8 +183,8 @@ const App: React.FC = () => {
       sortDirections: ['descend', 'ascend', 'descend'],
       render: (text: any, record: any) => {
         return <div>
-          <img src={itemToImage(text)}/> <br></br>
-          {itemToWikiLink(text)}
+          <img src={nameToImage(text)}/> <br></br>
+          {nameToWikiLink(text)}
           </div>;
       }
     });
@@ -210,9 +215,9 @@ const App: React.FC = () => {
     setIsLoading(true);
     setLastUpdated(0);
 
-    // Load tracked item names if not already loaded.
-    if(!("sword" in itemNames))
-      await fetchItemNamesAsync();
+    // Load metadata if it isn't already loaded.
+    if(Object.keys(itemMetaData).length == 0)
+      await fetchMetaDataAsync();
 
     // Load events if not already loaded.
     if(Object.keys(events).length == 0)
@@ -220,25 +225,7 @@ const App: React.FC = () => {
 
     // Check if marketServer is in cachedMarketResponse.
     if (!(marketServer in cachedMarketResponses)){
-      var market_data_url: string = `https://api.tibiamarket.top:8001/market_values?limit=4000&server=${marketServer}`;
-      
-      var items = await fetch(market_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
-        if(response.status != 200){
-            setIsLoading(false);
-
-            var errorMessage = `${response.statusText}. ${await response.text()}`;
-            throw new Error(errorMessage);
-        }
-
-        return response.text();
-      }).catch((error) => {
-        setIsLoading(false);
-        messageApi.error(`Fetching market data failed, please try again in a bit!`, 10);
-        messageApi.error(error.message, 10);
-
-        throw new Error("Fetching items failed!");
-      });
-
+      var items = await getDataAsync(`market_values?limit=4000&server=${marketServer}`);
       cachedMarketResponses[marketServer] = items;
     }
 
@@ -266,56 +253,19 @@ const App: React.FC = () => {
    * Fetches all tracked item names from tracked_items.txt, and maps their lowercase version to original version
    * in the itemNames dictionary.
    */
-  async function fetchItemNamesAsync(){
-    var market_data_url: string = "https://raw.githubusercontent.com/Marilyth/tibia-market-tracker-website/main/items.csv"
+  async function fetchMetaDataAsync(){
+    var items = await getDataAsync("item_metadata");
+    var metaDatas: [ItemMetaData] = JSON.parse(items).metadata;
 
-    var items = await fetch(market_data_url).then(async response => {
-      if(response.status != 200){
-          var errorMessage = `${response.statusText}. ${await response.text()}`;
-          throw new Error(errorMessage);
-      }
-
-      return response.text();
-    }).catch((error) => {
-      messageApi.error(`Fetching item names failed, please try again in a bit!`, 10);
-      messageApi.error(error.message, 10);
-
-      throw new Error("Fetching tracked items failed!");
-    });
-
-    for(var item of items.split("\n")){
-      if(item.length == 0)
-        continue;
-
-      var values = item.split(",");
-      var id = values[values.length - 1];
-      // Take every index of the values array except the last one.
-      item = values.slice(0, values.length - 1).join(",");
-
-      itemNames[item.toLowerCase().trim()] = item;
+    console.log(metaDatas);
+    for(var item of metaDatas){
+      itemMetaData[item.id] = item;
     }
   }
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
-    var history_data_url: string = `https://api.tibiamarket.top:8001/events`;
-
-    var eventResponse = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
-      if(response.status != 200){
-          setIsLoading(false);
-
-          var errorMessage = `${response.statusText}. ${await response.text()}`;
-          throw new Error(errorMessage);
-      }
-
-      return response.text();
-    }).catch((error) => {
-      setIsLoading(false);
-      messageApi.error(`Fetching item history failed, please try again in a bit!`, 10);
-      messageApi.error(error.message, 10);
-      
-      throw new Error("Fetching items failed!");
-    });
+    var eventResponse = await getDataAsync("events");
 
     var eventValues = JSON.parse(eventResponse);
     var eventEntries = eventValues.events;
@@ -327,29 +277,13 @@ const App: React.FC = () => {
     }
   }
 
-  async function fetchPriceHistory(itemName: string){
-    var history_data_url: string = `https://api.tibiamarket.top:8001/item_history?server=${marketServer}&item=${encodeURIComponent(itemName.toLowerCase())}`;
+  async function fetchPriceHistory(itemId: number){
     setIsLoading(true);
 
     setModalPriceHistory([]);
     setmodalWeekdayHistory([]);
 
-    var item = await fetch(history_data_url, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
-      if(response.status != 200){
-          setIsLoading(false);
-
-          var errorMessage = `${response.statusText}. ${await response.text()}`;
-          throw new Error(errorMessage);
-      }
-
-      return response.text();
-    }).catch((error) => {
-      setIsLoading(false);
-      messageApi.error(`Fetching item history for ${itemName} failed, please try again in a bit!`, 10);
-      messageApi.error(error.message, 10);
-
-      throw new Error("Fetching items failed!");
-    });
+    var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}`);
 
     var graphData: HistoryData[] = [];
     var weekdayData: WeekdayData[] = [];
@@ -523,7 +457,7 @@ const App: React.FC = () => {
       <Layout className="site-layout" style={{ width: '100%' }}>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto' }}>
           <Modal
-            title=<div>Item history for {itemToWikiLink(selectedItem)}</div>
+            title=<div>Item history for {nameToWikiLink(selectedItem)}</div>
             centered
             open={isModalOpen}
             onOk={() => setIsModalOpen(false)}
@@ -610,7 +544,7 @@ const App: React.FC = () => {
           />
           <Table id='items-table' scroll={{ y: '60vh'}} dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
-                onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.name); setIsModalOpen(true);}
+                onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value); setIsModalOpen(true);}
               };
             }} onChange={handleTableChanged}>
         </Table>

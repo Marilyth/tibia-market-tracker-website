@@ -18,6 +18,26 @@ export class NPCSaleData{
     }
 }
 
+export class ItemMetaData{
+    id: number;
+    category: string;
+    is_upgradeable: boolean;
+    name: string;
+    npc_buy: Array<NPCSaleData>;
+    npc_sell: Array<NPCSaleData>;
+    wiki_name: string;
+
+    constructor(id: number, category: string, is_upgradeable: boolean, name: string, npc_buy: Array<NPCSaleData>, npc_sell: Array<NPCSaleData>, wiki_name: string){
+      this.id = id;
+      this.category = category;
+      this.is_upgradeable = is_upgradeable;
+      this.name = name;
+      this.npc_buy = npc_buy;
+      this.npc_sell = npc_sell;
+      this.wiki_name = wiki_name;
+    }
+}
+
 export class Metric{
     name: string;
     value: number;
@@ -55,9 +75,11 @@ export class Metric{
     sellOffers: Metric;
     buyOffers: Metric;
     activeTraders: Metric;
+    id: Metric;
     name: string;
   
-    constructor(name: string, sellPrice: number, buyPrice: number, averageSellPrice: number, averageBuyPrice: number, lowestSellPrice: number, lowestBuyPrice: number, highestSellPrice: number, highestBuyPrice: number, soldAmount: number, boughtAmount: number, sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = []) {
+    constructor(id: number, name: string, sellPrice: number, buyPrice: number, averageSellPrice: number, averageBuyPrice: number, lowestSellPrice: number, lowestBuyPrice: number, highestSellPrice: number, highestBuyPrice: number, soldAmount: number, boughtAmount: number, sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = []) {
+      this.id = new Metric("Item Id", id, "The Tibia internal id of the item.", false);
       this.name = name;
   
       // Available data.
@@ -108,7 +130,7 @@ export class Metric{
     }
 }
   
-export var exampleItem: ItemData = new ItemData("Example", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
+export var exampleItem: ItemData = new ItemData(1, "Test", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
   
 export class HistoryData{
     buyOffer: number | null;
