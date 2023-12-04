@@ -161,7 +161,13 @@ const App: React.FC = () => {
       data.buy_offers = -1;
     }
 
-    var dataObject: ItemData = new ItemData(data.id, metaData.wiki_name, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy);
+    // Get the item name from the wiki, or the name from the bin if the wiki name is not set.
+    var itemName = metaData.wiki_name;
+    if(itemName == null || itemName == "") {
+      itemName = metaData.name;
+    }
+
+    var dataObject: ItemData = new ItemData(data.id, itemName, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
