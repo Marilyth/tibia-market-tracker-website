@@ -43,6 +43,7 @@ const App: React.FC = () => {
       var endpointWithoutParams = endpoint.split("?")[0];
       messageApi.error(`Fetching ${endpointWithoutParams} failed, please try again in a bit!`, 10);
       messageApi.error(error.message, 10);
+      setIsLoading(false);
   
       throw new Error("Fetching tracked items failed!");
     });
@@ -263,7 +264,6 @@ const App: React.FC = () => {
     var items = await getDataAsync("item_metadata");
     var metaDatas: [ItemMetaData] = JSON.parse(items).metadata;
 
-    console.log(metaDatas);
     for(var item of metaDatas){
       itemMetaData[item.id] = item;
     }
@@ -351,7 +351,7 @@ const App: React.FC = () => {
     setLocalParamValue("marketServer", marketServer, false);
   }, [marketServer]);
 
-  var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketColumnsKey", JSON.stringify(["sellPrice", "buyPrice"]))));
+  var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketColumns", JSON.stringify(["sellPrice", "buyPrice"]))));
   useEffect(() => {
     setLocalParamValue("selectedMarketColumns", JSON.stringify(marketColumns), true);
     setDataColumns(exampleItem);
