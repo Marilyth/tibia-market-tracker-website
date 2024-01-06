@@ -362,7 +362,9 @@ const App: React.FC = () => {
     setLocalParamValue("accessToken", apiKey, true);
   }, [apiKey]);
   
-  var marketServerOptions: SelectProps['options'] = [{value: "Antica", label: "Antica"}, {value: "Dia", label: "Dia"},  {value: "Vunira", label: "Vunira"}];
+  var supportedServers: string[] = ["Antica", "Dia", "Vunira", "Nefera"];
+  var marketServerOptions: SelectProps['options'] = supportedServers.sort().map(x => {return {value: x, label: x}});
+
   // Make all columns optional.
   var marketColumnOptions: SelectProps['options'] = [];
   for (const [key, value] of Object.entries(exampleItem)) {
