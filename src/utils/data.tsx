@@ -98,6 +98,7 @@ export class Metric{
     potProfit: Metric;
     npcProfit: Metric;
     npcImmediateProfit: Metric;
+    totalNpcImmediateProfit: Metric;
     sellOffers: Metric;
     buyOffers: Metric;
     activeTraders: Metric;
@@ -108,7 +109,7 @@ export class Metric{
     constructor(id: number, name: string, category: string, sellPrice: number, buyPrice: number, 
                 averageSellPriceMonth: number, averageBuyPriceMonth: number, lowestSellPriceMonth: number, lowestBuyPriceMonth: number, highestSellPriceMonth: number, highestBuyPriceMonth: number, soldAmountMonth: number, boughtAmountMonth: number, 
                 averageSellPriceDay: number, averageBuyPriceDay: number, lowestSellPriceDay: number, lowestBuyPriceDay: number, highestSellPriceDay: number, highestBuyPriceDay: number, soldAmountDay: number, boughtAmountDay: number,
-                sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = []) {
+                sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = [], totalNpcImmediateProfit: number = 0) {
       this.id = new Metric("Item Id", id, "The Tibia internal id of the item.", "Meta data", false);
       this.name = name;
       this.category = new TextMetric("Category", category, "The market category of the item.", "Meta data");
@@ -141,7 +142,7 @@ export class Metric{
       this.sellOffers = new Metric("Sell Offers", sellOffers, "The current amount of sell offers for this item.", "Market Activity", false);
       this.buyOffers = new Metric("Buy Offers", buyOffers, "The current amount of buy offers for this item.", "Market Activity", false);
       this.activeTraders = new Metric("Traders", activeTraders, "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", false);
-      
+
       // NPC data.
       npcSell = npcSell.filter((x) => NPCSaleData.isGold(x));
       npcBuy = npcBuy.filter((x) => NPCSaleData.isGold(x));
@@ -167,7 +168,8 @@ export class Metric{
       sellToMarketProfit = this.npcSellPrice.value > 0 && this.buyPrice.value > 0 ? Math.round((this.buyPrice.value - this.npcSellPrice.value)) : -1;
       npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
-      this.npcImmediateProfit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by taking existing offers.", "Profit Metrics");
+      this.npcImmediateProfit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics");
+      this.totalNpcImmediateProfit = new Metric("Total NPC Immediate Profit", totalNpcImmediateProfit, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false);
 
       this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmountMonth.value, this.boughtAmountMonth.value), "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics");
     }

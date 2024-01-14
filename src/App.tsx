@@ -1,7 +1,7 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
-import { QuestionCircleOutlined } from '@ant-design/icons';
+import { Layout, Drawer, DrawerProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
+import { QuestionCircleOutlined, FilterOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
@@ -172,6 +172,9 @@ const App: React.FC = () => {
       data.day_highest_buy = -1;
       data.day_lowest_buy = -1;
     }
+    if(!("total_immediate_profit" in data)){
+      data.total_immediate_profit = -1;
+    }
 
     // Get the item name from the wiki, or the name from the bin if the wiki name is not set.
     var itemName = metaData.wiki_name;
@@ -182,7 +185,7 @@ const App: React.FC = () => {
     var dataObject: ItemData = new ItemData(data.id, itemName, metaData.category, data.sell_offer, data.buy_offer, 
       data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, 
       data.day_sell_offer, data.day_buy_offer, data.day_lowest_sell, data.day_lowest_buy, data.day_highest_sell, data.day_highest_buy, data.day_sold, data.day_bought,
-      data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy);
+      data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy, data.total_immediate_profit);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
@@ -271,6 +274,7 @@ const App: React.FC = () => {
     }
 
     setIsLoading(false);
+    setIsDrawerOpen(false);
   }
 
   /**
@@ -418,16 +422,10 @@ const App: React.FC = () => {
   var [isModalOpen, setIsModalOpen] = useState(false);
   var [passwordVisible, setPasswordVisible] = useState(false);
   var [lastUpdated, setLastUpdated] = useState(0);
+  var [isDrawerOpen, setIsDrawerOpen] = useState(true);
 
   var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
   var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
-
-  useEffect(() => {
-    const yourFunction = async () => {
-      await fetchData();
-    };
-    yourFunction();
-  }, []);
 
   return (
   <ConfigProvider
@@ -436,14 +434,16 @@ const App: React.FC = () => {
   }}>
     {contextHolder}
     <Layout hasSider style={{height:'100vh'}}>
-      <Sider
+      <Drawer
+        open={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        placement='left'
+        closable={false}
         style={{
           overflow: 'auto',
           padding: 10,
           borderRight: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
         }}
-        trigger={null}
-        theme='light'
       >
         <div id='title' style={{borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)'}}>
           <Title level={4} style={{textAlign:'center'}}>
@@ -486,7 +486,7 @@ const App: React.FC = () => {
             <Switch checkedChildren="Light" unCheckedChildren="Dark" defaultChecked={isLightMode} onChange={setIsLightMode}></Switch>
           </Form.Item>
         </Form>
-      </Sider>
+      </Drawer>
       <Layout className="site-layout" style={{ width: '100%' }}>
         <Content style={{ margin: '24px 16px 0', overflow: 'auto' }}>
           <Modal
@@ -564,8 +564,14 @@ const App: React.FC = () => {
             </Panel>
             </Collapse>
           </Modal>
+          
+          <Button icon={<FilterOutlined />} style={{ marginBottom: '1%' }} onClick={() => setIsDrawerOpen(true)}>
+            Open search menu
+          </Button>
+
           <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable />
           <Alert message="You can select more data to view by clicking on the box below! ⬇" showIcon type="info" closable />
+          
           <Select
             mode="multiple"
             allowClear
@@ -575,7 +581,7 @@ const App: React.FC = () => {
             onChange={setMarketColumns}
             options={marketColumnOptions}
           />
-          <Table id='items-table' scroll={{ y: '60vh'}} dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
+          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
                 onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value); setIsModalOpen(true);}
               };
@@ -589,7 +595,7 @@ const App: React.FC = () => {
           textAlign: 'center',
         }}>
           ❤️ Please consider donating a few TC or gold to <a href="https://www.tibia.com/community/?name=leenia">Leenia</a> on Antica to help out! ❤️ <br></br>
-          For support or to request access, please join the <a href="https://discord.gg/Rvc8mXtmZH">Discord server</a>.
+          For support, questions or feature requests, please join the <a href="https://discord.gg/Rvc8mXtmZH">Discord server</a>.
         </Footer>
       </Layout>
     </Layout>
