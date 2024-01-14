@@ -495,7 +495,7 @@ const App: React.FC = () => {
             open={isModalOpen}
             onOk={() => setIsModalOpen(false)}
             onCancel={() => setIsModalOpen(false)}
-            width='50%'
+            style={{ minWidth: '80vw' }}
           >
             <Collapse defaultActiveKey={1}>
             <Panel header="Buy and Sell price over time" key="1">
