@@ -502,7 +502,7 @@ const App: React.FC = () => {
               <ResponsiveContainer width='100%' height={200}>
               <LineChart data={modalPriceHistory}>
                 <XAxis domain={["dataMin", "dataMax + 1"]} allowDuplicatedCategory={false} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
-                <YAxis />
+                <YAxis domain={["dataMin", "dataMax + 1"]} />
                 <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
                 <Tooltip content={<CustomTooltip/>} contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB", border: isLightMode ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.5)'}} labelFormatter={(date) => <div>
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
@@ -523,7 +523,7 @@ const App: React.FC = () => {
               <ResponsiveContainer width='100%' height={200}>
                 <LineChart data={modalPriceHistory}>
                   <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
-                  <YAxis />
+                  <YAxis domain={["dataMin", "dataMax + 1"]} />
                   <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
                   <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} labelFormatter={(date) => <div>
                                                           {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
@@ -540,7 +540,7 @@ const App: React.FC = () => {
               <ResponsiveContainer width='100%' height={200}>
                 <LineChart data={modalPriceHistory}>
                   <XAxis domain={["dataMin", "dataMax + 1"]} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}/>
-                  <YAxis />
+                  <YAxis domain={["dataMin", "dataMax + 1"]} />
                   <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
                   <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} labelFormatter={(date) => <div>
                                                           {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
