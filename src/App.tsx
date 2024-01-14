@@ -5,10 +5,11 @@ import { QuestionCircleOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { HistoryData, ItemData, WeekdayData, Metric, exampleItem, NPCSaleData, ItemMetaData } from './utils/data';
+import { HistoryData, ItemData, WeekdayData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip } from './utils/CustomToolTip';
 import { Timestamp } from './utils/Timestamp';
+import { DefaultOptionType } from 'antd/es/select';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -130,11 +131,11 @@ const App: React.FC = () => {
       return false;
     }
 
-    if(Math.min(dataObject.soldAmount.value, dataObject.boughtAmount.value) < minFlipsFilter){
+    if(Math.min(dataObject.soldAmountMonth.value, dataObject.boughtAmountMonth.value) < minFlipsFilter){
       return false;
     }
 
-    if(maxFlipsFilter > 0 && Math.min(dataObject.soldAmount.value, dataObject.boughtAmount.value) > maxFlipsFilter){
+    if(maxFlipsFilter > 0 && Math.min(dataObject.soldAmountMonth.value, dataObject.boughtAmountMonth.value) > maxFlipsFilter){
       return false;
     }
 
@@ -161,6 +162,16 @@ const App: React.FC = () => {
       data.sell_offers = -1;
       data.buy_offers = -1;
     }
+    if (!("day_sell_offer" in data)){
+      data.day_sell_offer = -1;
+      data.day_buy_offer = -1;
+      data.day_sold = -1;
+      data.day_bought = -1;
+      data.day_highest_sell = -1;
+      data.day_lowest_sell = -1;
+      data.day_highest_buy = -1;
+      data.day_lowest_buy = -1;
+    }
 
     // Get the item name from the wiki, or the name from the bin if the wiki name is not set.
     var itemName = metaData.wiki_name;
@@ -168,7 +179,10 @@ const App: React.FC = () => {
       itemName = metaData.name;
     }
 
-    var dataObject: ItemData = new ItemData(data.id, itemName, data.sell_offer, data.buy_offer, data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy);
+    var dataObject: ItemData = new ItemData(data.id, itemName, metaData.category, data.sell_offer, data.buy_offer, 
+      data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, 
+      data.day_sell_offer, data.day_buy_offer, data.day_lowest_sell, data.day_lowest_buy, data.day_highest_sell, data.day_highest_buy, data.day_sold, data.day_bought,
+      data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
@@ -206,7 +220,10 @@ const App: React.FC = () => {
         dataIndex: [key, 'localisedValue'],
         width: 50,
         sorter: (a: any, b: any) => {
-          return a[key].value - b[key].value;
+          if (typeof a[key].value == "number")
+            return a[key].value - b[key].value;
+          else
+            return a[key].value.localeCompare(b[key].value);
         },
         sortDirections: ['descend', 'ascend', 'descend'],
       });
@@ -366,12 +383,20 @@ const App: React.FC = () => {
   var marketServerOptions: SelectProps['options'] = supportedServers.sort().map(x => {return {value: x, label: x}});
 
   // Make all columns optional.
-  var marketColumnOptions: SelectProps['options'] = [];
+  var marketColumnOptions: any[] = [];
   for (const [key, value] of Object.entries(exampleItem)) {
     if(key == "name")
       continue;
 
-    marketColumnOptions.push({
+    var category = marketColumnOptions.find(x => x.label == value.category);
+
+    // Add the value.category to the column options if it doesn't exist yet.
+    if(category == null){
+      category = {label: value.category, options: []};
+      marketColumnOptions.push(category);
+    }
+
+    category.options.push({
       value: key,
       label: <div>{value.name} <AntTooltip title={value.description}><QuestionCircleOutlined /></AntTooltip></div>,
     });
@@ -539,8 +564,8 @@ const App: React.FC = () => {
             </Panel>
             </Collapse>
           </Modal>
-          <Alert message="Some values can be false! If they seem unreal, they probably are." showIcon type="warning" closable />
           <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable />
+          <Alert message="You can select more data to view by clicking on the box below! ⬇" showIcon type="info" closable />
           <Select
             mode="multiple"
             allowClear
