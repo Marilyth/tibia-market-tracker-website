@@ -1,7 +1,7 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Drawer, DrawerProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
-import { QuestionCircleOutlined, FilterOutlined } from '@ant-design/icons';
+import { Layout, Drawer, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
+import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
@@ -434,6 +434,12 @@ const App: React.FC = () => {
   }}>
     {contextHolder}
     <Layout hasSider style={{height:'100vh'}}>
+    <FloatButton 
+        tooltip={isLightMode ? <div>Switch to dark mode</div> : <div>Switch to light mode</div>} 
+        icon={<BulbOutlined />} 
+        onClick={() => setIsLightMode(!isLightMode)}
+        style={{ position: 'fixed', top: '2%', right: '2%' }}
+      />
       <Drawer
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -481,9 +487,6 @@ const App: React.FC = () => {
             <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading}>
               Search
             </Button>
-          </Form.Item>
-          <Form.Item label="Appearance">
-            <Switch checkedChildren="Light" unCheckedChildren="Dark" defaultChecked={isLightMode} onChange={setIsLightMode}></Switch>
           </Form.Item>
         </Form>
       </Drawer>
