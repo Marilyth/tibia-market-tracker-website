@@ -1,4 +1,3 @@
-
 export function unixTimeToTimeAgo(unixTime: number) {
     // If unixTime is seconds, convert to milliseconds
     if (unixTime < 10000000000) {

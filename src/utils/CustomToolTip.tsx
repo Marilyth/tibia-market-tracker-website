@@ -1,4 +1,6 @@
 import { TooltipProps } from 'recharts';
+import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
+import { CustomHistoryData, CustomTimeGraph, CustomWeekGraph } from './data';
 // for recharts v2.1 and above
 import {
     ValueType,
@@ -43,3 +45,58 @@ export const CustomTooltip = ({
 
     return null;
 };
+
+var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
+var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"};
+
+interface DynamicChartProps {
+    graphData: CustomTimeGraph | CustomWeekGraph;
+    isLightMode: boolean;
+}
+
+export const DynamicChart = ({graphData, isLightMode}: DynamicChartProps) => {
+    if (graphData instanceof CustomTimeGraph) {
+        var timeGraph = graphData as CustomTimeGraph;
+        var dynamicData: any[] = [];
+
+        // Fill dynamicData with the data from the timeGraph.
+        for(var i = 0; i < timeGraph.data.length; i++){
+            dynamicData.push(timeGraph.data[i].asDynamic());
+        }
+        
+        console.log(dynamicData);
+        
+        var lines: any[] = [];
+        // Add a line for every key in the dynamicData except for time and events.
+        Object.keys(dynamicData[0]).forEach((key) => {
+            if(key != "time" && key != "events" && !key.endsWith("Colour")){
+                var colour = timeGraph.colours[key] ?? "#82ca9d";
+                var label = timeGraph.labels[key] ?? key;
+                var strokeDashArray = key.endsWith("Trend") ? "3 3" : undefined;
+                var activeDot = key.endsWith("Trend") ? false : true;
+                lines.push(<Line connectNulls key={key} name={label} type='monotone' dataKey={key} dot={false} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
+            }
+        });
+
+        var chart = 
+        <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={dynamicData}>
+                <XAxis domain={["dataMin", "dataMax + 1"]} allowDuplicatedCategory={false} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)} />
+                <YAxis domain={["dataMin", "dataMax + 1"]} tickFormatter={(value) => value.toFixed(0)} />
+                <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
+                <Tooltip content={<CustomTooltip/>} contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB", border: isLightMode ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.5)'}} labelFormatter={(date, payload) => <div>
+                                                        {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
+                                                        <p style={{ color: "#ffb347"}}>{payload[0].payload.events.join(", ")}</p>
+                                                   </div>} formatter={(value, name) => value.toLocaleString()}></Tooltip>
+
+                {lines}
+
+                <Brush data={dynamicData} fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
+            </LineChart>
+        </ResponsiveContainer>
+        
+        return chart;
+    }
+
+    return null;
+}

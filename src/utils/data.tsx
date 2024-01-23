@@ -1,3 +1,15 @@
+import { linearRegressionLeastSquares } from './math'
+
+export class WorldData{
+    name: string;
+    last_update: string;
+
+    constructor(name: string, last_update: string){
+        this.name = name;
+        this.last_update = last_update;
+    }
+}
+
 export class NPCSaleData{
     price: number;
     name: string;
@@ -44,13 +56,15 @@ export class TextMetric{
   localisedValue: string;
   description: string;
   category: string = "";
+  additionalInfo: string;
 
-  constructor(name: string, value: string, description: string, category: string){
+  constructor(name: string, value: string, description: string, category: string, additionalInfo: string = "") {
     this.name = name;
     this.value = value;
     this.localisedValue = value;
     this.description = description;
     this.category = category;
+    this.additionalInfo = additionalInfo;
   }
 }
 
@@ -60,13 +74,15 @@ export class Metric{
     localisedValue: string;
     description: string;
     category: string = "";
+    additionalInfo: string;
   
-    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true){
+    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "") {
       this.name = name;
       this.value = value;
       this.localisedValue = value < 0 && !canBeNegative ? "None" : value.toLocaleString();
       this.description = description;
       this.category = category;
+      this.additionalInfo = additionalInfo;
     }
 }
   
@@ -109,7 +125,7 @@ export class Metric{
     constructor(id: number, name: string, category: string, sellPrice: number, buyPrice: number, 
                 averageSellPriceMonth: number, averageBuyPriceMonth: number, lowestSellPriceMonth: number, lowestBuyPriceMonth: number, highestSellPriceMonth: number, highestBuyPriceMonth: number, soldAmountMonth: number, boughtAmountMonth: number, 
                 averageSellPriceDay: number, averageBuyPriceDay: number, lowestSellPriceDay: number, lowestBuyPriceDay: number, highestSellPriceDay: number, highestBuyPriceDay: number, soldAmountDay: number, boughtAmountDay: number,
-                sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = [], totalNpcImmediateProfit: number = 0) {
+                sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = [], totalNpcImmediateProfit: number = 0, totalNpcImmediateProfitInfo: string = "") {
       this.id = new Metric("Item Id", id, "The Tibia internal id of the item.", "Meta data", false);
       this.name = name;
       this.category = new TextMetric("Category", category, "The market category of the item.", "Meta data");
@@ -169,14 +185,15 @@ export class Metric{
       npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
       this.npcImmediateProfit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics");
-      this.totalNpcImmediateProfit = new Metric("Total NPC Immediate Profit", totalNpcImmediateProfit, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false);
+      this.totalNpcImmediateProfit = new Metric("Total NPC Immediate Profit", totalNpcImmediateProfit, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, totalNpcImmediateProfitInfo);
 
       this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmountMonth.value, this.boughtAmountMonth.value), "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics");
     }
 }
   
 export var exampleItem: ItemData = new ItemData(1, "Test", "Armors", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, [], []);
-  
+export var weekDays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export class HistoryData{
     buyOffer: number | null;
     buyTrend: number | null;
@@ -205,9 +222,13 @@ export class HistoryData{
 export class WeekdayData{
     private buyOffers: number[] = [];
     private sellOffers: number[] = [];
+    private buyAmounts: number[] = [];
+    private sellAmounts: number[] = [];
     public static weekdays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     public medianBuyOffer: number = 0;
     public medianSellOffer: number = 0;
+    public medianBuyAmount: number = 0;
+    public medianSellAmount: number = 0;
   
     weekday: number;
   
@@ -218,9 +239,11 @@ export class WeekdayData{
     /**
      * Adds the prices to the weekday and recalculates the average.
      */
-    public addOffer(buyPrice: number, sellPrice: number) {
+    public addData(buyPrice: number, sellPrice: number, buyAmount: number, sellAmount: number){
       this.buyOffers.push(buyPrice);
       this.sellOffers.push(sellPrice);
+      this.buyAmounts.push(buyAmount);
+      this.sellAmounts.push(sellAmount);
     }
   
     /**
@@ -229,5 +252,167 @@ export class WeekdayData{
     public calculateMedian() {
       this.medianBuyOffer = this.buyOffers.sort((a, b) => a - b)[Math.trunc(this.buyOffers.length / 2)];
       this.medianSellOffer = this.sellOffers.sort((a, b) => a - b)[Math.trunc(this.sellOffers.length / 2)];
+      this.medianBuyAmount = this.buyAmounts.sort((a, b) => a - b)[Math.trunc(this.buyAmounts.length / 2)];
+      this.medianSellAmount = this.sellAmounts.sort((a, b) => a - b)[Math.trunc(this.sellAmounts.length / 2)];
+    }
+}
+
+/**
+ * Returns the Tibian weekday of the given time.
+ * I.e. subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
+ */
+export function getWeekday(time: number) : number {
+    return new Date((time - 32400) * 1000).getUTCDay();
+}
+
+/**
+ * Returns the weekday name of the given weekday.
+ */
+export function getWeekdayName(weekday: number) : string {
+    return weekDays[weekday];
+}
+
+/**
+ * Returns the events for the given timestamp.
+ */
+export function timestampToEvents(unixTimestamp: number, events: { [date: string]: string[]}) : string[] {
+  var dateTime: Date = new Date(unixTimestamp * 1000);
+  var dateKey = `${dateTime.getUTCFullYear()}.${(dateTime.getUTCMonth() + 1).toString().padStart(2, "0")}.${(dateTime.getUTCDate()).toString().padStart(2, "0")}`;
+
+  return dateKey in events ? events[dateKey] : [];
+}
+
+/**
+ * A class that holds data for a single time point.
+ */
+export class CustomHistoryData{
+    data: {[name: string]: any} = {};
+    time: number;
+    events: string[];
+  
+    constructor(time: number, events: string[]){
+      this.time = time;
+      this.events = events;
+    }
+
+    /**
+     * Adds the data to the history data.
+     */
+    public addData(name: string, value: number, canBeNegative: boolean = false){
+      this.data[name] = value < 0 && !canBeNegative ? null : value;
+    }
+
+    /**
+     * Returns the data as a dynamic object to be used with charts.
+     */
+    public asDynamic() : {[name: string]: number} {
+      var dynamicData: {[name: string]: any} = {};
+      for(var name in this.data){
+        dynamicData[name] = this.data[name];
+      }
+
+      dynamicData["time"] = this.time;
+      dynamicData["events"] = this.events;
+
+      return dynamicData;
+    }
+}
+
+export class CustomTimeGraph{
+    data: CustomHistoryData[] = [];
+    colours: {[name: string]: string} = {};
+    labels: {[name: string]: string} = {};
+
+    /**
+     * Adds the data to the time data.
+     */
+    public addData(historyData: CustomHistoryData){
+      this.data.push(historyData);
+    }
+
+    /**
+     * Adds a colour to the graph.
+     */
+    public addDetail(name: string, colour: string, label: string){
+      this.colours[name] = colour;
+      this.colours[name + "Trend"] = colour + "77";
+      this.labels[name] = label;
+      this.labels[name + "Trend"] = label + " Trend Hidden";
+    }
+
+    /**
+     * Calculates and sets the trend values for each data point using linear regression.
+     */
+    public calculateTrend() {
+      for(var name in this.data[0].data){
+        var x_values: number[] = [];
+        var y_values: any[] = [];
+
+        for(var i = 0; i < this.data.length; i++){
+          if (this.data[i].data[name] == null || this.data[i].data[name] == undefined || this.data[i].data[name] < 0)
+            continue;
+
+          x_values.push(this.data[i].time);
+          y_values.push(this.data[i].data[name]);
+        }
+        
+        var trend = linearRegressionLeastSquares(x_values, y_values);
+
+        for(var i = 0; i < this.data.length; i++){
+          var trendValue = trend.m * this.data[i].time + trend.b;
+          this.data[i].addData(name + "Trend", trendValue > 0 ? trendValue : 0);
+        }
+      }
+    }
+}
+
+/**
+ * A class that holds data for weekdays.
+ */
+export class CustomWeekGraph{
+    data: CustomHistoryData[] = [];
+    medianData: {[name: string]: {[weekday: number]: number}} = {};
+
+    /**
+     * Adds the data to the weekday data.
+     */
+    public addData(historyData: CustomHistoryData){
+      this.data.push(historyData);
+    }
+
+    /**
+     * Calculates and sets the median values for each weekday.
+     */
+    public calculateMedian() {
+      // Initialize the median data.
+      for(var name in this.data[0].data){
+        this.medianData[name] = {};
+        for(var i = 0; i < 7; i++){
+          this.medianData[name][i] = 0;
+        }
+      }
+      
+      // Count the amount of data points for each weekday.
+      var weekDayLengths: number[] = [0, 0, 0, 0, 0, 0, 0];
+
+      for(var i = 0; i < this.data.length; i++){
+        var weekday = getWeekday(this.data[i].time);
+        weekDayLengths[weekday]++;
+
+        for(var name in this.data[i].data){
+          this.medianData[name][weekday] += this.data[i].data[name];
+        }
+      }
+      
+      // Divide by the amount of data points for each weekday.
+      // If there is no data for a weekday, the median is 0.
+      for(var name in this.medianData){
+        for(var i = 0; i < 7; i++){
+          if (weekDayLengths[i] == 0)
+            continue;
+
+          this.medianData[name][i] /= weekDayLengths[i];
+        }
+      }
     }
 }
