@@ -1,7 +1,7 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Drawer, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
-import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
@@ -466,16 +466,14 @@ const App: React.FC = () => {
   return (
   <ConfigProvider
     theme={{
+      token: {
+        colorBgLayout: isLightMode ? undefined : "#101010",
+      },
+
       algorithm: isLightMode ? defaultAlgorithm : darkAlgorithm,
   }}>
     {contextHolder}
     <Layout hasSider style={{height:'100vh'}}>
-    <FloatButton 
-        tooltip={isLightMode ? <div>Switch to dark mode</div> : <div>Switch to light mode</div>} 
-        icon={<BulbOutlined />} 
-        onClick={() => setIsLightMode(!isLightMode)}
-        style={{ position: 'fixed', top: '2%', right: '2%' }}
-      />
       <Drawer
         open={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}
@@ -526,7 +524,15 @@ const App: React.FC = () => {
         </Form>
       </Drawer>
       <Layout className="site-layout" style={{ width: '100%' }}>
-        <Content style={{ margin: '24px 16px 0', overflow: 'auto' }}>
+        <Header style={{ backgroundColor: isLightMode ? "#ffffff" : "#101010", borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Button icon={<MenuOutlined />} onClick={() => setIsDrawerOpen(true)} style={{ position: 'fixed', left: '16px' }} />
+          <Button icon={<BulbOutlined />} onClick={() => setIsLightMode(!isLightMode)} style={{ position: 'fixed', right: '16px' }} />
+          <Typography.Title level={3} style={{ margin: 0 }}>
+            Market Tracker
+          </Typography.Title>
+        </Header>
+
+        <Content style={{ margin: '0px 16px 0px', overflow: 'auto' }}>
           <Modal
             title=<div>Item history for {nameToWikiLink(selectedItem)}</div>
             centered
@@ -551,12 +557,8 @@ const App: React.FC = () => {
             </Panel>
             </Collapse>
           </Modal>
-          
-          <Button icon={<FilterOutlined />} style={{ marginBottom: '1%' }} onClick={() => setIsDrawerOpen(true)}>
-            Open search menu
-          </Button>
 
-          <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable />
+          <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable style={{marginTop: '1%'}} />
           <Alert message="You can select more data to view by clicking on the box below! ⬇" showIcon type="info" closable />
           
           <Select
