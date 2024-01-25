@@ -299,7 +299,11 @@ export class CustomHistoryData{
      * Adds the data to the history data.
      */
     public addData(name: string, value: number, canBeNegative: boolean = false){
-      this.data[name] = value < 0 && !canBeNegative ? null : value;
+      if(value == null || value == undefined || (value < 0 && !canBeNegative)){
+        return;
+      }
+
+      this.data[name] = value;
     }
 
     /**
@@ -322,6 +326,7 @@ export class CustomTimeGraph{
     data: CustomHistoryData[] = [];
     colours: {[name: string]: string} = {};
     labels: {[name: string]: string} = {};
+    isWeekdayGraph: boolean = false;
 
     /**
      * Adds the data to the time data.
@@ -361,57 +366,6 @@ export class CustomTimeGraph{
         for(var i = 0; i < this.data.length; i++){
           var trendValue = trend.m * this.data[i].time + trend.b;
           this.data[i].addData(name + "Trend", trendValue > 0 ? trendValue : 0);
-        }
-      }
-    }
-}
-
-/**
- * A class that holds data for weekdays.
- */
-export class CustomWeekGraph{
-    data: CustomHistoryData[] = [];
-    medianData: {[name: string]: {[weekday: number]: number}} = {};
-
-    /**
-     * Adds the data to the weekday data.
-     */
-    public addData(historyData: CustomHistoryData){
-      this.data.push(historyData);
-    }
-
-    /**
-     * Calculates and sets the median values for each weekday.
-     */
-    public calculateMedian() {
-      // Initialize the median data.
-      for(var name in this.data[0].data){
-        this.medianData[name] = {};
-        for(var i = 0; i < 7; i++){
-          this.medianData[name][i] = 0;
-        }
-      }
-      
-      // Count the amount of data points for each weekday.
-      var weekDayLengths: number[] = [0, 0, 0, 0, 0, 0, 0];
-
-      for(var i = 0; i < this.data.length; i++){
-        var weekday = getWeekday(this.data[i].time);
-        weekDayLengths[weekday]++;
-
-        for(var name in this.data[i].data){
-          this.medianData[name][weekday] += this.data[i].data[name];
-        }
-      }
-      
-      // Divide by the amount of data points for each weekday.
-      // If there is no data for a weekday, the median is 0.
-      for(var name in this.medianData){
-        for(var i = 0; i < 7; i++){
-          if (weekDayLengths[i] == 0)
-            continue;
-
-          this.medianData[name][i] /= weekDayLengths[i];
         }
       }
     }

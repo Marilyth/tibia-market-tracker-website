@@ -1,6 +1,6 @@
 import { TooltipProps } from 'recharts';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
-import { CustomHistoryData, CustomTimeGraph, CustomWeekGraph } from './data';
+import { CustomHistoryData, CustomTimeGraph, getWeekday, getWeekdayName } from './data';
 // for recharts v2.1 and above
 import {
     ValueType,
@@ -50,21 +50,22 @@ var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "sh
 var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"};
 
 interface DynamicChartProps {
-    graphData: CustomTimeGraph | CustomWeekGraph;
+    timeGraph: CustomTimeGraph;
     isLightMode: boolean;
 }
 
-export const DynamicChart = ({graphData, isLightMode}: DynamicChartProps) => {
-    if (graphData instanceof CustomTimeGraph) {
-        var timeGraph = graphData as CustomTimeGraph;
+export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
+    if (!timeGraph.isWeekdayGraph) {
         var dynamicData: any[] = [];
 
         // Fill dynamicData with the data from the timeGraph.
         for(var i = 0; i < timeGraph.data.length; i++){
+            if(Object.keys(timeGraph.data[i].data).length == 0){
+                continue;
+            }
+
             dynamicData.push(timeGraph.data[i].asDynamic());
         }
-        
-        console.log(dynamicData);
         
         var lines: any[] = [];
         // Add a line for every key in the dynamicData except for time and events.
@@ -83,7 +84,7 @@ export const DynamicChart = ({graphData, isLightMode}: DynamicChartProps) => {
             <LineChart data={dynamicData}>
                 <XAxis domain={["dataMin", "dataMax + 1"]} allowDuplicatedCategory={false} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)} />
                 <YAxis domain={["dataMin", "dataMax + 1"]} tickFormatter={(value) => value.toFixed(0)} />
-                <CartesianGrid stroke="#eee" strokeDasharray="5 5"/>
+                
                 <Tooltip content={<CustomTooltip/>} contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB", border: isLightMode ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.5)'}} labelFormatter={(date, payload) => <div>
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                         <p style={{ color: "#ffb347"}}>{payload[0].payload.events.join(", ")}</p>
@@ -95,6 +96,67 @@ export const DynamicChart = ({graphData, isLightMode}: DynamicChartProps) => {
             </LineChart>
         </ResponsiveContainer>
         
+        return chart;
+    } else{
+        var weekdayData: CustomHistoryData[][] = [[], [], [], [], [], [], []];
+        var dynamicData: any[] = [{},{},{},{},{},{},{}];
+
+        // Assign each datapoint to its weekday.
+        for(var i = 0; i < timeGraph.data.length; i++){
+            if(Object.keys(timeGraph.data[i].data).length == 0){
+                continue;
+            }
+
+            weekdayData[getWeekday(timeGraph.data[i].time)].push(timeGraph.data[i]);
+        }
+
+        var bars: any[] = [];
+        weekdayData.forEach((weekday, weekdayIndex) => {
+            var keyValues: {[valueKey: string]: number[]} = {};
+
+            // Add all values for each key to keyValues.
+            weekday.forEach((datapoint) => {
+                Object.keys(datapoint.data).forEach(key => {
+                    if(key != "time" && key != "events"){
+                        if(keyValues[key] == undefined){
+                            keyValues[key] = [];
+                        }
+
+                        keyValues[key].push(datapoint.data[key]);
+                    }
+                });
+            });
+
+            Object.keys(keyValues).forEach((key) => {
+                var sortedValues = keyValues[key].sort((a, b) => a - b);
+                var median = sortedValues[Math.floor(sortedValues.length / 2)];
+                dynamicData[weekdayIndex][key] = median;
+                dynamicData[weekdayIndex]["weekday"] = weekdayIndex;
+            });
+        });
+
+        // Add a bar for every key in the dynamicData except for weekday.
+        Object.keys(dynamicData[0]).forEach((key) => {
+            if(key != "weekday" && !key.endsWith("Colour")){
+                var colour = timeGraph.colours[key] ?? "#82ca9d";
+                var label = timeGraph.labels[key] ?? key;
+                
+                bars.push(<Bar key={key} name={label} barSize={30} dataKey={key} fill={colour} />);
+            }
+        });
+
+        var chart = 
+        <ResponsiveContainer width='100%' height={200}>
+            <BarChart data={dynamicData}>
+                <XAxis dataKey="weekday" tickFormatter={(day, index) => getWeekdayName(index)}/>
+                <YAxis />
+
+                {bars}
+
+                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} cursor={{fill: '#00000011'}} labelFormatter={(day) => getWeekdayName(day)} formatter={(x) => x.toLocaleString()}></Tooltip>
+            </BarChart>
+        </ResponsiveContainer>
+
         return chart;
     }
 

@@ -5,7 +5,7 @@ import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, Order
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { timestampToEvents, HistoryData, ItemData, WeekdayData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomWeekGraph, CustomHistoryData } from './utils/data';
+import { timestampToEvents, HistoryData, ItemData, WeekdayData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
 import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
@@ -320,8 +320,6 @@ const App: React.FC = () => {
   async function fetchPriceHistory(itemId: number){
     setIsLoading(true);
 
-    setModalWeekdayHistory([]);
-
     var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}`);
 
     var priceGraphData: CustomTimeGraph = new CustomTimeGraph();
@@ -335,18 +333,22 @@ const App: React.FC = () => {
     var traderGraphData: CustomTimeGraph = new CustomTimeGraph();
     traderGraphData.addDetail("activeTraders", "#d884d8", "Active traders");
 
-    var weekdayData: WeekdayData[] = [];
-    for(var i = 0; i < 7; i++){
-      weekdayData.push(new WeekdayData(i));
-    }
+    var weekdayPriceGraph: CustomTimeGraph = new CustomTimeGraph();
+    weekdayPriceGraph.addDetail("buyOffer", "#8884d8", "Mean buy offer");
+    weekdayPriceGraph.addDetail("sellOffer", "#82ca9d", "Mean sell offer");
+    weekdayPriceGraph.isWeekdayGraph = true;
+
+    var weekdayTransactionGraph: CustomTimeGraph = new CustomTimeGraph();
+    weekdayTransactionGraph.addDetail("dayBought", "#8884d8", "Mean bought");
+    weekdayTransactionGraph.addDetail("daySold", "#82ca9d", "Mean sold");
+    weekdayTransactionGraph.isWeekdayGraph = true;
 
     var itemValues = JSON.parse(item);
+    console.log(itemValues);
 
     var data = itemValues.history;
     for(var i = 0; i < data.length; i++){
       var data_events: string[] = timestampToEvents(data[i].time, events);
-
-      var historyData = new HistoryData(data[i].buy_offer, data[i].sell_offer, data[i].bought, data[i].sold, data[i].active_traders, data[i].time, data_events);
 
       var priceDatapoint = new CustomHistoryData(data[i].time, data_events);
       priceDatapoint.addData("buyOffer", data[i].buy_offer ?? 0);
@@ -361,24 +363,26 @@ const App: React.FC = () => {
       var traderDatapoint = new CustomHistoryData(data[i].time, data_events);
       traderDatapoint.addData("activeTraders", data[i].active_traders ?? 0);
       traderGraphData.addData(traderDatapoint);
-      
-      // Subtract 9 hours to make days start at server-save. (technically 8 hours CET, 9 hours CEST, but this is easier)
-      var date: number = new Date((historyData.time - 32400) * 1000).getUTCDay();
-      weekdayData[date].addData(historyData.buyOffer ?? 0, historyData.sellOffer ?? 0, historyData.buyOffer ?? 0, historyData.sellOffer ?? 0);
-    }
 
-    for(var i = 0; i < weekdayData.length; i++){
-      weekdayData[i].calculateMedian();
+      var medianWeekdayPriceDatapoint = new CustomHistoryData(data[i].time, data_events);
+      medianWeekdayPriceDatapoint.addData("buyOffer", data[i].buy_offer ?? 0);
+      medianWeekdayPriceDatapoint.addData("sellOffer", data[i].sell_offer ?? 0);
+      weekdayPriceGraph.addData(medianWeekdayPriceDatapoint);
+
+      var medianWeekdayTransactionDatapoint = new CustomHistoryData(data[i].time, data_events);
+      medianWeekdayTransactionDatapoint.addData("dayBought", data[i].day_bought);
+      medianWeekdayTransactionDatapoint.addData("daySold", data[i].day_sold);
+      weekdayTransactionGraph.addData(medianWeekdayTransactionDatapoint);
     }
 
     priceGraphData.calculateTrend();
     priceTransactionGraphData.calculateTrend();
-    traderGraphData.calculateTrend();
 
-    setModalWeekdayHistory(weekdayData);
     setModalPriceHistory(priceGraphData);
     setModalTraderHistory(traderGraphData);
     setModalTransactionHistory(priceTransactionGraphData);
+    setModalMedianWeekdayPriceHistory(weekdayPriceGraph);
+    setModalMedianTransactionVolumeHistory(weekdayTransactionGraph);
 
     setIsLoading(false);
   }
@@ -439,10 +443,11 @@ const App: React.FC = () => {
   var [minTradersFilter, setMinOffersFilter] = useState(-1);
   var [maxTradersFilter, setMaxOffersFilter] = useState(0);
   var [selectedItem, setSelectedItem] = useState("");
-  var [modalWeekdayHistory, setModalWeekdayHistory] = useState<WeekdayData[]>([]);
   var [modalPriceHistory, setModalPriceHistory] = useState<CustomTimeGraph>();
   var [modalTraderHistory, setModalTraderHistory] = useState<CustomTimeGraph>();
   var [modalTransationHistory, setModalTransactionHistory] = useState<CustomTimeGraph>();
+  var [modalMedianWeekdayPriceHistory, setModalMedianWeekdayPriceHistory] = useState<CustomTimeGraph>();
+  var [modalMedianTransactionVolumeHistory, setModalMedianTransactionVolumeHistory] = useState<CustomTimeGraph>();
   var [isModalOpen, setIsModalOpen] = useState(false);
   var [passwordVisible, setPasswordVisible] = useState(false);
   var [lastUpdated, setLastUpdated] = useState(0);
@@ -531,27 +536,18 @@ const App: React.FC = () => {
             style={{ minWidth: '80vw' }}
           >
             <Collapse defaultActiveKey={1}>
-            <Panel header="Buy and Sell price over time" key="1">
-              <DynamicChart graphData={modalPriceHistory!} isLightMode={isLightMode}></DynamicChart>
+            <Panel header="Price over time" key="1">
+              <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode}></DynamicChart>
             </Panel>
-            <Panel header="Bought and Sold amount over time" key="2">
+            <Panel header="Transactions over time" key="2">
             <Alert message="These are the cummulative amount of bought and sold items within a 1 month window." showIcon type="info" closable />
-              <DynamicChart graphData={modalTransationHistory!} isLightMode={isLightMode}></DynamicChart>
+              <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode}></DynamicChart>
             </Panel>
-            <Panel header="Active Traders over time" key="3">
-            <Alert message="This is the amount of new buy or sell offers within a 24 hour period, whichever one is smaller. I.e. the amount of other flippers." showIcon type="info" closable />
-              <DynamicChart graphData={modalTraderHistory!} isLightMode={isLightMode}></DynamicChart>
+            <Panel header="Median price per weekday" key="3">
+              <DynamicChart timeGraph={modalMedianWeekdayPriceHistory!} isLightMode={isLightMode}></DynamicChart>
             </Panel>
-            <Panel header="Median Buy and Sell price per weekday" key="4">
-              <ResponsiveContainer width='100%' height={200}>
-              <BarChart data={modalWeekdayHistory}>
-                <XAxis dataKey="weekday" tickFormatter={(day) => WeekdayData.weekdays[day]}/>
-                <YAxis />
-                <Bar dataKey="medianSellOffer" barSize={30} fill="#82ca9d"/>
-                <Bar dataKey="medianBuyOffer" barSize={30} fill="#8884d8"/>
-                <Tooltip contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB"}} cursor={{fill: '#00000011'}} labelFormatter={(day) => WeekdayData.weekdays[day]} formatter={(x) => x.toLocaleString()}></Tooltip>
-              </BarChart>
-            </ResponsiveContainer>
+            <Panel header="Median transactions per weekday" key="4">
+              <DynamicChart timeGraph={modalMedianTransactionVolumeHistory!} isLightMode={isLightMode}></DynamicChart>
             </Panel>
             </Collapse>
           </Modal>
