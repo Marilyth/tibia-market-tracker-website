@@ -375,9 +375,9 @@ const App: React.FC = () => {
     setLocalParamValue("marketServer", marketServer, false);
   }, [marketServer]);
 
-  var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketColumns", JSON.stringify(["sellPrice", "buyPrice"]))));
+  var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketValueColumns", JSON.stringify(["sell_offer", "buy_offer"]))));
   useEffect(() => {
-    setLocalParamValue("selectedMarketColumns", JSON.stringify(marketColumns), true);
+    setLocalParamValue("selectedMarketValueColumns", JSON.stringify(marketColumns), true);
     setDataColumns(exampleItem);
   }, [marketColumns]);
 
