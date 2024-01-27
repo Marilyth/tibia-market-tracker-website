@@ -1,7 +1,7 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
-import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
@@ -10,6 +10,7 @@ import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
 import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
 import { DefaultOptionType } from 'antd/es/select';
+import { FaDiscord, FaGithub } from "react-icons/fa";
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title } = Typography;
@@ -505,6 +506,11 @@ const App: React.FC = () => {
         <Header style={{ backgroundColor: isLightMode ? "#ffffff" : "#101010", borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Button icon={<MenuOutlined />} onClick={() => setIsDrawerOpen(true)} style={{ position: 'fixed', left: '16px' }} />
           <Button icon={<BulbOutlined />} onClick={() => setIsLightMode(!isLightMode)} style={{ position: 'fixed', right: '16px' }} />
+          <a href="https://api.tibiamarket.top:8001/docs" target="_blank" style={{ position: 'fixed', right: '64px' }}>
+            <Button icon={<CloudDownloadOutlined />}>
+             API
+            </Button>
+          </a>
           <Typography.Title level={3} style={{ margin: 0 }}>
             Market Tracker
           </Typography.Title>
@@ -561,11 +567,10 @@ const App: React.FC = () => {
         
         <Footer style={{
           borderTop: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
-          
           textAlign: 'center',
         }}>
-          ❤️ Please consider donating a few TC or gold to <a href="https://www.tibia.com/community/?name=leenia">Leenia</a> on Antica to help out! ❤️ <br></br>
-          For support, questions or feature requests, please join the <a href="https://discord.gg/Rvc8mXtmZH">Discord server</a>.
+          ❤️ Please consider donating a few TC or gold to <a href="https://www.tibia.com/community/?name=leenia">Leenia</a> on Antica to help out! ❤️<br></br>
+          <a href="https://discord.gg/Rvc8mXtmZH"><FaDiscord color="#505050" size={42} style={{marginTop: 16, marginRight: 16}}/></a> <a href="https://github.com/Marilyth/tibia-market-tracker-website/issues"><FaGithub color="#505050" size={42} /></a>
         </Footer>
       </Layout>
     </Layout>
