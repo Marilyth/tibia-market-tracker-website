@@ -508,7 +508,7 @@ const App: React.FC = () => {
           <Button icon={<BulbOutlined />} onClick={() => setIsLightMode(!isLightMode)} style={{ position: 'fixed', right: '16px' }} />
           <a href="https://api.tibiamarket.top:8001/docs" target="_blank" style={{ position: 'fixed', right: '64px' }}>
             <Button icon={<CloudDownloadOutlined />}>
-             API
+             {window.innerWidth > 500 ? "API" : ""}
             </Button>
           </a>
           <Typography.Title level={3} style={{ margin: 0 }}>
