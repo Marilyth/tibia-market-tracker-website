@@ -382,7 +382,7 @@ const App: React.FC = () => {
     setDataColumns(exampleItem);
   }, [marketColumns]);
 
-  var [apiKey, setApiKey] = useState(getLocalParamValue("accessToken", ""));
+  var [apiKey, setApiKey] = useState(getLocalParamValue("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3ZWJzaXRlIiwiaWF0IjoxNzA2Mzc2MTM1LCJleHAiOjI0ODM5NzYxMzV9.MrRgQJyNb5rlNmdsD3oyzG3ZugVeeeF8uFNElfWUOyI"));
   useEffect(() => {
     setLocalParamValue("accessToken", apiKey, true);
   }, [apiKey]);
@@ -492,9 +492,9 @@ const App: React.FC = () => {
             <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
           </Form.Item>
-          <Form.Item>
+          {/*<Form.Item>
             <Input.Password placeholder="Access token" defaultValue={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-          </Form.Item>
+          </Form.Item>*/}
           <Form.Item>
             <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading}>
               Search
