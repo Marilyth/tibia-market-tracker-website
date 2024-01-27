@@ -193,8 +193,9 @@ const App: React.FC = () => {
         },
         sortDirections: ['descend', 'ascend', 'descend'],
         render: (text: any, record: any) => {
-          return value.additionalInfo.length > 0 ? 
-          <div><AntTooltip style={{ marginLeft: '200px' }} title={value.additionalInfo}>{text}</AntTooltip></div> : 
+          // Find out of the key's value of this record has additionalInfo.
+          return record[key].additionalInfo.length > 0 ? 
+          <div><AntTooltip style={{ marginLeft: '200px' }} title={record[key].additionalInfo}>{text}</AntTooltip></div> : 
           <div>{text}</div>
         }
       });

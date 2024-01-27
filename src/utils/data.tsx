@@ -262,7 +262,7 @@ export function getWeekdayName(weekday: number) : string {
  */
 export function timestampToEvents(unixTimestamp: number, events: { [date: string]: string[]}) : string[] {
   var dateTime: Date = new Date(unixTimestamp * 1000);
-  var dateKey = `${dateTime.getUTCFullYear()}.${(dateTime.getUTCMonth() + 1).toString().padStart(2, "0")}.${(dateTime.getUTCDate()).toString().padStart(2, "0")}`;
+  var dateKey = `${dateTime.getUTCFullYear()}-${(dateTime.getUTCMonth() + 1).toString().padStart(2, "0")}-${(dateTime.getUTCDate()).toString().padStart(2, "0")}T00:00:00`;
 
   return dateKey in events ? events[dateKey] : [];
 }
