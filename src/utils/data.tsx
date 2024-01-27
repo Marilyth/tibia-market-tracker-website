@@ -1,3 +1,4 @@
+import { unixTimeToTimeAgo } from './Timestamp';
 import { linearRegressionLeastSquares } from './math'
 
 export class WorldData{
@@ -39,14 +40,14 @@ export class ItemMetaData{
     npc_sell: Array<NPCSaleData>;
     wiki_name: string;
 
-    constructor(id: number, category: string, tier: number, name: string, npc_buy: Array<NPCSaleData>, npc_sell: Array<NPCSaleData>, wiki_name: string){
-      this.id = id;
-      this.category = category;
-      this.tier = tier;
-      this.name = name;
-      this.npc_buy = npc_buy;
-      this.npc_sell = npc_sell;
-      this.wiki_name = wiki_name;
+    constructor(meta_data: {[key: string]: any}){
+      this.id = meta_data["id"];
+      this.category = meta_data["category"];
+      this.tier = meta_data["tier"];
+      this.name = meta_data["name"];
+      this.npc_buy = meta_data["npc_buy"];
+      this.npc_sell = meta_data["npc_sell"];
+      this.wiki_name = meta_data["wiki_name"];
     }
 }
 
@@ -76,10 +77,10 @@ export class Metric{
     category: string = "";
     additionalInfo: string;
   
-    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "") {
+    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
       this.name = name;
       this.value = value;
-      this.localisedValue = value < 0 && !canBeNegative ? "None" : value.toLocaleString();
+      this.localisedValue = value < 0 && !canBeNegative ? "None" : toLocaleStringFunction(value);
       this.description = description;
       this.category = category;
       this.additionalInfo = additionalInfo;
@@ -87,175 +88,159 @@ export class Metric{
 }
   
   export class ItemData{
-    sellPrice: Metric;
-    buyPrice: Metric;
-    averageSellPriceMonth: Metric;
-    averageBuyPriceMonth: Metric;
-    averageSellPriceDay: Metric;
-    averageBuyPriceDay: Metric;
-    deltaSellPrice: Metric;
-    deltaBuyPrice: Metric;
-    lowestSellPriceMonth: Metric;
-    lowestBuyPriceMonth: Metric;
-    highestSellPriceMonth: Metric;
-    highestBuyPriceMonth: Metric;
-    lowestSellPriceDay: Metric;
-    lowestBuyPriceDay: Metric;
-    highestSellPriceDay: Metric;
-    highestBuyPriceDay: Metric;
-    npcSellPrice: Metric;
-    npcBuyPrice: Metric;
-    soldAmountMonth: Metric;
-    boughtAmountMonth: Metric;
-    soldAmountDay: Metric;
-    boughtAmountDay: Metric;
+    sell_offer: Metric;
+    buy_offer: Metric;
+    month_average_sell: Metric;
+    month_average_buy: Metric;
+    day_average_sell: Metric;
+    day_average_buy: Metric;
+    delta_sell_offer: Metric;
+    delta_buy_offer: Metric;
+    month_lowest_sell: Metric;
+    month_lowest_buy: Metric;
+    month_highest_sell: Metric;
+    month_highest_buy: Metric;
+    day_lowest_sell: Metric;
+    day_lowest_buy: Metric;
+    day_highest_sell: Metric;
+    day_highest_buy: Metric;
+    npc_sell_price: Metric;
+    npc_buy_price: Metric;
+    month_sold: Metric;
+    month_bought: Metric;
+    day_sold: Metric;
+    day_bought: Metric;
     profit: Metric;
-    averageProfit: Metric;
-    potProfit: Metric;
-    npcProfit: Metric;
-    npcImmediateProfit: Metric;
-    totalNpcImmediateProfit: Metric;
-    sellOffers: Metric;
-    buyOffers: Metric;
-    activeTraders: Metric;
+    average_profit: Metric;
+    potential_profit: Metric;
+    npc_profit: Metric;
+    npc_immediate_profit: Metric;
+    total_immediate_profit: Metric;
+    sell_offers: Metric;
+    buy_offers: Metric;
+    active_traders: Metric;
     id: Metric;
     category: TextMetric;
+    time: Metric;
     name: string;
   
-    constructor(id: number, name: string, category: string, sellPrice: number, buyPrice: number, 
-                averageSellPriceMonth: number, averageBuyPriceMonth: number, lowestSellPriceMonth: number, lowestBuyPriceMonth: number, highestSellPriceMonth: number, highestBuyPriceMonth: number, soldAmountMonth: number, boughtAmountMonth: number, 
-                averageSellPriceDay: number, averageBuyPriceDay: number, lowestSellPriceDay: number, lowestBuyPriceDay: number, highestSellPriceDay: number, highestBuyPriceDay: number, soldAmountDay: number, boughtAmountDay: number,
-                sellOffers: number, buyOffers: number, activeTraders: number, npcSell: Array<NPCSaleData> = [], npcBuy: Array<NPCSaleData> = [], totalNpcImmediateProfit: number = 0, totalNpcImmediateProfitInfo: string = "") {
-      this.id = new Metric("Item Id", id, "The Tibia internal id of the item.", "Meta data", false);
-      this.name = name;
-      this.category = new TextMetric("Category", category, "The market category of the item.", "Meta data");
+    constructor(item: {[key: string]: any}, meta_data: ItemMetaData) {
+      this.id = new Metric("Item Id", item["id"], "The Tibia internal id of the item.", "Meta data", false);
+      this.time = new Metric("Time", item["time"], "The time the data was collected.", "Meta data", false, "", (value) => unixTimeToTimeAgo(value));
+      
+      if(meta_data != null){
+        this.name = meta_data.wiki_name ? meta_data.wiki_name : meta_data.name;
+
+        // NPC data.
+        var npc_sell = meta_data.npc_sell.filter((x) => NPCSaleData.isGold(x));
+        var npc_buy = meta_data.npc_buy.filter((x) => NPCSaleData.isGold(x));
+        this.npc_sell_price = new Metric("NPC Sell Price", npc_sell.length > 0 ? Math.min(...npc_sell.map((x) => x.price)) : -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false);
+        this.npc_buy_price = new Metric("NPC Buy Price", npc_buy.length > 0 ? Math.max(...npc_buy.map((x) => x.price)) : -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false);
+        this.category = new TextMetric("Category", meta_data.category, "The market category of the item.", "Meta data");
+      }
+      else{
+        this.name = `${this.id} (Unknown)`;
+        this.npc_sell_price = new Metric("NPC Sell Price", -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false);
+        this.npc_buy_price = new Metric("NPC Buy Price", -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false);
+        this.category = new TextMetric("Category", "Unknown", "The market category of the item.", "Meta data");
+      }
   
       // Available data.
-      this.sellPrice = new Metric("Sell Price", sellPrice, "The current lowest sell price of the item.", "Buy & Sell Prices", false);
-      this.buyPrice = new Metric("Buy Price", buyPrice, "The current highest buy price of the item.", "Buy & Sell Prices", false);
+      this.sell_offer = new Metric("Sell Price", item["sell_offer"], "The current lowest sell price of the item.", "Buy & Sell Prices", false);
+      this.buy_offer = new Metric("Buy Price", item["buy_offer"], "The current highest buy price of the item.", "Buy & Sell Prices", false);
       
-      this.averageSellPriceMonth = new Metric("Avg. Sell Price (mo.)", averageSellPriceMonth, "The average sell price of the item in the past 30 days.", "Average Prices", true);
-      this.averageBuyPriceMonth = new Metric("Avg. Buy Price (mo.)", averageBuyPriceMonth, "The average buy price of the item in the past 30 days.", "Average Prices", true);
-      this.averageSellPriceDay = new Metric("Avg. Sell Price (day)", averageSellPriceDay, "The average sell price of the item in the past 24 hours.", "Average Prices", true);
-      this.averageBuyPriceDay = new Metric("Avg. Buy Price (day)", averageBuyPriceDay, "The average buy price of the item in the past 24 hours.", "Average Prices", true);
-      this.deltaSellPrice = new Metric("Delta Sell Price", this.sellPrice.value > 0 ? this.sellPrice.value - this.averageSellPriceMonth.value : 0, "The difference between the current sell price and the average monthly sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.sellPrice.value >= 0);
-      this.deltaBuyPrice = new Metric("Delta Buy Price", this.buyPrice.value > 0 ? this.buyPrice.value - this.averageBuyPriceMonth.value : 0, "The difference between the current buy price and the average monthly buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.buyPrice.value >= 0);
+      this.month_average_sell = new Metric("Avg. Sell Price (mo.)", item["month_average_sell"], "The average sell price of the item in the past 30 days.", "Average Prices", true);
+      this.month_average_buy = new Metric("Avg. Buy Price (mo.)", item["month_average_buy"], "The average buy price of the item in the past 30 days.", "Average Prices", true);
+      this.day_average_sell = new Metric("Avg. Sell Price (day)", item["day_average_sell"], "The average sell price of the item in the past 24 hours.", "Average Prices", true);
+      this.day_average_buy = new Metric("Avg. Buy Price (day)", item["day_average_buy"], "The average buy price of the item in the past 24 hours.", "Average Prices", true);
+      this.delta_sell_offer = new Metric("Delta Sell Price", this.sell_offer.value > 0 ? this.sell_offer.value - this.month_average_sell.value : 0, "The difference between the current sell price and the average monthly sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.sell_offer.value >= 0);
+      this.delta_buy_offer = new Metric("Delta Buy Price", this.buy_offer.value > 0 ? this.buy_offer.value - this.month_average_buy.value : 0, "The difference between the current buy price and the average monthly buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.buy_offer.value >= 0);
       
-      this.lowestSellPriceMonth = new Metric("Lowest Sell Price (mo.)", lowestSellPriceMonth, "The lowest sell price of the item in the last 30 days.", "Extreme Prices", false);
-      this.lowestBuyPriceMonth = new Metric("Lowest Buy Price (mo.)", lowestBuyPriceMonth, "The lowest buy price of the item in the last 30 days.", "Extreme Prices", false);
-      this.highestSellPriceMonth = new Metric("Highest Sell Price (mo.)", highestSellPriceMonth, "The highest sell price of the item in the last 30 days.", "Extreme Prices", false);
-      this.highestBuyPriceMonth = new Metric("Highest Buy Price (mo.)", highestBuyPriceMonth, "The highest buy price of the item in the last 30 days.", "Extreme Prices", false);
-      this.lowestSellPriceDay = new Metric("Lowest Sell Price (day)", lowestSellPriceDay, "The lowest sell price of the item in the last 24 hours.", "Extreme Prices", false);
-      this.lowestBuyPriceDay = new Metric("Lowest Buy Price (day)", lowestBuyPriceDay, "The lowest buy price of the item in the last 24 hours.", "Extreme Prices", false);
-      this.highestSellPriceDay = new Metric("Highest Sell Price (day)", highestSellPriceDay, "The highest sell price of the item in the last 24 hours.", "Extreme Prices", false);
-      this.highestBuyPriceDay = new Metric("Highest Buy Price (day)", highestBuyPriceDay, "The highest buy price of the item in the last 24 hours.", "Extreme Prices", false);
+      this.month_lowest_sell = new Metric("Lowest Sell Price (mo.)", item["month_lowest_sell"], "The lowest sell price of the item in the last 30 days.", "Extreme Prices", false);
+      this.month_lowest_buy = new Metric("Lowest Buy Price (mo.)", item["month_lowest_buy"], "The lowest buy price of the item in the last 30 days.", "Extreme Prices", false);
+      this.month_highest_sell = new Metric("Highest Sell Price (mo.)", item["month_highest_sell"], "The highest sell price of the item in the last 30 days.", "Extreme Prices", false);
+      this.month_highest_buy = new Metric("Highest Buy Price (mo.)", item["month_highest_buy"], "The highest buy price of the item in the last 30 days.", "Extreme Prices", false);
+      this.day_lowest_sell = new Metric("Lowest Sell Price (day)", item["day_lowest_sell"], "The lowest sell price of the item in the last 24 hours.", "Extreme Prices", false);
+      this.day_lowest_buy = new Metric("Lowest Buy Price (day)", item["day_lowest_buy"], "The lowest buy price of the item in the last 24 hours.", "Extreme Prices", false);
+      this.day_highest_sell = new Metric("Highest Sell Price (day)", item["day_highest_sell"], "The highest sell price of the item in the last 24 hours.", "Extreme Prices", false);
+      this.day_highest_buy = new Metric("Highest Buy Price (day)", item["day_highest_buy"], "The highest buy price of the item in the last 24 hours.", "Extreme Prices", false);
 
-      this.soldAmountMonth = new Metric("Sold (mo.)", soldAmountMonth, "The amount of items sold in the last 30 days.", "Transaction Amounts", false);
-      this.boughtAmountMonth = new Metric("Bought (mo.)", boughtAmountMonth, "The amount of items bought in the last 30 days.", "Transaction Amounts", false);
-      this.soldAmountDay = new Metric("Sold (day)", soldAmountDay, "The amount of items sold in the last 24 hours.", "Transaction Amounts", false);
-      this.boughtAmountDay = new Metric("Bought (day)", boughtAmountDay, "The amount of items bought in the last 24 hours.", "Transaction Amounts", false);
+      this.month_sold = new Metric("Sold (mo.)", item["month_sold"], "The amount of items sold in the last 30 days.", "Transaction Amounts", false);
+      this.month_bought = new Metric("Bought (mo.)", item["month_bought"], "The amount of items bought in the last 30 days.", "Transaction Amounts", false);
+      this.day_sold = new Metric("Sold (day)", item["day_sold"], "The amount of items sold in the last 24 hours.", "Transaction Amounts", false);
+      this.day_bought = new Metric("Bought (day)", item["day_bought"], "The amount of items bought in the last 24 hours.", "Transaction Amounts", false);
 
-      this.sellOffers = new Metric("Sell Offers", sellOffers, "The current amount of sell offers for this item.", "Market Activity", false);
-      this.buyOffers = new Metric("Buy Offers", buyOffers, "The current amount of buy offers for this item.", "Market Activity", false);
-      this.activeTraders = new Metric("Traders", activeTraders, "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", false);
-
-      // NPC data.
-      npcSell = npcSell.filter((x) => NPCSaleData.isGold(x));
-      npcBuy = npcBuy.filter((x) => NPCSaleData.isGold(x));
-      this.npcSellPrice = new Metric("NPC Sell Price", npcSell.length > 0 ? Math.min(...npcSell.map((x) => x.price)) : -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false);
-      this.npcBuyPrice = new Metric("NPC Buy Price", npcBuy.length > 0 ? Math.max(...npcBuy.map((x) => x.price)) : -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false);
+      this.sell_offers = new Metric("Sell Offers", item["sell_offers"], "The current amount of sell offers for this item.", "Market Activity", false);
+      this.buy_offers = new Metric("Buy Offers", item["buy_offers"], "The current amount of buy offers for this item.", "Market Activity", false);
+      this.active_traders = new Metric("Traders", item["active_traders"], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", false);
 
       const tax: number = 0.02;
       const maxTax: number = 250000;
   
       // Calculated data.
-      var profit = this.sellPrice.value > 0 && this.buyPrice.value > 0 ? Math.round((this.sellPrice.value - this.buyPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : 0;
+      var profit = this.sell_offer.value > 0 && this.buy_offer.value > 0 ? Math.round((this.sell_offer.value - this.buy_offer.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
       this.profit = new Metric("Profit", profit, `The profit you would get for flipping this item right now. Minus ${tax} tax.`, "Profit Metrics");
-      var avgProfit = this.averageSellPriceMonth.value > 0 && this.averageBuyPriceMonth.value > 0 ? Math.round((this.averageSellPriceMonth.value - this.averageBuyPriceMonth.value) - Math.min(this.sellPrice.value * tax, maxTax)) : 0;
-      this.averageProfit = new Metric("Avg. Profit", avgProfit, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics");
+      var avgProfit = this.month_average_sell.value > 0 && this.month_average_buy.value > 0 ? Math.round((this.month_average_sell.value - this.month_average_buy.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
+      this.average_profit = new Metric("Avg. Profit", avgProfit, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics");
 
-      var sellToNPCProfit = this.buyPrice.value > 0 && this.npcBuyPrice.value > 0 ? Math.round((this.npcBuyPrice.value - this.buyPrice.value) - Math.min(this.buyPrice.value * tax, maxTax)) : -1;
-      var sellToMarketProfit = this.sellPrice.value > 0 && this.npcSellPrice.value > 0 ? Math.round((this.sellPrice.value - this.npcSellPrice.value) - Math.min(this.sellPrice.value * tax, maxTax)) : -1;
+      var sellToNPCProfit = this.buy_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.buy_offer.value) - Math.min(this.buy_offer.value * tax, maxTax)) : -1;
+      var sellToMarketProfit = this.sell_offer.value > 0 && this.npc_sell_price.value > 0 ? Math.round((this.sell_offer.value - this.npc_sell_price.value) - Math.min(this.sell_offer.value * tax, maxTax)) : -1;
       var npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
-      this.npcProfit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics");
+      this.npc_profit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics");
 
-      sellToNPCProfit = this.sellPrice.value > 0 && this.npcBuyPrice.value > 0 ? Math.round((this.npcBuyPrice.value - this.sellPrice.value)) : -1;
-      sellToMarketProfit = this.npcSellPrice.value > 0 && this.buyPrice.value > 0 ? Math.round((this.buyPrice.value - this.npcSellPrice.value)) : -1;
+      sellToNPCProfit = this.sell_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.sell_offer.value)) : -1;
+      sellToMarketProfit = this.npc_sell_price.value > 0 && this.buy_offer.value > 0 ? Math.round((this.buy_offer.value - this.npc_sell_price.value)) : -1;
       npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
-      this.npcImmediateProfit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics");
-      this.totalNpcImmediateProfit = new Metric("Total NPC Immediate Profit", totalNpcImmediateProfit, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, totalNpcImmediateProfitInfo);
+      this.npc_immediate_profit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics");
+      this.total_immediate_profit = new Metric("Total NPC Immediate Profit", item["total_immediate_profit"], "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, item["total_immediate_profit_info"]);
 
-      this.potProfit = new Metric("Potential Profit", this.profit.value * Math.min(this.soldAmountMonth.value, this.boughtAmountMonth.value), "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics");
+      this.potential_profit = new Metric("Potential Profit", this.profit.value * Math.min(this.month_sold.value, this.month_bought.value), "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics");
     }
 }
-  
-export var exampleItem: ItemData = new ItemData(1, "Test", "Armors", 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, [], []);
+
+export var exampleMetaData: ItemMetaData = new ItemMetaData({
+  "id": 1,
+  "category": "Weapons",
+  "tier": 1,
+  "name": "Sword",
+  "npc_buy": [
+  ],
+  "npc_sell": [
+  ],
+  "wiki_name": "Sword"
+});
+
+export var exampleItem: ItemData = new ItemData({
+  "id": 22118,
+  "time": 1703821820.7874076,
+  "buy_offer": 36133,
+  "sell_offer": 36420,
+  "month_average_sell": 37734,
+  "month_average_buy": 36947,
+  "month_sold": 8315,
+  "month_bought": 15942,
+  "active_traders": 12,
+  "month_highest_sell": 41000,
+  "month_lowest_buy": 1,
+  "month_lowest_sell": 34500,
+  "month_highest_buy": 39511,
+  "buy_offers": 32,
+  "sell_offers": 32,
+  "day_average_sell": -1,
+  "day_average_buy": -1,
+  "day_sold": -1,
+  "day_bought": -1,
+  "day_highest_sell": -1,
+  "day_lowest_sell": -1,
+  "day_highest_buy": -1,
+  "day_lowest_buy": -1,
+  "total_immediate_profit": -1,
+  "total_immediate_profit_info": ""
+}, exampleMetaData);
+
 export var weekDays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-export class HistoryData{
-    buyOffer: number | null;
-    buyTrend: number | null;
-    sellOffer: number | null;
-    sellTrend: number | null;
-    buyAmount: number | null;
-    sellAmount: number | null;
-    activeTraders: number | null;
-    time: number;
-    events: string[];
-  
-    constructor(buy: number, sell: number, buyAmount: number, sellAmount: number, activeTraders: number, time: number, events: string[]){
-      this.buyOffer = buy > 0 ? buy : null;
-      this.sellOffer = sell > 0 ? sell : null;
-      this.buyAmount = buyAmount >= 0 ? buyAmount : null;
-      this.sellAmount = sellAmount >= 0 ? sellAmount : null;
-      this.activeTraders = activeTraders >= 0 ? activeTraders : null;
-      this.buyTrend = null;
-      this.sellTrend = null;
-  
-      this.time = time;
-      this.events = events;
-    }
-}
-  
-export class WeekdayData{
-    private buyOffers: number[] = [];
-    private sellOffers: number[] = [];
-    private buyAmounts: number[] = [];
-    private sellAmounts: number[] = [];
-    public static weekdays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    public medianBuyOffer: number = 0;
-    public medianSellOffer: number = 0;
-    public medianBuyAmount: number = 0;
-    public medianSellAmount: number = 0;
-  
-    weekday: number;
-  
-    constructor(weekday: number){
-      this.weekday = weekday;
-    }
-  
-    /**
-     * Adds the prices to the weekday and recalculates the average.
-     */
-    public addData(buyPrice: number, sellPrice: number, buyAmount: number, sellAmount: number){
-      this.buyOffers.push(buyPrice);
-      this.sellOffers.push(sellPrice);
-      this.buyAmounts.push(buyAmount);
-      this.sellAmounts.push(sellAmount);
-    }
-  
-    /**
-     * Calculates and sets the median buy and sell offers for this weekday.
-     */
-    public calculateMedian() {
-      this.medianBuyOffer = this.buyOffers.sort((a, b) => a - b)[Math.trunc(this.buyOffers.length / 2)];
-      this.medianSellOffer = this.sellOffers.sort((a, b) => a - b)[Math.trunc(this.sellOffers.length / 2)];
-      this.medianBuyAmount = this.buyAmounts.sort((a, b) => a - b)[Math.trunc(this.buyAmounts.length / 2)];
-      this.medianSellAmount = this.sellAmounts.sort((a, b) => a - b)[Math.trunc(this.sellAmounts.length / 2)];
-    }
-}
 
 /**
  * Returns the Tibian weekday of the given time.

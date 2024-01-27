@@ -1,11 +1,11 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Drawer, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
+import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
 import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { timestampToEvents, HistoryData, ItemData, WeekdayData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData } from './utils/data';
+import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
 import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
@@ -118,27 +118,27 @@ const App: React.FC = () => {
       return false;
     } 
 
-    if(maxBuyFilter > 0 && dataObject.buyPrice.value > maxBuyFilter){
+    if(maxBuyFilter > 0 && dataObject.buy_offer.value > maxBuyFilter){
       return false;
     }
 
-    if(minBuyFilter > -1 && dataObject.buyPrice.value < minBuyFilter){
+    if(minBuyFilter > -1 && dataObject.buy_offer.value < minBuyFilter){
       return false;
     }
 
-    if(Math.min(dataObject.soldAmountMonth.value, dataObject.boughtAmountMonth.value) < minFlipsFilter){
+    if(Math.min(dataObject.month_sold.value, dataObject.month_bought.value) < minFlipsFilter){
       return false;
     }
 
-    if(maxFlipsFilter > 0 && Math.min(dataObject.soldAmountMonth.value, dataObject.boughtAmountMonth.value) > maxFlipsFilter){
+    if(maxFlipsFilter > 0 && Math.min(dataObject.month_sold.value, dataObject.month_bought.value) > maxFlipsFilter){
       return false;
     }
 
-    if(maxTradersFilter > 0 && dataObject.activeTraders.value > maxTradersFilter){
+    if(maxTradersFilter > 0 && dataObject.active_traders.value > maxTradersFilter){
       return false;
     }
 
-    if(dataObject.activeTraders.value < minTradersFilter){
+    if(dataObject.active_traders.value < minTradersFilter){
       return false;
     }
 
@@ -148,39 +148,7 @@ const App: React.FC = () => {
   function addDataRow(data: any){
     var metaData = itemMetaData[data.id];
 
-    // Some data is not up to date. If it is old, add the missing values as -1.
-    if(!("lowest_sell" in data)){
-      data.lowest_sell = -1;
-      data.lowest_buy = -1;
-      data.highest_sell = -1;
-      data.highest_buy = -1;
-      data.sell_offers = -1;
-      data.buy_offers = -1;
-    }
-    if (!("day_sell_offer" in data)){
-      data.day_sell_offer = -1;
-      data.day_buy_offer = -1;
-      data.day_sold = -1;
-      data.day_bought = -1;
-      data.day_highest_sell = -1;
-      data.day_lowest_sell = -1;
-      data.day_highest_buy = -1;
-      data.day_lowest_buy = -1;
-    }
-    if(!("total_immediate_profit" in data)){
-      data.total_immediate_profit = -1;
-    }
-
-    // Get the item name from the wiki, or the name from the bin if the wiki name is not set.
-    var itemName = metaData.wiki_name;
-    if(itemName == null || itemName == "") {
-      itemName = metaData.name;
-    }
-
-    var dataObject: ItemData = new ItemData(data.id, itemName, metaData.category, data.sell_offer, data.buy_offer, 
-      data.month_sell_offer, data.month_buy_offer, data.lowest_sell, data.lowest_buy, data.highest_sell, data.highest_buy, data.sold, data.bought, 
-      data.day_sell_offer, data.day_buy_offer, data.day_lowest_sell, data.day_lowest_buy, data.day_highest_sell, data.day_highest_buy, data.day_sold, data.day_bought,
-      data.sell_offers, data.buy_offers, data.active_traders, metaData.npc_sell, metaData.npc_buy, data.total_immediate_profit, "total_immediate_profit_info" in data ? data.total_immediate_profit_info : "");
+    var dataObject: ItemData = new ItemData(data, metaData);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
@@ -260,7 +228,7 @@ const App: React.FC = () => {
 
     var marketValues = JSON.parse(cachedMarketResponses[marketServer].response);
 
-    var data = marketValues.values;
+    var data = marketValues;
     dataSource = [];
 
     for(var i = 0; i < data.length; i++){
@@ -285,7 +253,7 @@ const App: React.FC = () => {
    */
   async function fetchMetaDataAsync(){
     var items = await getDataAsync("item_metadata");
-    var metaDatas: [ItemMetaData] = JSON.parse(items).metadata;
+    var metaDatas: [ItemMetaData] = JSON.parse(items);
 
     for(var item of metaDatas){
       itemMetaData[item.id] = item;
@@ -297,7 +265,7 @@ const App: React.FC = () => {
     var eventResponse = await getDataAsync("events");
 
     var eventValues = JSON.parse(eventResponse);
-    var eventEntries = eventValues.events;
+    var eventEntries = eventValues;
 
     for(var i = 0; i < eventEntries.length; i++){
       var date = eventEntries[i].date;
@@ -308,7 +276,8 @@ const App: React.FC = () => {
 
   async function fetchWorldData(){
     var items = await getDataAsync("world_data");
-    worldData = JSON.parse(items).worlds;
+
+    worldData = JSON.parse(items);
     worldDataDict = {};
     for(var i = 0; i < worldData.length; i++){
       worldDataDict[worldData[i].name] = worldData[i];
@@ -317,10 +286,10 @@ const App: React.FC = () => {
     setMarketServerOptions(worldData.map(x => {return {label: `${x.name} (${unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())})`, value: x.name}}));
   }
 
-  async function fetchPriceHistory(itemId: number){
+  async function fetchPriceHistory(itemId: number, days: number = 30){
     setIsLoading(true);
 
-    var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}`);
+    var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}&start_days_ago=${days}`);
 
     var priceGraphData: CustomTimeGraph = new CustomTimeGraph();
     priceGraphData.addDetail("buyOffer", "#8884d8", "Buy offer");
@@ -343,35 +312,41 @@ const App: React.FC = () => {
     weekdayTransactionGraph.addDetail("daySold", "#82ca9d", "Mean sold");
     weekdayTransactionGraph.isWeekdayGraph = true;
 
-    var itemValues = JSON.parse(item);
-    console.log(itemValues);
+    var data = JSON.parse(item);
+    var metaData = itemMetaData[itemId];
 
-    var data = itemValues.history;
-    for(var i = 0; i < data.length; i++){
+    var itemData: ItemData[] = [];
+    for(var i = 0; i < data.length; i++) {
+      var dataObject: ItemData = new ItemData(data[i], metaData);
+      itemData.push(dataObject);
+    }
+
+    for(var i = 0; i < itemData.length; i++){
       var data_events: string[] = timestampToEvents(data[i].time, events);
+      var dataObject = itemData[i];
 
-      var priceDatapoint = new CustomHistoryData(data[i].time, data_events);
-      priceDatapoint.addData("buyOffer", data[i].buy_offer ?? 0);
-      priceDatapoint.addData("sellOffer", data[i].sell_offer ?? 0);
+      var priceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+      priceDatapoint.addData("buyOffer", dataObject.buy_offer.value);
+      priceDatapoint.addData("sellOffer", dataObject.sell_offer.value);
       priceGraphData.addData(priceDatapoint);
 
-      var transactionDatapoint = new CustomHistoryData(data[i].time, data_events);
-      transactionDatapoint.addData("bought", data[i].bought ?? 0);
-      transactionDatapoint.addData("sold", data[i].sold ?? 0);
+      var transactionDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+      transactionDatapoint.addData("bought", dataObject.month_bought.value);
+      transactionDatapoint.addData("sold", dataObject.month_sold.value);
       priceTransactionGraphData.addData(transactionDatapoint);
 
-      var traderDatapoint = new CustomHistoryData(data[i].time, data_events);
-      traderDatapoint.addData("activeTraders", data[i].active_traders ?? 0);
+      var traderDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+      traderDatapoint.addData("activeTraders", dataObject.active_traders.value);
       traderGraphData.addData(traderDatapoint);
 
-      var medianWeekdayPriceDatapoint = new CustomHistoryData(data[i].time, data_events);
-      medianWeekdayPriceDatapoint.addData("buyOffer", data[i].buy_offer ?? 0);
-      medianWeekdayPriceDatapoint.addData("sellOffer", data[i].sell_offer ?? 0);
+      var medianWeekdayPriceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+      medianWeekdayPriceDatapoint.addData("buyOffer", dataObject.buy_offer.value);
+      medianWeekdayPriceDatapoint.addData("sellOffer", dataObject.sell_offer.value);
       weekdayPriceGraph.addData(medianWeekdayPriceDatapoint);
 
-      var medianWeekdayTransactionDatapoint = new CustomHistoryData(data[i].time, data_events);
-      medianWeekdayTransactionDatapoint.addData("dayBought", data[i].day_bought);
-      medianWeekdayTransactionDatapoint.addData("daySold", data[i].day_sold);
+      var medianWeekdayTransactionDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+      medianWeekdayTransactionDatapoint.addData("dayBought", dataObject.day_bought.value);
+      medianWeekdayTransactionDatapoint.addData("daySold", dataObject.day_sold.value);
       weekdayTransactionGraph.addData(medianWeekdayTransactionDatapoint);
     }
 
@@ -443,6 +418,7 @@ const App: React.FC = () => {
   var [minTradersFilter, setMinOffersFilter] = useState(-1);
   var [maxTradersFilter, setMaxOffersFilter] = useState(0);
   var [selectedItem, setSelectedItem] = useState("");
+  var [historyDays, setHistoryDays] = useState(30);
   var [modalPriceHistory, setModalPriceHistory] = useState<CustomTimeGraph>();
   var [modalTraderHistory, setModalTraderHistory] = useState<CustomTimeGraph>();
   var [modalTransationHistory, setModalTransactionHistory] = useState<CustomTimeGraph>();
@@ -455,7 +431,8 @@ const App: React.FC = () => {
 
   var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
   var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
-  
+  var historyDayOptions: any[] = [{label: "7 days", value: 7}, {label: "1 month", value: 30}, {label: "6 months", value: 180}, {label: "1 year", value: 365}, {label: "All", value: 9999}];
+
   useEffect(() => {
     const yourFunction = async () => {
       await fetchWorldData();
@@ -534,7 +511,10 @@ const App: React.FC = () => {
 
         <Content style={{ margin: '0px 16px 0px', overflow: 'auto' }}>
           <Modal
-            title=<div>Item history for {nameToWikiLink(selectedItem)}</div>
+            title=<div>
+            Item history for {nameToWikiLink(selectedItem)} 
+            <Radio.Group options={historyDayOptions} value={historyDays} optionType="button" style={{marginLeft: "16px"}} onChange={(e) => {setHistoryDays(e.target.value); fetchPriceHistory(dataSource.find(x => x.name == selectedItem)!.id.value, e.target.value)}}></Radio.Group>
+            </div>
             centered
             open={isModalOpen}
             onOk={() => setIsModalOpen(false)}
@@ -572,7 +552,7 @@ const App: React.FC = () => {
           />
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
               return {
-                onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value); setIsModalOpen(true);}
+                onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value, historyDays); setIsModalOpen(true);}
               };
             }} onChange={handleTableChanged}>
         </Table>
