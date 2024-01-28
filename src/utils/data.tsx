@@ -334,7 +334,7 @@ export class CustomTimeGraph{
      * Calculates and sets the trend values for each data point using linear regression.
      */
     public calculateTrend() {
-      for(var name in this.data[0].data){
+      for(var name in this.labels){
         var x_values: number[] = [];
         var y_values: any[] = [];
 

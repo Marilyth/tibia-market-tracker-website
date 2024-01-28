@@ -69,7 +69,7 @@ export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
         
         var lines: any[] = [];
         // Add a line for every key in the dynamicData except for time and events.
-        Object.keys(dynamicData[0]).forEach((key) => {
+        Object.keys(timeGraph.labels).forEach((key) => {
             if(key != "time" && key != "events" && !key.endsWith("Colour")){
                 var colour = timeGraph.colours[key] ?? "#82ca9d";
                 var label = timeGraph.labels[key] ?? key;
@@ -78,7 +78,7 @@ export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
                 lines.push(<Line connectNulls key={key} name={label} type='monotone' dataKey={key} dot={false} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
             }
         });
-
+        
         var chart = 
         <ResponsiveContainer width="100%" height={200}>
             <LineChart data={dynamicData}>
@@ -136,7 +136,7 @@ export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
         });
 
         // Add a bar for every key in the dynamicData except for weekday.
-        Object.keys(dynamicData[0]).forEach((key) => {
+        Object.keys(timeGraph.labels).forEach((key) => {
             if(key != "weekday" && !key.endsWith("Colour")){
                 var colour = timeGraph.colours[key] ?? "#82ca9d";
                 var label = timeGraph.labels[key] ?? key;
