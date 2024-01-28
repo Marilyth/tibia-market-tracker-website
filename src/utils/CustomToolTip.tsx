@@ -106,7 +106,7 @@ export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
             if(Object.keys(timeGraph.data[i].data).length == 0){
                 continue;
             }
-
+            
             weekdayData[getWeekday(timeGraph.data[i].time)].push(timeGraph.data[i]);
         }
 
@@ -137,7 +137,7 @@ export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
 
         // Add a bar for every key in the dynamicData except for weekday.
         Object.keys(timeGraph.labels).forEach((key) => {
-            if(key != "weekday" && !key.endsWith("Colour")){
+            if(key != "weekday" && !key.endsWith("Colour") && !key.endsWith("Trend")){
                 var colour = timeGraph.colours[key] ?? "#82ca9d";
                 var label = timeGraph.labels[key] ?? key;
                 
