@@ -64,7 +64,7 @@ const App: React.FC = () => {
    * @param defaultValue The default value to return if the parameter is not set.
    * @returns The value of the parameter, or the default value if the parameter is not set.
    */
-  function getLocalParamValue(paramName: string, defaultValue: string){
+  function getLocalParamValue(paramName: string, defaultValue: any){
     var paramValue = urlParams.get(paramName);
     if(paramValue == null){
       var localValue = localStorage.getItem(`${paramName}Key`);
@@ -84,7 +84,7 @@ const App: React.FC = () => {
    * @param paramName The name of the parameter to set the value for.
    * @param paramValue The value to set the parameter to.
    */
-  function setLocalParamValue(paramName: string, paramValue: string, hideFromUrl: boolean){
+  function setLocalParamValue(paramName: string, paramValue: any, hideFromUrl: boolean){
     if(!hideFromUrl){
       urlParams.set(paramName, paramValue);
       // TODO: Make this work without refresh.
@@ -382,9 +382,9 @@ const App: React.FC = () => {
     setDataColumns(exampleItem);
   }, [marketColumns]);
 
-  var [apiKey, setApiKey] = useState(getLocalParamValue("accessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3ZWJzaXRlIiwiaWF0IjoxNzA2Mzc2MTM1LCJleHAiOjI0ODM5NzYxMzV9.MrRgQJyNb5rlNmdsD3oyzG3ZugVeeeF8uFNElfWUOyI"));
+  var [apiKey, setApiKey] = useState(getLocalParamValue("apiAccessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3ZWJzaXRlIiwiaWF0IjoxNzA2Mzc2MTM1LCJleHAiOjI0ODM5NzYxMzV9.MrRgQJyNb5rlNmdsD3oyzG3ZugVeeeF8uFNElfWUOyI"));
   useEffect(() => {
-    setLocalParamValue("accessToken", apiKey, true);
+    setLocalParamValue("apiAccessToken", apiKey, true);
   }, [apiKey]);
   
   var [marketServerOptions, setMarketServerOptions] = useState<SelectProps[]>();
