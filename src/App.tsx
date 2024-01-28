@@ -212,8 +212,6 @@ const App: React.FC = () => {
     setIsLoading(true);
     setLastUpdated(0);
 
-    await fetchWorldData();
-
     // Load metadata if it isn't already loaded.
     if(Object.keys(itemMetaData).length == 0)
       await fetchMetaDataAsync();
@@ -430,17 +428,15 @@ const App: React.FC = () => {
   var [passwordVisible, setPasswordVisible] = useState(false);
   var [lastUpdated, setLastUpdated] = useState(0);
   var [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  useEffect(() => {
+    if(isDrawerOpen){
+      fetchWorldData();
+    }
+  }, [isDrawerOpen]);
 
   var weekdayDateOptions: Intl.DateTimeFormatOptions = {hour12: true, weekday: "short", year: "numeric", month: "short", day: "numeric", hour: '2-digit', minute:'2-digit'};
   var dateOptions: Intl.DateTimeFormatOptions = {hour12: true, year: "numeric", month: "short", day: "numeric"}
   var historyDayOptions: any[] = [{label: "7 days", value: 7}, {label: "1 month", value: 30}, {label: "6 months", value: 180}, {label: "1 year", value: 365}, {label: "All", value: 9999}];
-
-  useEffect(() => {
-    const yourFunction = async () => {
-      await fetchWorldData();
-    };
-    yourFunction();
-  }, []);
 
   return (
   <ConfigProvider
