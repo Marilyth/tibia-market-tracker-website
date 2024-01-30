@@ -190,12 +190,10 @@ export class Metric{
         if (npcProfit > 0) {
           if (sellToNPCProfit > sellToMarketProfit) {
             var npc_offer = npc_buy[0];
-            console.log(npc_offer);
             npcProfitAdditionalInfo = `Buy for ${this.sell_offer.value} from Market.\nSell to NPC ${npc_offer.name} in ${npc_offer.location} for ${npc_offer.price}.\n${sellToNPCProfit} profit.`;
           }
           else {
             var npc_offer = npc_sell[npc_sell.length - 1];
-            console.log(npc_offer);
             npcProfitAdditionalInfo = `Buy for ${npc_offer.price} from NPC ${npc_offer.name} in ${npc_offer.location}.\nSell to Market for ${this.buy_offer.value}.\n${sellToMarketProfit} profit.`;
           }
         }

@@ -48,6 +48,8 @@ const App: React.FC = () => {
     return items;
   }
 
+  var lastSorter: string = "";
+
   /**
    * Gets called when the pagination, filter or sorter changes.
    * @param pagination 
@@ -55,7 +57,10 @@ const App: React.FC = () => {
    * @param sorter 
    */
   function handleTableChanged(pagination: any, filters: any, sorter: any){
-    //console.log(pagination, filters, sorter);
+    if (sorter && JSON.stringify(sorter) != lastSorter){
+      addStatistic("sorted", sorter["field"][0]);
+      lastSorter = JSON.stringify(sorter);
+    }
   }
 
   /**
@@ -205,6 +210,11 @@ const App: React.FC = () => {
     setColumns([...columns]);
   }
 
+  async function addStatistic(identifier: string, value: string){
+    var subIdentifier = marketServer;
+    await getDataAsync(`add_statistic?identifier=${identifier}&sub_identifier=${subIdentifier}&value=${value}`);
+  }
+
   async function fetchData(){
     if (isLoading)
       return;
@@ -225,6 +235,9 @@ const App: React.FC = () => {
       var items = await getDataAsync(`market_values?limit=4000&server=${marketServer}&statistics=${marketColumns.join(",")}`);
       cachedMarketResponses[marketServer] = {"timestamp": new Date().getTime(), "response": items};
     }
+    
+    await addStatistic("market_values_website", nameFilter);
+    
 
     var marketValues = JSON.parse(cachedMarketResponses[marketServer].response);
 
@@ -377,8 +390,13 @@ const App: React.FC = () => {
 
   var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketValueColumns", JSON.stringify(["sell_offer", "buy_offer"]))));
   useEffect(() => {
-    setLocalParamValue("selectedMarketValueColumns", JSON.stringify(marketColumns), true);
     setDataColumns(exampleItem);
+
+    if (getLocalParamValue("selectedMarketValueColumns", JSON.stringify(["sell_offer", "buy_offer"])) != JSON.stringify(marketColumns)){
+      addStatistic("market_columns", marketColumns.join(","));
+    }
+
+    setLocalParamValue("selectedMarketValueColumns", JSON.stringify(marketColumns), true);
   }, [marketColumns]);
 
   var [apiKey, setApiKey] = useState(getLocalParamValue("apiAccessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3ZWJzaXRlIiwiaWF0IjoxNzA2Mzc2MTM1LCJleHAiOjI0ODM5NzYxMzV9.MrRgQJyNb5rlNmdsD3oyzG3ZugVeeeF8uFNElfWUOyI"));
