@@ -222,7 +222,7 @@ const App: React.FC = () => {
 
     // Check if marketServer is in cachedMarketResponse.
     if (!(marketServer in cachedMarketResponses) || cachedMarketResponses[marketServer].timestamp < new Date(worldDataDict[marketServer].last_update + "Z").getTime()){
-      var items = await getDataAsync(`market_values?limit=4000&server=${marketServer}`);
+      var items = await getDataAsync(`market_values?limit=4000&server=${marketServer}&statistics=${marketColumns.join(",")}`);
       cachedMarketResponses[marketServer] = {"timestamp": new Date().getTime(), "response": items};
     }
 
@@ -289,7 +289,7 @@ const App: React.FC = () => {
   async function fetchPriceHistory(itemId: number, days: number = 30){
     setIsLoading(true);
 
-    var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}&start_days_ago=${days}`);
+    var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
 
     var priceGraphData: CustomTimeGraph = new CustomTimeGraph();
     priceGraphData.addDetail("buyOffer", "#8884d8", "Buy offer");
