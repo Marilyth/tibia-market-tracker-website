@@ -5,7 +5,7 @@ import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, Order
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData } from './utils/data';
+import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
 import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
@@ -196,7 +196,7 @@ const App: React.FC = () => {
         render: (text: any, record: any) => {
           // Find out of the key's value of this record has additionalInfo.
           return record[key].additionalInfo.length > 0 ? 
-          <div><AntTooltip style={{ marginLeft: '200px' }} title={record[key].additionalInfo}>{text}</AntTooltip></div> : 
+          <div><AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip></div> : 
           <div>{text}</div>
         }
       });

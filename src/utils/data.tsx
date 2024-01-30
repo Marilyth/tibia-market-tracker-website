@@ -127,24 +127,7 @@ export class Metric{
     constructor(item: {[key: string]: any}, meta_data: ItemMetaData) {
       this.id = new Metric("Item Id", item["id"], "The Tibia internal id of the item.", "Meta data", false);
       this.time = new Metric("Time", item["time"], "The time the data was collected.", "Meta data", false, "", (value) => unixTimeToTimeAgo(value));
-      
-      if(meta_data != null){
-        this.name = meta_data.wiki_name ? meta_data.wiki_name : meta_data.name;
 
-        // NPC data.
-        var npc_sell = meta_data.npc_sell.filter((x) => NPCSaleData.isGold(x));
-        var npc_buy = meta_data.npc_buy.filter((x) => NPCSaleData.isGold(x));
-        this.npc_sell_price = new Metric("NPC Sell Price", npc_sell.length > 0 ? Math.min(...npc_sell.map((x) => x.price)) : -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false);
-        this.npc_buy_price = new Metric("NPC Buy Price", npc_buy.length > 0 ? Math.max(...npc_buy.map((x) => x.price)) : -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false);
-        this.category = new TextMetric("Category", meta_data.category, "The market category of the item.", "Meta data");
-      }
-      else{
-        this.name = `${this.id} (Unknown)`;
-        this.npc_sell_price = new Metric("NPC Sell Price", -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false);
-        this.npc_buy_price = new Metric("NPC Buy Price", -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false);
-        this.category = new TextMetric("Category", "Unknown", "The market category of the item.", "Meta data");
-      }
-  
       // Available data.
       this.sell_offer = new Metric("Sell Price", item["sell_offer"], "The current lowest sell price of the item.", "Buy & Sell Prices", false);
       this.buy_offer = new Metric("Buy Price", item["buy_offer"], "The current highest buy price of the item.", "Buy & Sell Prices", false);
@@ -183,18 +166,52 @@ export class Metric{
       var avgProfit = this.month_average_sell.value > 0 && this.month_average_buy.value > 0 ? Math.round((this.month_average_sell.value - this.month_average_buy.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
       this.average_profit = new Metric("Avg. Profit", avgProfit, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics");
 
-      var sellToNPCProfit = this.buy_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.buy_offer.value) - Math.min(this.buy_offer.value * tax, maxTax)) : -1;
-      var sellToMarketProfit = this.sell_offer.value > 0 && this.npc_sell_price.value > 0 ? Math.round((this.sell_offer.value - this.npc_sell_price.value) - Math.min(this.sell_offer.value * tax, maxTax)) : -1;
-      var npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
+      if(meta_data != null){
+        this.name = meta_data.wiki_name ? meta_data.wiki_name : meta_data.name;
 
-      this.npc_profit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics");
+        // NPC data.
+        var npc_sell = meta_data.npc_sell.filter((x) => NPCSaleData.isGold(x)).sort((a, b) => a.price - b.price);
+        var npc_buy = meta_data.npc_buy.filter((x) => NPCSaleData.isGold(x)).sort((a, b) => b.price - a.price);
+        this.npc_sell_price = new Metric("NPC Sell Price", npc_sell.length > 0 ? npc_sell[npc_sell.length - 1].price : -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false, npc_sell.length > 0 ? `${npc_sell[npc_sell.length - 1].name} in ${npc_sell[npc_sell.length - 1].location}` : "");
+        this.npc_buy_price = new Metric("NPC Buy Price", npc_buy.length > 0 ? npc_buy[0].price : -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false, npc_buy.length > 0 ? `${npc_buy[0].name} in ${npc_buy[0].location}` : "");
+        this.category = new TextMetric("Category", meta_data.category, "The market category of the item.", "Meta data");
 
-      sellToNPCProfit = this.sell_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.sell_offer.value)) : -1;
-      sellToMarketProfit = this.npc_sell_price.value > 0 && this.buy_offer.value > 0 ? Math.round((this.buy_offer.value - this.npc_sell_price.value)) : -1;
-      npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
+        var sellToNPCProfit = this.buy_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.buy_offer.value) - Math.min(this.buy_offer.value * tax, maxTax)) : -1;
+        var sellToMarketProfit = this.sell_offer.value > 0 && this.npc_sell_price.value > 0 ? Math.round((this.sell_offer.value - this.npc_sell_price.value) - Math.min(this.sell_offer.value * tax, maxTax)) : -1;
+        var npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
-      this.npc_immediate_profit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics");
-      this.total_immediate_profit = new Metric("Total NPC Immediate Profit", item["total_immediate_profit"], "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, item["total_immediate_profit_info"]);
+        this.npc_profit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics");
+
+        sellToNPCProfit = this.sell_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.sell_offer.value)) : -1;
+        sellToMarketProfit = this.npc_sell_price.value > 0 && this.buy_offer.value > 0 ? Math.round((this.buy_offer.value - this.npc_sell_price.value)) : -1;
+        npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
+        var npcProfitAdditionalInfo = "";
+
+        if (npcProfit > 0) {
+          if (sellToNPCProfit > sellToMarketProfit) {
+            var npc_offer = npc_buy[0];
+            console.log(npc_offer);
+            npcProfitAdditionalInfo = `Buy for ${this.sell_offer.value} from Market.\nSell to NPC ${npc_offer.name} in ${npc_offer.location} for ${npc_offer.price}.\n${sellToNPCProfit} profit.`;
+          }
+          else {
+            var npc_offer = npc_sell[npc_sell.length - 1];
+            console.log(npc_offer);
+            npcProfitAdditionalInfo = `Buy for ${npc_offer.price} from NPC ${npc_offer.name} in ${npc_offer.location}.\nSell to Market for ${this.buy_offer.value}.\n${sellToMarketProfit} profit.`;
+          }
+        }
+
+        this.npc_immediate_profit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", false, npcProfitAdditionalInfo);
+        this.total_immediate_profit = new Metric("Total NPC Immediate Profit", item["total_immediate_profit"], "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, item["total_immediate_profit_info"]);
+      }
+      else{
+        this.name = `${this.id} (Unknown)`;
+        this.npc_sell_price = new Metric("NPC Sell Price", -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false);
+        this.npc_buy_price = new Metric("NPC Buy Price", -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false);
+        this.category = new TextMetric("Category", "Unknown", "The market category of the item.", "Meta data");
+        this.npc_profit = new Metric("NPC Profit", -1, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics");
+        this.npc_immediate_profit = new Metric("NPC Immediate Profit", -1, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", false);
+        this.total_immediate_profit = new Metric("Total NPC Immediate Profit", -1, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false);
+      }
 
       this.potential_profit = new Metric("Potential Profit", this.profit.value * Math.min(this.month_sold.value, this.month_bought.value), "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics");
     }
@@ -265,6 +282,17 @@ export function timestampToEvents(unixTimestamp: number, events: { [date: string
   var dateKey = `${dateTime.getUTCFullYear()}-${(dateTime.getUTCMonth() + 1).toString().padStart(2, "0")}-${(dateTime.getUTCDate()).toString().padStart(2, "0")}T00:00:00`;
 
   return dateKey in events ? events[dateKey] : [];
+}
+
+/**
+ * Replaces the newlines of a string with HTML breaks.
+ * @param text 
+ * @returns 
+ */
+export function newLineToBreaks(text: string) : any {
+  return text.split("\n").map((item, key) => {
+    return <span key={key}>{item}<br/></span>
+  });
 }
 
 /**
