@@ -80,7 +80,7 @@ export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
         });
         
         var chart = 
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={window.innerHeight * 0.25}>
             <LineChart data={dynamicData}>
                 <XAxis domain={["dataMin", "dataMax + 1"]} allowDuplicatedCategory={false} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)} />
                 <YAxis domain={["dataMin", "dataMax + 1"]} tickFormatter={(value) => value.toFixed(0)} />
@@ -146,7 +146,7 @@ export const DynamicChart = ({timeGraph, isLightMode}: DynamicChartProps) => {
         });
 
         var chart = 
-        <ResponsiveContainer width='100%' height={200}>
+        <ResponsiveContainer width='100%' height={window.innerHeight * 0.25}>
             <BarChart data={dynamicData}>
                 <XAxis dataKey="weekday" tickFormatter={(day, index) => getWeekdayName(index)}/>
                 <YAxis />
