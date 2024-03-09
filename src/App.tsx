@@ -275,7 +275,7 @@ const App: React.FC = () => {
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
-    var eventResponse = await getDataAsync("events");
+    var eventResponse = await getDataAsync("events?start_days_ago=9999");
 
     var eventValues = JSON.parse(eventResponse);
     var eventEntries = eventValues;
@@ -316,13 +316,13 @@ const App: React.FC = () => {
     traderGraphData.addDetail("activeTraders", "#d884d8", "Active traders");
 
     var weekdayPriceGraph: CustomTimeGraph = new CustomTimeGraph();
-    weekdayPriceGraph.addDetail("buyOffer", "#8884d8", "Mean buy offer");
-    weekdayPriceGraph.addDetail("sellOffer", "#82ca9d", "Mean sell offer");
+    weekdayPriceGraph.addDetail("buyOffer", "#8884d8", "Median buy offer");
+    weekdayPriceGraph.addDetail("sellOffer", "#82ca9d", "Median sell offer");
     weekdayPriceGraph.isWeekdayGraph = true;
 
     var weekdayTransactionGraph: CustomTimeGraph = new CustomTimeGraph();
-    weekdayTransactionGraph.addDetail("dayBought", "#8884d8", "Mean bought");
-    weekdayTransactionGraph.addDetail("daySold", "#82ca9d", "Mean sold");
+    weekdayTransactionGraph.addDetail("dayBought", "#8884d8", "Median bought");
+    weekdayTransactionGraph.addDetail("daySold", "#82ca9d", "Median sold");
     weekdayTransactionGraph.isWeekdayGraph = true;
 
     var data = JSON.parse(item);
@@ -338,14 +338,25 @@ const App: React.FC = () => {
       var data_events: string[] = timestampToEvents(data[i].time, events);
       var dataObject = itemData[i];
 
+      // Price is daily average if available, otherwise it's the current price.
       var priceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      priceDatapoint.addData("buyOffer", dataObject.buy_offer.value);
-      priceDatapoint.addData("sellOffer", dataObject.sell_offer.value);
+      if (dataObject.day_average_buy.value != -1 && dataObject.day_average_sell.value != -1)
+      {
+        // If nothing was bought/sold on that day, ignore the price.
+        priceDatapoint.addData("buyOffer", dataObject.day_average_buy.value > 0 ? dataObject.day_average_buy.value : -1);
+        priceDatapoint.addData("sellOffer", dataObject.day_average_sell.value > 0 ? dataObject.day_average_sell.value : -1);
+      }
+      else
+      {
+        priceDatapoint.addData("buyOffer", dataObject.buy_offer.value);
+        priceDatapoint.addData("sellOffer", dataObject.sell_offer.value);
+      }
+      
       priceGraphData.addData(priceDatapoint);
 
       var transactionDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      transactionDatapoint.addData("bought", dataObject.month_bought.value);
-      transactionDatapoint.addData("sold", dataObject.month_sold.value);
+      transactionDatapoint.addData("bought", dataObject.day_bought.value > -1 ? dataObject.day_bought.value :  ~~(dataObject.month_bought.value / 30));
+      transactionDatapoint.addData("sold", dataObject.day_sold.value > -1 ? dataObject.day_sold.value :  ~~(dataObject.month_sold.value / 30));
       priceTransactionGraphData.addData(transactionDatapoint);
 
       var traderDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
@@ -550,11 +561,10 @@ const App: React.FC = () => {
             style={{ minWidth: '80vw' }}
           >
             <Collapse defaultActiveKey={1}>
-            <Panel header="Price over time" key="1">
+            <Panel header="Average daily price over time" key="1">
               <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode}></DynamicChart>
             </Panel>
             <Panel header="Transactions over time" key="2">
-            <Alert message="These are the cummulative amount of bought and sold items within a 1 month window." showIcon type="info" closable />
               <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode}></DynamicChart>
             </Panel>
             <Panel header="Median price per weekday" key="3">

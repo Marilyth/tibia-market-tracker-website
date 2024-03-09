@@ -129,8 +129,8 @@ export class Metric{
       this.time = new Metric("Time", item["time"], "The time the data was collected.", "Meta data", false, "", (value) => unixTimeToTimeAgo(value));
 
       // Available data.
-      this.sell_offer = new Metric("Sell Price", item["sell_offer"], "The current lowest sell price of the item.", "Buy & Sell Prices", false);
-      this.buy_offer = new Metric("Buy Price", item["buy_offer"], "The current highest buy price of the item.", "Buy & Sell Prices", false);
+      this.sell_offer = new Metric("Sell Price", item["sell_offer"], "The current lowest sell price of the item on the market board.", "Buy & Sell Prices", false);
+      this.buy_offer = new Metric("Buy Price", item["buy_offer"], "The current highest buy price of the item on the market board.", "Buy & Sell Prices", false);
       
       this.month_average_sell = new Metric("Avg. Sell Price (mo.)", item["month_average_sell"], "The average sell price of the item in the past 30 days.", "Average Prices", true);
       this.month_average_buy = new Metric("Avg. Buy Price (mo.)", item["month_average_buy"], "The average buy price of the item in the past 30 days.", "Average Prices", true);
