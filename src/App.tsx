@@ -363,9 +363,9 @@ const App: React.FC = () => {
       traderDatapoint.addData("activeTraders", dataObject.active_traders.value);
       traderGraphData.addData(traderDatapoint);
 
-      var medianWeekdayPriceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      medianWeekdayPriceDatapoint.addData("buyOffer", dataObject.buy_offer.value);
-      medianWeekdayPriceDatapoint.addData("sellOffer", dataObject.sell_offer.value);
+      var medianWeekdayPriceDatapoint = new CustomHistoryData(dataObject.time.value - 86400, data_events);
+      medianWeekdayPriceDatapoint.addData("buyOffer", dataObject.day_average_buy.value);
+      medianWeekdayPriceDatapoint.addData("sellOffer", dataObject.day_average_sell.value);
       weekdayPriceGraph.addData(medianWeekdayPriceDatapoint);
 
       // Set this statistic minus 1 day since they are 1 day delayed.
