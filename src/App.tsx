@@ -296,7 +296,7 @@ const App: React.FC = () => {
       worldDataDict[worldData[i].name] = worldData[i];
     }
 
-    setMarketServerOptions(worldData.map(x => {return {label: `${x.name} (${unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())})`, value: x.name}}));
+    setMarketServerOptions(worldData.sort((a, b) => a.name.localeCompare(b.name)).map(x => {return {label: `${x.name} (${unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())})`, value: x.name}}));
   }
 
   async function fetchPriceHistory(itemId: number, days: number = 30){
