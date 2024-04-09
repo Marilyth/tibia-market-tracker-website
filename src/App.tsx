@@ -1,6 +1,6 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps } from 'antd';
+import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin } from 'antd';
 import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
@@ -22,13 +22,24 @@ var itemMetaData: {[id: number]: ItemMetaData} = {};
 var worldData: WorldData[] = [];
 var worldDataDict: {[name: string]: WorldData} = {};
 var urlParams = new URLSearchParams(window.location.search);
+var lastApiRequests: { [endpoint: string]: number } = {};
+var requestLocks: { [endpoint: string]: boolean } = {};
 
 const App: React.FC = () => {
   /**
    * Send a request to the api to fetch data. Automatically handles errors.
    * @param endpoint The endpoint to fetch data from.
    */
-  async function getDataAsync(endpoint: string){
+  async function getDataAsync(endpoint: string, ratelimit: number = 5000){
+    var endpointName = endpoint.split("?")[0];
+    var timeLeft = endpointName in lastApiRequests ? lastApiRequests[endpointName] + (ratelimit - new Date().getTime()) : 0;
+
+    // Wait for the ratelimit to pass instead of erroring.
+    if (timeLeft > 0){
+      messageApi.info(`Waiting ${(timeLeft / 1000).toFixed(2)}s before fetching to avoid ratelimit...`, 10);
+      await new Promise(r => setTimeout(r, timeLeft));
+    }
+
     var items = await fetch(`https://api.tibiamarket.top:8001/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           var errorMessage = `${response.statusText}. ${await response.text()}`;
@@ -37,14 +48,14 @@ const App: React.FC = () => {
   
       return response.text();
     }).catch((error) => {
-      var endpointWithoutParams = endpoint.split("?")[0];
-      messageApi.error(`Fetching ${endpointWithoutParams} failed, please try again in a bit!`, 10);
+      messageApi.error(`Fetching ${endpointName} failed, please try again in a bit!`, 10);
       messageApi.error(error.message, 10);
       setIsLoading(false);
   
       throw new Error("Fetching tracked items failed!");
     });
 
+    lastApiRequests[endpointName] = new Date().getTime();
     return items;
   }
 
@@ -212,7 +223,7 @@ const App: React.FC = () => {
 
   async function addStatistic(identifier: string, value: string){
     var subIdentifier = marketServer;
-    await getDataAsync(`add_statistic?identifier=${identifier}&sub_identifier=${subIdentifier}&value=${value}`);
+    await getDataAsync(`add_statistic?identifier=${identifier}&sub_identifier=${subIdentifier}&value=${value}`, 0);
   }
 
   async function fetchData(){
@@ -275,7 +286,7 @@ const App: React.FC = () => {
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
-    var eventResponse = await getDataAsync("events?start_days_ago=9999");
+    var eventResponse = await getDataAsync("events?start_days_ago=9999", 0);
 
     var eventValues = JSON.parse(eventResponse);
     var eventEntries = eventValues;
@@ -288,7 +299,7 @@ const App: React.FC = () => {
   }
 
   async function fetchWorldData(){
-    var items = await getDataAsync("world_data");
+    var items = await getDataAsync("world_data", 0);
 
     worldData = JSON.parse(items);
     worldDataDict = {};
@@ -552,7 +563,7 @@ const App: React.FC = () => {
           <Modal
             title=<div>
             Item history for {nameToWikiLink(selectedItem)} 
-            <Radio.Group options={historyDayOptions} value={historyDays} optionType="button" style={{marginLeft: "16px"}} onChange={(e) => {setHistoryDays(e.target.value); fetchPriceHistory(dataSource.find(x => x.name == selectedItem)!.id.value, e.target.value)}}></Radio.Group>
+            <Radio.Group options={historyDayOptions} value={historyDays} optionType="button" disabled={isLoading} style={{marginLeft: "16px"}} onChange={(e) => {setHistoryDays(e.target.value); fetchPriceHistory(dataSource.find(x => x.name == selectedItem)!.id.value, e.target.value)}}></Radio.Group>
             </div>
             centered
             open={isModalOpen}
@@ -560,20 +571,22 @@ const App: React.FC = () => {
             onCancel={() => setIsModalOpen(false)}
             style={{ minWidth: '80vw' }}
           >
-            <Collapse defaultActiveKey={1}>
-            <Panel header="Average daily price over time" key="1">
-              <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode}></DynamicChart>
-            </Panel>
-            <Panel header="Transactions over time" key="2">
-              <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode}></DynamicChart>
-            </Panel>
-            <Panel header="Median price per weekday" key="3">
-              <DynamicChart timeGraph={modalMedianWeekdayPriceHistory!} isLightMode={isLightMode}></DynamicChart>
-            </Panel>
-            <Panel header="Median transactions per weekday" key="4">
-              <DynamicChart timeGraph={modalMedianTransactionVolumeHistory!} isLightMode={isLightMode}></DynamicChart>
-            </Panel>
-            </Collapse>
+            <Spin spinning={isLoading}>
+              <Collapse defaultActiveKey={1}>
+                <Panel header="Average daily price over time" key="1">
+                  <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode}></DynamicChart>
+                </Panel>
+                <Panel header="Transactions over time" key="2">
+                  <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode}></DynamicChart>
+                </Panel>
+                <Panel header="Median price per weekday" key="3">
+                  <DynamicChart timeGraph={modalMedianWeekdayPriceHistory!} isLightMode={isLightMode}></DynamicChart>
+                </Panel>
+                <Panel header="Median transactions per weekday" key="4">
+                  <DynamicChart timeGraph={modalMedianTransactionVolumeHistory!} isLightMode={isLightMode}></DynamicChart>
+                </Panel>
+              </Collapse>
+            </Spin>
           </Modal>
 
           <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable style={{marginTop: '1%'}} />
