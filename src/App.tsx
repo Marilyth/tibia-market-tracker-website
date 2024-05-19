@@ -18,6 +18,7 @@ const { Panel } = Collapse;
 
 var events: { [date: string]: string[]} = {}
 var cachedMarketResponses: {[server: string]: {timestamp: number, response: string}} = {};
+var cachedTibiaCoinHistoryResponses: {[server: string]: {timestamp: number, response: string}} = {};
 var itemMetaData: {[id: number]: ItemMetaData} = {};
 var worldData: WorldData[] = [];
 var worldDataDict: {[name: string]: WorldData} = {};
@@ -162,10 +163,10 @@ const App: React.FC = () => {
     return true;
   }
 
-  function addDataRow(data: any){
+  function addDataRow(data: any, tibiaCoinData: any){
     var metaData = itemMetaData[data.id];
 
-    var dataObject: ItemData = new ItemData(data, metaData);
+    var dataObject: ItemData = new ItemData(data, metaData, tibiaCoinData);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
@@ -211,9 +212,14 @@ const App: React.FC = () => {
         sortDirections: ['descend', 'ascend', 'descend'],
         render: (text: any, record: any) => {
           // Find out of the key's value of this record has additionalInfo.
-          return record[key].additionalInfo.length > 0 ? 
-          <div><AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip></div> : 
-          <div>{text}</div>
+          return <div>
+            {
+            record[key].additionalInfo.length > 0 ? 
+              <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> : 
+              text
+            }
+            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px', marginLeft: '8px', marginBottom: "-4px"}}/> : ""}
+          </div>
         }
       });
     }
@@ -248,23 +254,22 @@ const App: React.FC = () => {
     }
     
     await addStatistic("market_values_website", nameFilter);
-    
 
     var marketValues = JSON.parse(cachedMarketResponses[marketServer].response);
-
-    var data = marketValues;
     dataSource = [];
 
-    for(var i = 0; i < data.length; i++){
-      addDataRow(data[i]);
+    var tibiaCoinData = isTibiaCoinPriceVisible ? marketValues.find((x: any) => x.id == 22118) : null;
+
+    for(var i = 0; i < marketValues.length; i++){
+      addDataRow(marketValues[i], tibiaCoinData);
     }
 
     setDataColumns(exampleItem);
     setDataSource([...dataSource]);
 
     // If data has values, set the last updated timestamp to the maximum timestamp of the data.
-    if(data.length > 0){
-      setLastUpdated(Math.max(...data.map((x: any) => x.time)));
+    if(marketValues.length > 0){
+      setLastUpdated(Math.max(...marketValues.map((x: any) => x.time)));
     }
 
     setIsLoading(false);
@@ -314,6 +319,17 @@ const App: React.FC = () => {
     setIsLoading(true);
 
     var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
+    var tibiaCoinHistory = null;
+
+    // Check if marketServer is in cachedMarketResponse.
+    if (isTibiaCoinPriceVisible){
+      if(!(marketServer in cachedTibiaCoinHistoryResponses) || cachedTibiaCoinHistoryResponses[marketServer].timestamp < new Date(worldDataDict[marketServer].last_update + "Z").getTime()){
+        var tibiaCoinHistoryResponse = await getDataAsync(`item_history?server=${marketServer}&item_id=22118&start_days_ago=9999&statistics=${marketColumns.join(",")}`);
+        cachedTibiaCoinHistoryResponses[marketServer] = {"timestamp": new Date().getTime(), "response": tibiaCoinHistoryResponse};
+      }
+
+      tibiaCoinHistory = JSON.parse(cachedTibiaCoinHistoryResponses[marketServer].response);
+    }
 
     var priceGraphData: CustomTimeGraph = new CustomTimeGraph();
     priceGraphData.addDetail("buyOffer", "#8884d8", "Buy offer");
@@ -341,7 +357,10 @@ const App: React.FC = () => {
 
     var itemData: ItemData[] = [];
     for(var i = 0; i < data.length; i++) {
-      var dataObject: ItemData = new ItemData(data[i], metaData);
+      var tibiaCoinHistoryIndex = tibiaCoinHistory != null ? Math.max(0, Math.min(tibiaCoinHistory.length - 1, (tibiaCoinHistory.length - data.length) + i)) : -1;
+      var tibiaCoinData = tibiaCoinHistory != null ? tibiaCoinHistory[tibiaCoinHistoryIndex] : null;
+
+      var dataObject: ItemData = new ItemData(data[i], metaData, tibiaCoinData);
       itemData.push(dataObject);
     }
 
@@ -351,7 +370,7 @@ const App: React.FC = () => {
 
       // Price is daily average if available, otherwise it's the current price.
       var priceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      if (dataObject.day_average_buy.value != -1 && dataObject.day_average_sell.value != -1)
+      if (dataObject.day_average_buy.value > 0 && dataObject.day_average_sell.value > 0)
       {
         // If nothing was bought/sold on that day, ignore the price.
         priceDatapoint.addData("buyOffer", dataObject.day_average_buy.value > 0 ? dataObject.day_average_buy.value : -1);
@@ -468,6 +487,7 @@ const App: React.FC = () => {
   var [isModalOpen, setIsModalOpen] = useState(false);
   var [passwordVisible, setPasswordVisible] = useState(false);
   var [lastUpdated, setLastUpdated] = useState(0);
+  var [isTibiaCoinPriceVisible, setIsTibiaCoinPriceVisible] = useState(false);
   var [isDrawerOpen, setIsDrawerOpen] = useState(true);
   useEffect(() => {
     if(isDrawerOpen){
@@ -528,6 +548,23 @@ const App: React.FC = () => {
           <Form.Item>
             <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          </Form.Item>
+          <Form.Item label="Prices shown as">
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div>
+              <img src={"/Gold_Coin.png"} alt="Gold" style={{ height: '24px' }} />
+            </div>
+            <Switch
+              checked={isTibiaCoinPriceVisible}
+              checkedChildren="Avg. Tibia Coins"
+              unCheckedChildren="Gold"
+              style={{ margin: '8px'}}
+              onChange={(checked) => setIsTibiaCoinPriceVisible(checked)}
+            />
+            <div>
+              <img src={"/Tibia_Coins.png"} alt="Avg. Tibia Coins" style={{ height: '24px' }} />
+            </div>
+          </div>
           </Form.Item>
           {/*<Form.Item>
             <Input.Password placeholder="Access token" defaultValue={apiKey} onChange={(e) => setApiKey(e.target.value)} />

@@ -58,14 +58,16 @@ export class TextMetric{
   description: string;
   category: string = "";
   additionalInfo: string;
+  icon: string;
 
-  constructor(name: string, value: string, description: string, category: string, additionalInfo: string = "") {
+  constructor(name: string, value: string, description: string, category: string, additionalInfo: string = "", icon: string = "") {
     this.name = name;
     this.value = value;
     this.localisedValue = value;
     this.description = description;
     this.category = category;
     this.additionalInfo = additionalInfo;
+    this.icon = icon;
   }
 }
 
@@ -76,14 +78,16 @@ export class Metric{
     description: string;
     category: string = "";
     additionalInfo: string;
+    icon: string;
   
-    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
+    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", icon: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
       this.name = name;
       this.value = value;
       this.localisedValue = value < 0 && !canBeNegative ? "None" : toLocaleStringFunction(value);
       this.description = description;
       this.category = category;
       this.additionalInfo = additionalInfo;
+      this.icon = this.localisedValue == "None" ? "" : icon;
     }
 }
   
@@ -124,29 +128,35 @@ export class Metric{
     time: Metric;
     name: string;
   
-    constructor(item: {[key: string]: any}, meta_data: ItemMetaData) {
+    constructor(item: {[key: string]: any}, meta_data: ItemMetaData, tibiaCoinData: {[key: string]: any} | null = null) {
       this.id = new Metric("Item Id", item["id"], "The Tibia internal id of the item.", "Meta data", false);
-      this.time = new Metric("Time", item["time"], "The time the data was collected.", "Meta data", false, "", (value) => unixTimeToTimeAgo(value));
+      this.time = new Metric("Time", item["time"], "The time the data was collected.", "Meta data", false, "", "", (value) => unixTimeToTimeAgo(value));
+      
+      
+      var tibiaCoinPrice = Math.max(tibiaCoinData != null ? (tibiaCoinData["day_average_sell"] > -1 ? tibiaCoinData["day_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
+      var tibiaCoinPriceMonth = Math.max(tibiaCoinData != null ? (tibiaCoinData["month_average_sell"] > -1 ? tibiaCoinData["month_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
+      
+      var icon = tibiaCoinPrice > 1 ? "/Tibia_Coins.png" : "/Gold_Coin.png";
 
       // Available data.
-      this.sell_offer = new Metric("Sell Price", item["sell_offer"], "The current lowest sell price of the item on the market board.", "Buy & Sell Prices", false);
-      this.buy_offer = new Metric("Buy Price", item["buy_offer"], "The current highest buy price of the item on the market board.", "Buy & Sell Prices", false);
+      this.sell_offer = new Metric("Sell Price", item["sell_offer"] / tibiaCoinPrice, "The current lowest sell price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
+      this.buy_offer = new Metric("Buy Price", item["buy_offer"] / tibiaCoinPrice, "The current highest buy price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
       
-      this.month_average_sell = new Metric("Avg. Sell Price (mo.)", item["month_average_sell"], "The average sell price of the item in the past 30 days.", "Average Prices", true);
-      this.month_average_buy = new Metric("Avg. Buy Price (mo.)", item["month_average_buy"], "The average buy price of the item in the past 30 days.", "Average Prices", true);
-      this.day_average_sell = new Metric("Avg. Sell Price (day)", item["day_average_sell"], "The average sell price of the item in the past 24 hours.", "Average Prices", true);
-      this.day_average_buy = new Metric("Avg. Buy Price (day)", item["day_average_buy"], "The average buy price of the item in the past 24 hours.", "Average Prices", true);
-      this.delta_sell_offer = new Metric("Delta Sell Price", this.sell_offer.value > 0 ? this.sell_offer.value - this.month_average_sell.value : 0, "The difference between the current sell price and the average monthly sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.sell_offer.value >= 0);
-      this.delta_buy_offer = new Metric("Delta Buy Price", this.buy_offer.value > 0 ? this.buy_offer.value - this.month_average_buy.value : 0, "The difference between the current buy price and the average monthly buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.buy_offer.value >= 0);
+      this.month_average_sell = new Metric("Avg. Sell Price (mo.)", item["month_average_sell"] / tibiaCoinPriceMonth, "The average sell price of the item in the past 30 days.", "Average Prices", true, "", icon);
+      this.month_average_buy = new Metric("Avg. Buy Price (mo.)", item["month_average_buy"] / tibiaCoinPriceMonth, "The average buy price of the item in the past 30 days.", "Average Prices", true, "", icon);
+      this.day_average_sell = new Metric("Avg. Sell Price (day)", item["day_average_sell"] / tibiaCoinPrice, "The average sell price of the item in the past 24 hours.", "Average Prices", true, "", icon);
+      this.day_average_buy = new Metric("Avg. Buy Price (day)", item["day_average_buy"] / tibiaCoinPrice, "The average buy price of the item in the past 24 hours.", "Average Prices", true, "", icon);
+      this.delta_sell_offer = new Metric("Delta Sell Price", (this.sell_offer.value > 0 ? this.sell_offer.value - this.month_average_sell.value : 0) / tibiaCoinPrice, "The difference between the current sell price and the average monthly sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.sell_offer.value >= 0, "", icon);
+      this.delta_buy_offer = new Metric("Delta Buy Price", (this.buy_offer.value > 0 ? this.buy_offer.value - this.month_average_buy.value : 0) / tibiaCoinPrice, "The difference between the current buy price and the average monthly buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.buy_offer.value >= 0, "", icon);
       
-      this.month_lowest_sell = new Metric("Lowest Sell Price (mo.)", item["month_lowest_sell"], "The lowest sell price of the item in the last 30 days.", "Extreme Prices", false);
-      this.month_lowest_buy = new Metric("Lowest Buy Price (mo.)", item["month_lowest_buy"], "The lowest buy price of the item in the last 30 days.", "Extreme Prices", false);
-      this.month_highest_sell = new Metric("Highest Sell Price (mo.)", item["month_highest_sell"], "The highest sell price of the item in the last 30 days.", "Extreme Prices", false);
-      this.month_highest_buy = new Metric("Highest Buy Price (mo.)", item["month_highest_buy"], "The highest buy price of the item in the last 30 days.", "Extreme Prices", false);
-      this.day_lowest_sell = new Metric("Lowest Sell Price (day)", item["day_lowest_sell"], "The lowest sell price of the item in the last 24 hours.", "Extreme Prices", false);
-      this.day_lowest_buy = new Metric("Lowest Buy Price (day)", item["day_lowest_buy"], "The lowest buy price of the item in the last 24 hours.", "Extreme Prices", false);
-      this.day_highest_sell = new Metric("Highest Sell Price (day)", item["day_highest_sell"], "The highest sell price of the item in the last 24 hours.", "Extreme Prices", false);
-      this.day_highest_buy = new Metric("Highest Buy Price (day)", item["day_highest_buy"], "The highest buy price of the item in the last 24 hours.", "Extreme Prices", false);
+      this.month_lowest_sell = new Metric("Lowest Sell Price (mo.)", item["month_lowest_sell"] / tibiaCoinPriceMonth, "The lowest sell price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
+      this.month_lowest_buy = new Metric("Lowest Buy Price (mo.)", item["month_lowest_buy"] / tibiaCoinPriceMonth, "The lowest buy price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
+      this.month_highest_sell = new Metric("Highest Sell Price (mo.)", item["month_highest_sell"] / tibiaCoinPriceMonth, "The highest sell price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
+      this.month_highest_buy = new Metric("Highest Buy Price (mo.)", item["month_highest_buy"] / tibiaCoinPriceMonth, "The highest buy price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
+      this.day_lowest_sell = new Metric("Lowest Sell Price (day)", item["day_lowest_sell"] / tibiaCoinPrice, "The lowest sell price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
+      this.day_lowest_buy = new Metric("Lowest Buy Price (day)", item["day_lowest_buy"] / tibiaCoinPrice, "The lowest buy price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
+      this.day_highest_sell = new Metric("Highest Sell Price (day)", item["day_highest_sell"] / tibiaCoinPrice, "The highest sell price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
+      this.day_highest_buy = new Metric("Highest Buy Price (day)", item["day_highest_buy"] / tibiaCoinPrice, "The highest buy price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
 
       this.month_sold = new Metric("Sold (mo.)", item["month_sold"], "The amount of items sold in the last 30 days.", "Transaction Amounts", false);
       this.month_bought = new Metric("Bought (mo.)", item["month_bought"], "The amount of items bought in the last 30 days.", "Transaction Amounts", false);
@@ -162,9 +172,9 @@ export class Metric{
   
       // Calculated data.
       var profit = this.sell_offer.value > 0 && this.buy_offer.value > 0 ? Math.round((this.sell_offer.value - this.buy_offer.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
-      this.profit = new Metric("Profit", profit, `The profit you would get for flipping this item right now. Minus ${tax} tax.`, "Profit Metrics");
+      this.profit = new Metric("Profit", profit / tibiaCoinPrice, `The profit you would get for flipping this item right now. Minus ${tax} tax.`, "Profit Metrics");
       var avgProfit = this.month_average_sell.value > 0 && this.month_average_buy.value > 0 ? Math.round((this.month_average_sell.value - this.month_average_buy.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
-      this.average_profit = new Metric("Avg. Profit", avgProfit, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics");
+      this.average_profit = new Metric("Avg. Profit", avgProfit / tibiaCoinPriceMonth, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics");
 
       if(meta_data != null){
         this.name = meta_data.wiki_name ? meta_data.wiki_name : meta_data.name;
@@ -172,15 +182,15 @@ export class Metric{
         // NPC data.
         var npc_sell = meta_data.npc_sell.filter((x) => NPCSaleData.isGold(x)).sort((a, b) => a.price - b.price);
         var npc_buy = meta_data.npc_buy.filter((x) => NPCSaleData.isGold(x)).sort((a, b) => b.price - a.price);
-        this.npc_sell_price = new Metric("NPC Sell Price", npc_sell.length > 0 ? npc_sell[npc_sell.length - 1].price : -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false, npc_sell.length > 0 ? `${npc_sell[npc_sell.length - 1].name} in ${npc_sell[npc_sell.length - 1].location}` : "");
-        this.npc_buy_price = new Metric("NPC Buy Price", npc_buy.length > 0 ? npc_buy[0].price : -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false, npc_buy.length > 0 ? `${npc_buy[0].name} in ${npc_buy[0].location}` : "");
+        this.npc_sell_price = new Metric("NPC Sell Price", npc_sell.length > 0 ? npc_sell[npc_sell.length - 1].price : -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false, npc_sell.length > 0 ? `${npc_sell[npc_sell.length - 1].name} in ${npc_sell[npc_sell.length - 1].location}` : "", "/Gold_Coin.png");
+        this.npc_buy_price = new Metric("NPC Buy Price", npc_buy.length > 0 ? npc_buy[0].price : -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false, npc_buy.length > 0 ? `${npc_buy[0].name} in ${npc_buy[0].location}` : "", "/Gold_Coin.png");
         this.category = new TextMetric("Category", meta_data.category, "The market category of the item.", "Meta data");
 
         var sellToNPCProfit = this.buy_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.buy_offer.value) - Math.min(this.buy_offer.value * tax, maxTax)) : -1;
         var sellToMarketProfit = this.sell_offer.value > 0 && this.npc_sell_price.value > 0 ? Math.round((this.sell_offer.value - this.npc_sell_price.value) - Math.min(this.sell_offer.value * tax, maxTax)) : -1;
         var npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
-        this.npc_profit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics");
+        this.npc_profit = new Metric("NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics", false, "/Gold_Coin.png");
 
         sellToNPCProfit = this.sell_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.sell_offer.value)) : -1;
         sellToMarketProfit = this.npc_sell_price.value > 0 && this.buy_offer.value > 0 ? Math.round((this.buy_offer.value - this.npc_sell_price.value)) : -1;
@@ -198,20 +208,20 @@ export class Metric{
           }
         }
 
-        this.npc_immediate_profit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", false, npcProfitAdditionalInfo);
-        this.total_immediate_profit = new Metric("Total NPC Immediate Profit", item["total_immediate_profit"], "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, item["total_immediate_profit_info"]);
+        this.npc_immediate_profit = new Metric("NPC Immediate Profit", npcProfit == -1 ? 0 : npcProfit, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", false, npcProfitAdditionalInfo, "/Gold_Coin.png");
+        this.total_immediate_profit = new Metric("Total NPC Immediate Profit", item["total_immediate_profit"], "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, item["total_immediate_profit_info"], "/Gold_Coin.png");
       }
       else{
         this.name = `${this.id} (Unknown)`;
-        this.npc_sell_price = new Metric("NPC Sell Price", -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false);
-        this.npc_buy_price = new Metric("NPC Buy Price", -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false);
+        this.npc_sell_price = new Metric("NPC Sell Price", -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false, "", "/Gold_Coin.png");
+        this.npc_buy_price = new Metric("NPC Buy Price", -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false, "", "/Gold_Coin.png");
         this.category = new TextMetric("Category", "Unknown", "The market category of the item.", "Meta data");
-        this.npc_profit = new Metric("NPC Profit", -1, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics");
-        this.npc_immediate_profit = new Metric("NPC Immediate Profit", -1, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", false);
-        this.total_immediate_profit = new Metric("Total NPC Immediate Profit", -1, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false);
+        this.npc_profit = new Metric("NPC Profit", -1, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics", false, "", "/Gold_Coin.png");
+        this.npc_immediate_profit = new Metric("NPC Immediate Profit", -1, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", false, "", "/Gold_Coin.png");
+        this.total_immediate_profit = new Metric("Total NPC Immediate Profit", -1, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, "", "/Gold_Coin.png");
       }
 
-      this.potential_profit = new Metric("Potential Profit", this.profit.value * Math.min(this.month_sold.value, this.month_bought.value), "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics");
+      this.potential_profit = new Metric("Potential Profit", (this.profit.value * Math.min(this.month_sold.value, this.month_bought.value)) / tibiaCoinPriceMonth, "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics", false, "", icon);
     }
 }
 
@@ -253,7 +263,7 @@ export var exampleItem: ItemData = new ItemData({
   "day_lowest_buy": -1,
   "total_immediate_profit": -1,
   "total_immediate_profit_info": ""
-}, exampleMetaData);
+}, exampleMetaData, null);
 
 export var weekDays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
