@@ -135,7 +135,7 @@ export class Metric{
       
       var tibiaCoinPrice = Math.max(tibiaCoinData != null ? (tibiaCoinData["day_average_sell"] > -1 ? tibiaCoinData["day_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
       var tibiaCoinPriceMonth = Math.max(tibiaCoinData != null ? (tibiaCoinData["month_average_sell"] > -1 ? tibiaCoinData["month_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
-      
+
       var icon = tibiaCoinPrice > 1 ? "/Tibia_Coins.png" : "/Gold_Coin.png";
 
       // Available data.
@@ -172,9 +172,9 @@ export class Metric{
   
       // Calculated data.
       var profit = this.sell_offer.value > 0 && this.buy_offer.value > 0 ? Math.round((this.sell_offer.value - this.buy_offer.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
-      this.profit = new Metric("Profit", profit / tibiaCoinPrice, `The profit you would get for flipping this item right now. Minus ${tax} tax.`, "Profit Metrics");
+      this.profit = new Metric("Profit", profit / tibiaCoinPrice, `The profit you would get for flipping this item right now. Minus ${tax} tax.`, "Profit Metrics", false, "", icon);
       var avgProfit = this.month_average_sell.value > 0 && this.month_average_buy.value > 0 ? Math.round((this.month_average_sell.value - this.month_average_buy.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
-      this.average_profit = new Metric("Avg. Profit", avgProfit / tibiaCoinPriceMonth, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics");
+      this.average_profit = new Metric("Avg. Profit", avgProfit / tibiaCoinPriceMonth, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics", false, "", icon);
 
       if(meta_data != null){
         this.name = meta_data.wiki_name ? meta_data.wiki_name : meta_data.name;
