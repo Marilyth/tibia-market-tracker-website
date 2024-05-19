@@ -370,7 +370,7 @@ const App: React.FC = () => {
 
       // Price is daily average if available, otherwise it's the current price.
       var priceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      if (dataObject.day_average_buy.value > 0 && dataObject.day_average_sell.value > 0)
+      if (dataObject.day_average_buy.value >= 0 && dataObject.day_average_sell.value >= 0)
       {
         // If nothing was bought/sold on that day, ignore the price.
         priceDatapoint.addData("buyOffer", dataObject.day_average_buy.value > 0 ? dataObject.day_average_buy.value : -1);
