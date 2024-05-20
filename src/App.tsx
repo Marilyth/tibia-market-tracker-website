@@ -118,14 +118,6 @@ const App: React.FC = () => {
     return `Name: ${nameFilter}, Min Buy: ${minBuyFilter}, Max Buy: ${maxBuyFilter}, Min Flips: ${minFlipsFilter}, Max Flips: ${maxFlipsFilter}, Min Traders: ${minTradersFilter}, Max Traders: ${maxTradersFilter}`;
   }
 
-  /**
-   * Returns the nabbot image url of the item.
-   * @param itemName The item name to return the image url for.
-   */
-  function nameToImage(itemName: string): string{
-    return `https://static.nabbot.xyz/tibiawiki/item/${itemName}.gif`
-  }
-
   function nameToWikiLink(itemName: string){
     return <a href={'https://tibia.fandom.com/wiki/' + itemName} target='_blank'>{itemName}</a>
   }
@@ -188,7 +180,7 @@ const App: React.FC = () => {
       sortDirections: ['descend', 'ascend', 'descend'],
       render: (text: any, record: any) => {
         return <div>
-          <img src={nameToImage(text)}/> <br></br>
+          <img src={`/sprites/${record.id.value}.gif`}/> <br></br>
           {nameToWikiLink(text)}
           </div>;
       }
