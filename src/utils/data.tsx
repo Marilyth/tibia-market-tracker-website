@@ -136,7 +136,7 @@ export class Metric{
       var tibiaCoinPrice = Math.max(tibiaCoinData != null ? (tibiaCoinData["day_average_sell"] > -1 ? tibiaCoinData["day_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
       var tibiaCoinPriceMonth = Math.max(tibiaCoinData != null ? (tibiaCoinData["month_average_sell"] > -1 ? tibiaCoinData["month_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
 
-      var icon = tibiaCoinPrice > 1 ? "/Tibia_Coins.png" : "/Gold_Coin.png";
+      var icon = tibiaCoinPrice > 1 ? "/sprites/22118.gif" : "/Gold_Coin.png";
 
       // Available data.
       this.sell_offer = new Metric("Sell Price", item["sell_offer"] / tibiaCoinPrice, "The current lowest sell price of the item on the market board.", "Buy & Sell Prices", false, "", icon);

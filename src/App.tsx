@@ -13,7 +13,7 @@ import { DefaultOptionType } from 'antd/es/select';
 import { FaDiscord, FaGithub } from "react-icons/fa";
 
 const { Header, Content, Footer, Sider } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 var events: { [date: string]: string[]} = {}
@@ -304,7 +304,7 @@ const App: React.FC = () => {
       worldDataDict[worldData[i].name] = worldData[i];
     }
 
-    setMarketServerOptions(worldData.sort((a, b) => a.name.localeCompare(b.name)).map(x => {return {label: `${x.name} (${unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())})`, value: x.name}}));
+    setMarketServerOptions(worldData.sort((a, b) => a.name.localeCompare(b.name)).map(x => {return {label: x.name, value: x.name, timeAgo: unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())}}));
   }
 
   async function fetchPriceHistory(itemId: number, days: number = 30){
@@ -416,9 +416,9 @@ const App: React.FC = () => {
     setLocalParamValue("isLightMode", isLightMode.toString(), false);
   }, [isLightMode]);
 
-  var [marketServer, setMarketServer] = useState(getLocalParamValue("marketServer", "Antica"));
+  var [marketServer, setMarketServer] = useState(JSON.parse(getLocalParamValue("marketServerValues", JSON.stringify(["Antica"]))));
   useEffect(() => {
-    setLocalParamValue("marketServer", marketServer, false);
+    setLocalParamValue("marketServerValues", JSON.stringify(marketServer), true);
   }, [marketServer]);
 
   var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketValueColumns", JSON.stringify(["sell_offer", "buy_offer"]))));
@@ -524,7 +524,13 @@ const App: React.FC = () => {
         
         <Form layout='vertical'>
           <Form.Item>
-            <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
+            <Select options={marketServerOptions} suffixIcon={`${marketServer.length} / 5`} mode='multiple' maxCount={5} defaultValue={marketServer} onChange={(value) => setMarketServer(value)} 
+              optionRender={(option) => 
+              <Space>
+                <Text>{option.data.label}</Text>
+                <Text type='secondary'>{option.data.timeAgo}</Text>
+              </Space>
+            }></Select>
           </Form.Item>
           <Form.Item>
             <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input>
@@ -554,7 +560,7 @@ const App: React.FC = () => {
               onChange={(checked) => setIsTibiaCoinPriceVisible(checked)}
             />
             <div>
-              <img src={"/Tibia_Coins.png"} alt="Avg. Tibia Coins" style={{ height: '24px' }} />
+              <img src={"/sprites/22118.gif"} alt="Avg. Tibia Coins" style={{ height: '24px' }} />
             </div>
           </div>
           </Form.Item>
@@ -562,7 +568,7 @@ const App: React.FC = () => {
             <Input.Password placeholder="Access token" defaultValue={apiKey} onChange={(e) => setApiKey(e.target.value)} />
           </Form.Item>*/}
           <Form.Item>
-            <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading}>
+            <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading} disabled={marketServer.length == 0}>
               Search
             </Button>
           </Form.Item>
