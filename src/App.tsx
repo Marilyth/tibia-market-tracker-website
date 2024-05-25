@@ -1,7 +1,7 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin, Divider } from 'antd';
-import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone } from '@ant-design/icons';
+import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
@@ -192,9 +192,11 @@ const App: React.FC = () => {
       sortDirections: ['descend', 'ascend', 'descend'],
       render: (text: any, record: any) => {
         return <div>
-          <img src={`/sprites/${record.id.value}.gif`}/> <br></br>
-          {nameToWikiLink(text)}
-          </div>;
+          <Space>
+            <img src={`/sprites/${record.id.value}.gif`}/>
+            {nameToWikiLink(text)}
+          </Space>
+        </div>;
       }
     });
     
@@ -216,17 +218,34 @@ const App: React.FC = () => {
         sortDirections: ['descend', 'ascend', 'descend'],
         render: (text: any, record: any) => {
           // Find out of the key's value of this record has additionalInfo.
-          return <div>
+          return <Space>
             {
             record[key].additionalInfo.length > 0 ? 
               <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> : 
               text
             }
-            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px', marginLeft: '8px', marginBottom: "-4px"}}/> : ""}
-          </div>
+            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px'}}/> : ""}
+          </Space>
         }
       });
     }
+
+    // Add actions column.
+    columns.push({
+      title: '',
+      key: 'actions',
+      width: "1%",
+      render: (text: any, record: any) => {
+        return <Space>
+            <AntTooltip title="View the price history for this item">
+              <Button icon={<LineChartOutlined />} onClick={async () => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value, historyDays); setIsModalOpen(true);}}></Button>
+            </AntTooltip>
+            <AntTooltip title="View on TibiaWiki">
+              <Button onClick={() => window.open(`https://tibia.fandom.com/wiki/${record.name}`, '_blank')}><img src="/Heavily_Bound_Book.gif" style={{height: '20px', marginLeft: '-8px', marginRight: '-8px' }}/></Button>
+            </AntTooltip>
+          </Space>
+      }
+    });
 
     setColumns([...columns]);
   }
@@ -548,11 +567,21 @@ const App: React.FC = () => {
         </Title>
         
         <Form layout='vertical'>
-          <Form.Item>
+          <Form.Item label="World" required tooltip="The world for which the market values are fetched">
             <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
           </Form.Item>
-          <Form.Item>
+          <Form.Item label="Items" tooltip="The items which will be shown in the table. This is optional. Leaving this empty will show all items">
             <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear></Select>
+          </Form.Item>
+          <Form.Item label="Market values" tooltip="The market values, in addition to the item name, that will be shown in the table after fetching">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Select the table columns you want to see"
+              defaultValue={marketColumns}
+              onChange={setMarketColumns}
+              options={marketColumnOptions}
+            />
           </Form.Item>
           <Form.Item label="Buy price" tooltip="The current buy price of the item">
             <Space>
@@ -568,7 +597,7 @@ const App: React.FC = () => {
               <InputNumber placeholder='Maximum' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             </Space>
           </Form.Item>
-          <Form.Item label="Traders" tooltip="The amount of buy or sell offers within the past 24 hours, whichever one is smaller">
+          <Form.Item label="Traders" tooltip="The amount of buy or sell offers within the past 24 hours, whichever one is smaller. I.e. your competition">
             <Space>
               <InputNumber placeholder='Minimum' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
               -
@@ -578,7 +607,7 @@ const App: React.FC = () => {
           <Form.Item label="Prices shown as">
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div>
-              <img src={"/Gold_Coin.png"} alt="Gold" style={{ height: '24px' }} />
+              <img src={"/Gold_Coins.png"} alt="Gold" style={{ height: '24px' }} />
             </div>
             <Switch
               checked={isTibiaCoinPriceVisible}
@@ -588,7 +617,7 @@ const App: React.FC = () => {
               onChange={(checked) => setIsTibiaCoinPriceVisible(checked)}
             />
             <div>
-              <img src={"/Tibia_Coins.png"} alt="Avg. Tibia Coins" style={{ height: '24px' }} />
+              <img src={"/Tibia_Coins.gif"} alt="Avg. Tibia Coins" style={{ height: '24px' }} />
             </div>
           </div>
           </Form.Item>
@@ -651,24 +680,8 @@ const App: React.FC = () => {
               </Collapse>
             </Spin>
           </Modal>
-
-          <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable style={{marginTop: '1%'}} />
-          <Alert message="You can select more data to view by clicking on the box below! ⬇" showIcon type="info" closable />
           
-          <Select
-            mode="multiple"
-            allowClear
-            style={{ width: '100%' }}
-            placeholder="Select the table columns you want to see"
-            defaultValue={marketColumns}
-            onChange={setMarketColumns}
-            options={marketColumnOptions}
-          />
-          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
-              return {
-                onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value, historyDays); setIsModalOpen(true);}
-              };
-            }} onChange={handleTableChanged}>
+          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onChange={handleTableChanged} style={{ marginTop: '1%' }}>
         </Table>
         </Content>
         
