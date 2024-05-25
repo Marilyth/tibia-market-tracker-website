@@ -13,7 +13,7 @@ import { DefaultOptionType } from 'antd/es/select';
 import { FaDiscord, FaGithub } from "react-icons/fa";
 
 const { Header, Content, Footer, Sider } = Layout;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 var events: { [date: string]: string[]} = {}
@@ -567,7 +567,12 @@ const App: React.FC = () => {
             <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
           </Form.Item>
           <Form.Item label="Items" tooltip="The items which will be shown in the table. This is optional. Leaving this empty will show all items">
-            <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear></Select>
+            <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear optionRender={(option) => 
+              <Space>
+                <img width="20px" src={`/sprites/${option.data.key}.gif`} />
+                <Text>{option.data.label}</Text>
+              </Space>
+            }></Select>
           </Form.Item>
           <Form.Item label="Market values" tooltip="The market values, in addition to the item name, that will be shown in the table after fetching">
             <Select
