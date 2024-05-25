@@ -557,15 +557,11 @@ const App: React.FC = () => {
           borderRight: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
         }}
       >
-        <div id='title' style={{borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)'}}>
-          <Title level={4} style={{textAlign:'center'}}>
+          <Title level={4} style={{textAlign:'center', marginTop: '0px'}}>
             Market Tracker
           </Title>
-        </div>
-        <Title level={5} style={{textAlign:'center', color:'grey'}}>
-          Filters
-        </Title>
-        
+          <Divider>
+          </Divider>
         <Form layout='vertical'>
           <Form.Item label="World" required tooltip="The world for which the market values are fetched">
             <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
