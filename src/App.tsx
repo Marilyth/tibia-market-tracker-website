@@ -239,15 +239,19 @@ const App: React.FC = () => {
     if(Object.keys(events).length == 0)
       await fetchEventHistory();
 
-    // Check if marketServer is in cachedMarketResponse.
-    if (!(marketServer in cachedMarketResponses) || cachedMarketResponses[marketServer].timestamp < new Date(worldDataDict[marketServer].last_update + "Z").getTime()){
-      var items = await getDataAsync(`market_values?limit=4000&server=${marketServer}&statistics=${marketColumns.join(",")}`);
-      cachedMarketResponses[marketServer] = {"timestamp": new Date().getTime(), "response": items};
-    }
-    
-    await addStatistic("market_values_website", nameFilter);
+    var items: {[key: string]: any} = {};
 
-    var marketValues = JSON.parse(cachedMarketResponses[marketServer].response);
+    // Check if marketServer is in cachedMarketResponse.
+    for(var i = 0; i < marketServer.length; i++){
+      if (!(marketServer[i] in cachedMarketResponses) || cachedMarketResponses[marketServer[i]].timestamp < new Date(worldDataDict[marketServer[i]].last_update + "Z").getTime()){
+        items[marketServer[i]] = await getDataAsync(`market_values?limit=4000&server=${marketServer[i]}&statistics=${marketColumns.join(",")}`);
+        cachedMarketResponses[marketServer[i]] = {"timestamp": new Date().getTime(), "response": items[marketServer[i]]};
+      }
+
+      await addStatistic("market_values_website", nameFilter);
+    }
+
+    var marketValues = JSON.parse(cachedMarketResponses[marketServer[0]].response);
     dataSource = [];
 
     var tibiaCoinData = isTibiaCoinPriceVisible ? marketValues.find((x: any) => x.id == 22118) : null;
