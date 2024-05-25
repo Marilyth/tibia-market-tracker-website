@@ -1,6 +1,6 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin } from 'antd';
+import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin, Divider } from 'antd';
 import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
@@ -124,8 +124,20 @@ const App: React.FC = () => {
 
   function doesDataMatchFilter(dataObject: ItemData){
     // Filter input by user.
-    if(nameFilter != "" && !dataObject.name.toLowerCase().includes(nameFilter.toLowerCase())){
-      return false;
+    if(nameFilter.length > 0){
+      var itemName = dataObject.name.toLowerCase();
+      var containsAny = false;
+
+      for(var name of nameFilter){
+        if(itemName.includes(name.toLowerCase().trim())){
+          containsAny = true;
+          break;
+        }
+      }
+
+      if(!containsAny){
+        return false;
+      }
     } 
 
     if(maxBuyFilter > 0 && dataObject.buy_offer.value > maxBuyFilter){
@@ -231,13 +243,8 @@ const App: React.FC = () => {
     setIsLoading(true);
     setLastUpdated(0);
 
-    // Load metadata if it isn't already loaded.
-    if(Object.keys(itemMetaData).length == 0)
-      await fetchMetaDataAsync();
-
     // Load events if not already loaded.
-    if(Object.keys(events).length == 0)
-      await fetchEventHistory();
+    await fetchEventHistory();
 
     // Check if marketServer is in cachedMarketResponse.
     if (!(marketServer in cachedMarketResponses) || cachedMarketResponses[marketServer].timestamp < new Date(worldDataDict[marketServer].last_update + "Z").getTime()){
@@ -245,7 +252,7 @@ const App: React.FC = () => {
       cachedMarketResponses[marketServer] = {"timestamp": new Date().getTime(), "response": items};
     }
     
-    await addStatistic("market_values_website", nameFilter);
+    await addStatistic("market_values_website", JSON.stringify(nameFilter));
 
     var marketValues = JSON.parse(cachedMarketResponses[marketServer].response);
     dataSource = [];
@@ -273,30 +280,43 @@ const App: React.FC = () => {
    * in the itemNames dictionary.
    */
   async function fetchMetaDataAsync(){
-    var items = await getDataAsync("item_metadata");
-    var metaDatas: [ItemMetaData] = JSON.parse(items);
+    // Load metadata if it isn't already loaded.
+    if(Object.keys(itemMetaData).length == 0){
+      var items = await getDataAsync("item_metadata");
+      var metaDatas: [ItemMetaData] = JSON.parse(items);
 
-    for(var item of metaDatas){
-      itemMetaData[item.id] = item;
+      var itemOptions = [];
+
+      for(var item of metaDatas.sort((a, b) => a.name.localeCompare(b.name))){
+        itemMetaData[item.id] = item;
+
+        var itemName = item.wiki_name != null ? item.wiki_name : item.name;
+        itemOptions.push({label: itemName, value: itemName, key: item.id});
+      }
+
+      setMarketItemOptions(itemOptions);
     }
   }
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
-    var eventResponse = await getDataAsync("events?start_days_ago=9999", 0);
+    if(Object.keys(events).length == 0){
+      var eventResponse = await getDataAsync("events?start_days_ago=9999", 0);
 
-    var eventValues = JSON.parse(eventResponse);
-    var eventEntries = eventValues;
-
-    for(var i = 0; i < eventEntries.length; i++){
-      var date = eventEntries[i].date;
-      var eventNames = eventEntries[i].events;
-      events[date] = eventNames;
+      var eventValues = JSON.parse(eventResponse);
+      var eventEntries = eventValues;
+  
+      for(var i = 0; i < eventEntries.length; i++){
+        var date = eventEntries[i].date;
+        var eventNames = eventEntries[i].events;
+        events[date] = eventNames;
+      }
     }
   }
 
   async function fetchWorldData(){
     var items = await getDataAsync("world_data", 0);
+    await fetchMetaDataAsync();
 
     worldData = JSON.parse(items);
     worldDataDict = {};
@@ -432,12 +452,18 @@ const App: React.FC = () => {
     setLocalParamValue("selectedMarketValueColumns", JSON.stringify(marketColumns), true);
   }, [marketColumns]);
 
+  var [nameFilter, setNameFilter] = useState<string[]>(JSON.parse(getLocalParamValue("nameFilter", "[]")));
+  useEffect(() => {
+    setLocalParamValue("nameFilter", JSON.stringify(nameFilter), true);
+  }, [nameFilter]);
+
   var [apiKey, setApiKey] = useState(getLocalParamValue("apiAccessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3ZWJzaXRlIiwiaWF0IjoxNzA2Mzc2MTM1LCJleHAiOjI0ODM5NzYxMzV9.MrRgQJyNb5rlNmdsD3oyzG3ZugVeeeF8uFNElfWUOyI"));
   useEffect(() => {
     setLocalParamValue("apiAccessToken", apiKey, true);
   }, [apiKey]);
   
   var [marketServerOptions, setMarketServerOptions] = useState<SelectProps[]>();
+  var [marketItemOptions, setMarketItemOptions] = useState<SelectProps[]>();
 
   // Make all columns optional.
   var marketColumnOptions: any[] = [];
@@ -462,7 +488,6 @@ const App: React.FC = () => {
   var [dataSource, setDataSource] = useState<ItemData[]>([]);
   var [isLoading, setIsLoading] = useState(false);
   var [columns, setColumns] = useState<ColumnType<ItemData>[]>([]);
-  var [nameFilter, setNameFilter] = useState("");
   var [minBuyFilter, setMinBuyFilter] = useState(-1);
   var [maxBuyFilter, setMaxBuyFilter] = useState(0);
   var [minFlipsFilter, setMinTradesFilter] = useState(-1);
@@ -527,19 +552,28 @@ const App: React.FC = () => {
             <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
           </Form.Item>
           <Form.Item>
-            <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input>
+            <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear></Select>
           </Form.Item>
-          <Form.Item>
-            <InputNumber placeholder='Minimum buy price' onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-            <InputNumber placeholder='Maximum buy price' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <Form.Item label="Buy price" tooltip="The current buy price of the item">
+            <Space>
+              <InputNumber placeholder='Minimum' onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              -
+              <InputNumber placeholder='Maximum' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            </Space>
           </Form.Item>
-          <Form.Item>
-            <InputNumber placeholder='Minimum flips' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-            <InputNumber placeholder='Maximum flips' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <Form.Item label="Flips" tooltip="The amount of times the item can be flipped (bought and sold) per month">
+            <Space>
+              <InputNumber placeholder='Minimum' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              -
+              <InputNumber placeholder='Maximum' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            </Space>
           </Form.Item>
-          <Form.Item>
-            <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-            <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <Form.Item label="Traders" tooltip="The amount of buy or sell offers within the past 24 hours, whichever one is smaller">
+            <Space>
+              <InputNumber placeholder='Minimum' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              -
+              <InputNumber placeholder='Maximum' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            </Space>
           </Form.Item>
           <Form.Item label="Prices shown as">
           <div style={{ display: 'flex', alignItems: 'center' }}>
