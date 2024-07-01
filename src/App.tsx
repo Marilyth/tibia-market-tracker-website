@@ -267,7 +267,7 @@ const App: React.FC = () => {
 
     // Check if marketServer is in cachedMarketResponse.
     if (!(marketServer in cachedMarketResponses) || cachedMarketResponses[marketServer].timestamp < new Date(worldDataDict[marketServer].last_update + "Z").getTime()){
-      var items = await getDataAsync(`market_values?limit=4000&server=${marketServer}&statistics=${marketColumns.join(",")}`);
+      var items = await getDataAsync(`market_values?limit=5000&server=${marketServer}&statistics=${marketColumns.join(",")}`);
       cachedMarketResponses[marketServer] = {"timestamp": new Date().getTime(), "response": items};
     }
     
