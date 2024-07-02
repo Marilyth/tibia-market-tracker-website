@@ -168,7 +168,7 @@ export class Metric{
       this.active_traders = new Metric("Traders", item["active_traders"], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", false);
 
       const tax: number = 0.02;
-      const maxTax: number = 250000;
+      const maxTax: number = 1000000;
   
       // Calculated data.
       var profit = this.sell_offer.value > 0 && this.buy_offer.value > 0 ? Math.round((this.sell_offer.value - this.buy_offer.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
