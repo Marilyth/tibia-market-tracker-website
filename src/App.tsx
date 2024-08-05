@@ -1,7 +1,7 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin, Divider } from 'antd';
-import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined, ShareAltOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
@@ -23,8 +23,10 @@ var itemMetaData: {[id: number]: ItemMetaData} = {};
 var worldData: WorldData[] = [];
 var worldDataDict: {[name: string]: WorldData} = {};
 var urlParams = new URLSearchParams(window.location.search);
+var localParameters: Set<string> = new Set();
 var lastApiRequests: { [endpoint: string]: number } = {};
 var requestLocks: { [endpoint: string]: boolean } = {};
+var loadOnRender = false;
 
 const App: React.FC = () => {
   /**
@@ -70,8 +72,28 @@ const App: React.FC = () => {
    */
   function handleTableChanged(pagination: any, filters: any, sorter: any){
     if (sorter && JSON.stringify(sorter) != lastSorter){
-      addStatistic("sorted", sorter["field"][0]);
+      var sorterField = typeof sorter["field"] === 'string' ? sorter["field"] : sorter["field"][0];
+
+      addStatistic("sorted", sorterField);
       lastSorter = JSON.stringify(sorter);
+
+      setSortedByColumn(sorterField);
+      setSortedByOrder(sorter["order"]);
+
+      // Make all other columns unsorted.
+      for (var column of columns){
+        var dataIndex: any = column["dataIndex"];
+        var isString = typeof dataIndex === 'string';
+        
+        if (dataIndex == undefined)
+          continue;
+
+        if ((isString && dataIndex != sorterField) || (!isString && dataIndex[0] != sorterField)){
+          column["sortOrder"] = null;
+        } else {
+          column["sortOrder"] = sorter["order"];
+        }
+      }
     }
   }
 
@@ -81,9 +103,11 @@ const App: React.FC = () => {
    * @param defaultValue The default value to return if the parameter is not set.
    * @returns The value of the parameter, or the default value if the parameter is not set.
    */
-  function getLocalParamValue(paramName: string, defaultValue: any){
-    var paramValue = urlParams.get(paramName);
-    if(paramValue == null){
+  function getLocalParamValue(paramName: string, defaultValue: any, takeFromUrl: boolean = true){
+    localParameters.add(paramName);
+
+    var paramValue = takeFromUrl ? urlParams.get(paramName) : null;
+    if(paramValue == null ){
       var localValue = localStorage.getItem(`${paramName}Key`);
 
       if(localValue == null){
@@ -93,6 +117,7 @@ const App: React.FC = () => {
       return localValue;
     }
 
+    loadOnRender = true;
     return paramValue;
   }
 
@@ -102,6 +127,8 @@ const App: React.FC = () => {
    * @param paramValue The value to set the parameter to.
    */
   function setLocalParamValue(paramName: string, paramValue: any, hideFromUrl: boolean){
+    localParameters.add(paramName);
+
     if(!hideFromUrl){
       urlParams.set(paramName, paramValue);
       // TODO: Make this work without refresh.
@@ -109,6 +136,33 @@ const App: React.FC = () => {
     }
 
     localStorage.setItem(`${paramName}Key`, paramValue);
+  }
+
+  /**
+   * Grabs all used local parameters and sets them in the current url.
+   * The url is then copied to the clipboard.
+   */
+  function copyShareableLink(){
+    var currentDomain = window.location.href.split("?")[0];
+    var url = new URL(currentDomain);
+    var nonShareableParams = ["apiAccessToken", "isLightMode"];
+
+    for(var param of localParameters){
+      if(nonShareableParams.includes(param)){
+        continue;
+      }
+
+      var paramValue = getLocalParamValue(param, null, false);
+
+      // If the parameter is not null, set it in the url. However, order can be null.
+      if(paramValue != null || param == "sortedByOrder"){
+        url.searchParams.set(param, paramValue);
+      }
+    }
+
+    navigator.clipboard.writeText(url.toString());
+
+    messageApi.success("Copied link to clipboard!");
   }
 
   /**
@@ -144,7 +198,7 @@ const App: React.FC = () => {
       return false;
     }
 
-    if(minBuyFilter > -1 && dataObject.buy_offer.value < minBuyFilter){
+    if(minBuyFilter > 0 && dataObject.buy_offer.value < minBuyFilter){
       return false;
     }
 
@@ -189,7 +243,7 @@ const App: React.FC = () => {
       width: 100,
       fixed: 'left',
       sorter: (a: any, b: any) => a.name.localeCompare(b.name),
-      sortDirections: ['descend', 'ascend', 'descend'],
+      sortDirections: ['descend', 'ascend', null],
       render: (text: any, record: any) => {
         return <div>
           <Space>
@@ -199,12 +253,16 @@ const App: React.FC = () => {
         </div>;
       }
     });
+
+    if (sortedByOrder != "null" && sortedByColumn == columns[columns.length - 1].dataIndex){
+      columns[columns.length - 1].sortOrder = sortedByOrder;
+    }
     
     // Add all other columns.
     for (const [key, value] of Object.entries(exampleItem)) {
       if(key == "name" || value.isHidden || !marketColumns.includes(key))
         continue;
-
+      
       columns.push({
         title: value.name,
         dataIndex: [key, 'localisedValue'],
@@ -215,7 +273,7 @@ const App: React.FC = () => {
           else
             return a[key].value.localeCompare(b[key].value);
         },
-        sortDirections: ['descend', 'ascend', 'descend'],
+        sortDirections: ['descend', 'ascend', null],
         render: (text: any, record: any) => {
           // Find out of the key's value of this record has additionalInfo.
           return <Space>
@@ -228,6 +286,10 @@ const App: React.FC = () => {
           </Space>
         }
       });
+
+      if (sortedByOrder != "null" && sortedByColumn == key){
+        columns[columns.length - 1].sortOrder = sortedByOrder;
+      }
     }
 
     // Add actions column.
@@ -334,6 +396,8 @@ const App: React.FC = () => {
   }
 
   async function fetchWorldData(){
+    var isFirstFetch = worldData.length == 0;
+
     var items = await getDataAsync("world_data", 0);
     await fetchMetaDataAsync();
 
@@ -344,6 +408,11 @@ const App: React.FC = () => {
     }
 
     setMarketServerOptions(worldData.sort((a, b) => a.name.localeCompare(b.name)).map(x => {return {label: `${x.name} (${unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())})`, value: x.name}}));
+
+    // Fetch the data immediately if parameters came from the url.
+    if(loadOnRender && isFirstFetch){
+      await fetchData();
+    }
   }
 
   async function fetchPriceHistory(itemId: number, days: number = 30){
@@ -452,12 +521,12 @@ const App: React.FC = () => {
   const { defaultAlgorithm, darkAlgorithm } = theme;
   var [isLightMode, setIsLightMode] = useState(getLocalParamValue("isLightMode", "false") != "false");
   useEffect(() => {
-    setLocalParamValue("isLightMode", isLightMode.toString(), false);
+    setLocalParamValue("isLightMode", isLightMode.toString(), true);
   }, [isLightMode]);
 
   var [marketServer, setMarketServer] = useState(getLocalParamValue("marketServer", "Antica"));
   useEffect(() => {
-    setLocalParamValue("marketServer", marketServer, false);
+    setLocalParamValue("marketServer", marketServer, true);
   }, [marketServer]);
 
   var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketValueColumns", JSON.stringify(["sell_offer", "buy_offer"]))));
@@ -481,6 +550,46 @@ const App: React.FC = () => {
     setLocalParamValue("apiAccessToken", apiKey, true);
   }, [apiKey]);
   
+  var [minBuyFilter, setMinBuyFilter] = useState(getLocalParamValue("minBuyFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("minBuyFilter", minBuyFilter, true);
+  }, [minBuyFilter]);
+
+  var [maxBuyFilter, setMaxBuyFilter] = useState(getLocalParamValue("maxBuyFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("maxBuyFilter", maxBuyFilter, true);
+  }, [maxBuyFilter]);
+
+  var [minFlipsFilter, setMinTradesFilter] = useState(getLocalParamValue("minFlipsFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("minFlipsFilter", minFlipsFilter, true);
+  }, [minFlipsFilter]);
+
+  var [maxFlipsFilter, setMaxTradesFilter] = useState(getLocalParamValue("maxFlipsFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("maxFlipsFilter", maxFlipsFilter, true);
+  }, [maxFlipsFilter]);
+  
+  var [minTradersFilter, setMinOffersFilter] = useState(getLocalParamValue("minTradersFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("minTradersFilter", minTradersFilter, true);
+  }, [minTradersFilter]);
+
+  var [maxTradersFilter, setMaxOffersFilter] = useState(getLocalParamValue("maxTradersFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("maxTradersFilter", maxTradersFilter, true);
+  }, [maxTradersFilter]);
+
+  var [sortedByColumn, setSortedByColumn] = useState(getLocalParamValue("sortedByColumn", null));
+  useEffect(() => {
+    setLocalParamValue("sortedByColumn", sortedByColumn, true);
+  }, [sortedByColumn]);
+
+  var [sortedByOrder, setSortedByOrder] = useState(getLocalParamValue("sortedByOrder", null));
+  useEffect(() => {
+    setLocalParamValue("sortedByOrder", sortedByOrder, true);
+  }, [sortedByOrder]);
+
   var [marketServerOptions, setMarketServerOptions] = useState<SelectProps[]>();
   var [marketItemOptions, setMarketItemOptions] = useState<SelectProps[]>();
 
@@ -507,12 +616,6 @@ const App: React.FC = () => {
   var [dataSource, setDataSource] = useState<ItemData[]>([]);
   var [isLoading, setIsLoading] = useState(false);
   var [columns, setColumns] = useState<ColumnType<ItemData>[]>([]);
-  var [minBuyFilter, setMinBuyFilter] = useState(-1);
-  var [maxBuyFilter, setMaxBuyFilter] = useState(0);
-  var [minFlipsFilter, setMinTradesFilter] = useState(-1);
-  var [maxFlipsFilter, setMaxTradesFilter] = useState(0);
-  var [minTradersFilter, setMinOffersFilter] = useState(-1);
-  var [maxTradersFilter, setMaxOffersFilter] = useState(0);
   var [selectedItem, setSelectedItem] = useState("");
   var [historyDays, setHistoryDays] = useState(30);
   var [modalPriceHistory, setModalPriceHistory] = useState<CustomTimeGraph>();
@@ -586,23 +689,23 @@ const App: React.FC = () => {
           </Form.Item>
           <Form.Item label="Buy price" tooltip="The current buy price of the item">
             <Space>
-              <InputNumber placeholder='Minimum' onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              <InputNumber placeholder='Minimum' defaultValue={minBuyFilter > 0 ? minBuyFilter : null} onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
               -
-              <InputNumber placeholder='Maximum' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              <InputNumber placeholder='Maximum' defaultValue={maxBuyFilter > 0 ? maxBuyFilter : null} onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             </Space>
           </Form.Item>
           <Form.Item label="Flips" tooltip="The amount of times the item can be flipped (bought and sold) per month">
             <Space>
-              <InputNumber placeholder='Minimum' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              <InputNumber placeholder='Minimum' defaultValue={minFlipsFilter > 0 ? minFlipsFilter : null} onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
               -
-              <InputNumber placeholder='Maximum' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              <InputNumber placeholder='Maximum' defaultValue={maxFlipsFilter > 0 ? maxFlipsFilter : null} onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             </Space>
           </Form.Item>
           <Form.Item label="Traders" tooltip="The amount of buy or sell offers within the past 24 hours, whichever one is smaller. I.e. your competition">
             <Space>
-              <InputNumber placeholder='Minimum' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              <InputNumber placeholder='Minimum' defaultValue={minTradersFilter > 0 ? minTradersFilter : null} onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
               -
-              <InputNumber placeholder='Maximum' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              <InputNumber placeholder='Maximum' defaultValue={maxTradersFilter > 0 ? maxTradersFilter : null} onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
             </Space>
           </Form.Item>
           <Form.Item label="Prices shown as">
@@ -635,6 +738,10 @@ const App: React.FC = () => {
       <Layout className="site-layout" style={{ width: '100%' }}>
         <Header style={{ backgroundColor: isLightMode ? "#ffffff" : "#101010", borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Button icon={<MenuOutlined />} onClick={() => setIsDrawerOpen(true)} style={{ position: 'fixed', left: '16px' }} />
+          <AntTooltip title="Copy your current search parameters as a shareable link">
+            <Button icon={<ShareAltOutlined />} onClick={copyShareableLink} style={{ position: 'fixed', left: '52px' }}>Share</Button>
+          </AntTooltip>
+
           <Button icon={<BulbOutlined />} onClick={() => setIsLightMode(!isLightMode)} style={{ position: 'fixed', right: '16px' }} />
           <a href="https://api.tibiamarket.top:8001/docs" target="_blank" style={{ position: 'fixed', right: '52px' }}>
             <Button icon={<CloudDownloadOutlined />}>
