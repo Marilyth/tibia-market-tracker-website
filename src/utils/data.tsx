@@ -83,7 +83,7 @@ export class Metric{
     constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", icon: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
       this.name = name;
       this.value = value;
-      this.localisedValue = value < 0 && !canBeNegative ? "None" : toLocaleStringFunction(value);
+      this.localisedValue = value <= 0 && !canBeNegative ? "None" : toLocaleStringFunction(value);
       this.description = description;
       this.category = category;
       this.additionalInfo = additionalInfo;
@@ -131,7 +131,6 @@ export class Metric{
     constructor(item: {[key: string]: any}, meta_data: ItemMetaData, tibiaCoinData: {[key: string]: any} | null = null) {
       this.id = new Metric("Item Id", item["id"], "The Tibia internal id of the item.", "Meta data", false);
       this.time = new Metric("Time", item["time"], "The time the data was collected.", "Meta data", false, "", "", (value) => unixTimeToTimeAgo(value));
-      
       
       var tibiaCoinPrice = Math.max(tibiaCoinData != null ? (tibiaCoinData["day_average_sell"] > -1 ? tibiaCoinData["day_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
       var tibiaCoinPriceMonth = Math.max(tibiaCoinData != null ? (tibiaCoinData["month_average_sell"] > -1 ? tibiaCoinData["month_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
