@@ -51,6 +51,36 @@ export class ItemMetaData{
     }
 }
 
+export class MarketboardTraderData{
+  name: TextMetric;
+  amount: Metric;
+  price: Metric;
+  total_price: Metric;
+  time: Metric;
+
+  constructor(name: string, amount: number, price: number, time: number){
+    this.name = new TextMetric("Name", name, "The name of the trader.", "Trader Data");
+    this.amount = new Metric("Amount", amount, "The amount of items the trader is buying or selling.", "Trader Data", false);
+    this.price = new Metric("Piece price", price, "The price the trader is buying or selling the items for.", "Trader Data", false);
+    this.total_price = new Metric("Total price", price * amount, "The total price the trader is buying or selling the items for.", "Trader Data", false);
+    this.time = new Metric("Ends at", time, "The datetime string at which the offer expires.", "Trader Data", false, "", "", (value) => new Date(value * 1000).toLocaleString());
+  }
+}
+
+export class Marketboard{
+  id: number;
+  sellers: MarketboardTraderData[];
+  buyers: MarketboardTraderData[];
+  update_time: number;
+
+  constructor(marketboard: {[key: string]: any}){
+    this.id = marketboard["id"];
+    this.update_time = marketboard["update_time"];
+    this.sellers = marketboard["sellers"].map((x: { [x: string]: any; }) => new MarketboardTraderData(x["name"], x["amount"], x["price"], x["time"]));
+    this.buyers = marketboard["buyers"].map((x: { [x: string]: any; }) => new MarketboardTraderData(x["name"], x["amount"], x["price"], x["time"]));
+  }
+}
+
 export class TextMetric{
   name: string;
   value: string;
@@ -235,6 +265,8 @@ export var exampleMetaData: ItemMetaData = new ItemMetaData({
   ],
   "wiki_name": "Sword"
 });
+
+export var exampleMarketboard: MarketboardTraderData = new MarketboardTraderData("Trader", 1, 1, 1);
 
 export var exampleItem: ItemData = new ItemData({
   "id": 22118,

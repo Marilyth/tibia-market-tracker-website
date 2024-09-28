@@ -1,11 +1,11 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin, Divider } from 'antd';
-import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined, ShareAltOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined, ShareAltOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks } from './utils/data';
+import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks, MarketboardTraderData, Marketboard, exampleMarketboard } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
 import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
@@ -302,6 +302,9 @@ const App: React.FC = () => {
             <AntTooltip title="View the price history for this item">
               <Button icon={<LineChartOutlined />} onClick={async () => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value, historyDays); setIsModalOpen(true);}}></Button>
             </AntTooltip>
+            <AntTooltip title="View the market board for this item">
+              <Button icon={<UnorderedListOutlined />} onClick={async () => {setSelectedItem(record.name); await fetchMarketBoardData(record.id.value); setIsMarketBoardOpen(true);}}></Button>
+            </AntTooltip>
             <AntTooltip title="View on TibiaWiki">
               <Button onClick={() => window.open(`https://tibia.fandom.com/wiki/${record.name}`, '_blank')}><img src="/Heavily_Bound_Book.gif" style={{height: '20px', marginLeft: '-8px', marginRight: '-8px' }}/></Button>
             </AntTooltip>
@@ -310,6 +313,42 @@ const App: React.FC = () => {
     });
 
     setColumns([...columns]);
+  }
+
+  function setMarketBoardDataColumns(exampleItem: MarketboardTraderData){
+    marketBoardColumns = [];
+    
+    // Add all other columns.
+    for (const [key, value] of Object.entries(exampleItem)) {
+      if(value.isHidden)
+        continue;
+      
+      marketBoardColumns.push({
+        title: value.name,
+        dataIndex: [key, 'localisedValue'],
+        width: 50,
+        sorter: (a: any, b: any) => {
+          if (typeof a[key].value == "number")
+            return a[key].value - b[key].value;
+          else
+            return a[key].value.localeCompare(b[key].value);
+        },
+        sortDirections: ['descend', 'ascend', null],
+        render: (text: any, record: any) => {
+          // Find out of the key's value of this record has additionalInfo.
+          return <Space>
+            {
+            record[key].additionalInfo.length > 0 ? 
+              <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> : 
+              text
+            }
+            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px'}}/> : ""}
+          </Space>
+        }
+      });
+    }
+
+    setMarketBoardColumns([...marketBoardColumns]);
   }
 
   async function addStatistic(identifier: string, value: string){
@@ -413,6 +452,23 @@ const App: React.FC = () => {
     if(loadOnRender && isFirstFetch){
       await fetchData();
     }
+  }
+
+  async function fetchMarketBoardData(itemId: number){
+    setIsLoading(true);
+
+    var item = await getDataAsync(`market_board?server=${marketServer}&item_id=${itemId}`);
+    var data = JSON.parse(item);
+    var marketBoard: Marketboard = new Marketboard(data);
+
+    var sellData: MarketboardTraderData[] = marketBoard.sellers;
+    var buyData: MarketboardTraderData[] = marketBoard.buyers;
+
+    setMarketBoardSellDataSource(sellData);
+    setMarketBoardBuyDataSource(buyData);
+    setMarketBoardDataColumns(exampleMarketboard);
+
+    setIsLoading(false);
   }
 
   async function fetchPriceHistory(itemId: number, days: number = 30){
@@ -614,6 +670,9 @@ const App: React.FC = () => {
   }
 
   var [dataSource, setDataSource] = useState<ItemData[]>([]);
+  var [marketBoardSellDataSource, setMarketBoardSellDataSource] = useState<MarketboardTraderData[]>([]);
+  var [marketBoardBuyDataSource, setMarketBoardBuyDataSource] = useState<MarketboardTraderData[]>([]);
+  var [marketBoardColumns, setMarketBoardColumns] = useState<ColumnType<MarketboardTraderData>[]>([]);
   var [isLoading, setIsLoading] = useState(false);
   var [columns, setColumns] = useState<ColumnType<ItemData>[]>([]);
   var [selectedItem, setSelectedItem] = useState("");
@@ -624,6 +683,7 @@ const App: React.FC = () => {
   var [modalMedianWeekdayPriceHistory, setModalMedianWeekdayPriceHistory] = useState<CustomTimeGraph>();
   var [modalMedianTransactionVolumeHistory, setModalMedianTransactionVolumeHistory] = useState<CustomTimeGraph>();
   var [isModalOpen, setIsModalOpen] = useState(false);
+  var [isMarketBoardOpen, setIsMarketBoardOpen] = useState(false);
   var [passwordVisible, setPasswordVisible] = useState(false);
   var [lastUpdated, setLastUpdated] = useState(0);
   var [isTibiaCoinPriceVisible, setIsTibiaCoinPriceVisible] = useState(false);
@@ -788,7 +848,27 @@ const App: React.FC = () => {
               </Collapse>
             </Spin>
           </Modal>
-          
+          <Modal
+            title=<div>
+            Market board for {nameToWikiLink(selectedItem)} 
+            </div>
+            centered 
+            open={isMarketBoardOpen}
+            onOk={() => setIsMarketBoardOpen(false)}
+            onCancel={() => setIsMarketBoardOpen(false)}
+            style={{ minWidth: '80vw' }}
+          >
+            <Spin spinning={isLoading}>
+              <Collapse defaultActiveKey={[1,2]}>
+                <Panel header="Sellers" key="1">
+                  <Table id='marketboard-sellers-table' dataSource={marketBoardSellDataSource} columns={marketBoardColumns} loading={isLoading} pagination={false} scroll={{ y: 275 }}></Table>
+                </Panel>
+                <Panel header="Buyers" key="2">
+                  <Table id='marketboard-buyers-table' dataSource={marketBoardBuyDataSource} columns={marketBoardColumns} loading={isLoading} pagination={false} scroll={{ y: 275 }}></Table>
+                </Panel>
+              </Collapse>
+            </Spin>
+          </Modal>
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onChange={handleTableChanged} style={{ marginTop: '1%' }}>
         </Table>
         </Content>
