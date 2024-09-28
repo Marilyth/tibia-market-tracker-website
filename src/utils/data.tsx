@@ -61,8 +61,8 @@ export class MarketboardTraderData{
   constructor(name: string, amount: number, price: number, time: number){
     this.name = new TextMetric("Name", name, "The name of the trader.", "Trader Data");
     this.amount = new Metric("Amount", amount, "The amount of items the trader is buying or selling.", "Trader Data", false);
-    this.price = new Metric("Piece price", price, "The price the trader is buying or selling the items for.", "Trader Data", false);
-    this.total_price = new Metric("Total price", price * amount, "The total price the trader is buying or selling the items for.", "Trader Data", false);
+    this.price = new Metric("Piece price", price, "The price the trader is buying or selling the items for.", "Trader Data", false, "", "/Gold_Coin.png");
+    this.total_price = new Metric("Total price", price * amount, "The total price the trader is buying or selling the items for.", "Trader Data", false, "", "/Gold_Coin.png");
     this.time = new Metric("Ends at", time, "The datetime string at which the offer expires.", "Trader Data", false, "", "", (value) => new Date(value * 1000).toLocaleString());
   }
 }
