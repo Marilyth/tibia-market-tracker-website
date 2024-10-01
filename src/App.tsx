@@ -1,11 +1,11 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
 import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin, Divider } from 'antd';
-import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined, ShareAltOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined, ShareAltOutlined, UnorderedListOutlined, FallOutlined, RiseOutlined, MinusOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks, MarketboardTraderData, Marketboard, exampleMarketboard } from './utils/data';
+import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks, MarketboardTraderData, Marketboard, exampleMarketboard, TrendMetric } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
 import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
@@ -283,6 +283,14 @@ const App: React.FC = () => {
               text
             }
             {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px'}}/> : ""}
+            {
+            (value instanceof TrendMetric) ? (
+              <AntTooltip title={`${((record[key].relativeDifference - 1) * 100).toFixed(2)}% (was ${record[key].previousValue.toFixed(0)})`}>
+              { record[key].relativeDifference > 1.1 ? <RiseOutlined style={{color: 'green'}}/> :
+                record[key].relativeDifference < 0.9 ? <FallOutlined style={{color: 'red'}}/> : ""}
+              </AntTooltip>
+             ) : ""
+            }
           </Space>
         }
       });

@@ -81,6 +81,26 @@ export class Marketboard{
   }
 }
 
+export class Metric{
+    name: string;
+    value: number;
+    localisedValue: string;
+    description: string;
+    category: string = "";
+    additionalInfo: string;
+    icon: string;
+  
+    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", icon: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
+      this.name = name;
+      this.value = value;
+      this.localisedValue = value <= 0 && !canBeNegative ? "None" : toLocaleStringFunction(value);
+      this.description = description;
+      this.category = category;
+      this.additionalInfo = additionalInfo;
+      this.icon = this.localisedValue == "None" ? "" : icon;
+    }
+}
+
 export class TextMetric{
   name: string;
   value: string;
@@ -101,33 +121,27 @@ export class TextMetric{
   }
 }
 
-export class Metric{
-    name: string;
-    value: number;
-    localisedValue: string;
-    description: string;
-    category: string = "";
-    additionalInfo: string;
-    icon: string;
-  
-    constructor(name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", icon: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
-      this.name = name;
-      this.value = value;
-      this.localisedValue = value <= 0 && !canBeNegative ? "None" : toLocaleStringFunction(value);
-      this.description = description;
-      this.category = category;
-      this.additionalInfo = additionalInfo;
-      this.icon = this.localisedValue == "None" ? "" : icon;
-    }
+export class TrendMetric extends Metric{
+  relativeDifference: number;
+  difference: number;
+  previousValue: number;
+
+  constructor(name: string, value: number, previousValue: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", icon: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
+    super(name, value, description, category, canBeNegative, additionalInfo, icon, toLocaleStringFunction);
+
+    this.previousValue = previousValue;
+    this.difference = value - previousValue;
+    this.relativeDifference = previousValue > 0 ? value / previousValue : 1;
+  }
 }
   
   export class ItemData{
-    sell_offer: Metric;
-    buy_offer: Metric;
+    sell_offer: TrendMetric;
+    buy_offer: TrendMetric;
     month_average_sell: Metric;
     month_average_buy: Metric;
-    day_average_sell: Metric;
-    day_average_buy: Metric;
+    day_average_sell: TrendMetric;
+    day_average_buy: TrendMetric;
     delta_sell_offer: Metric;
     delta_buy_offer: Metric;
     month_lowest_sell: Metric;
@@ -142,8 +156,8 @@ export class Metric{
     npc_buy_price: Metric;
     month_sold: Metric;
     month_bought: Metric;
-    day_sold: Metric;
-    day_bought: Metric;
+    day_sold: TrendMetric;
+    day_bought: TrendMetric;
     profit: Metric;
     average_profit: Metric;
     potential_profit: Metric;
@@ -167,17 +181,19 @@ export class Metric{
 
       var icon = tibiaCoinPrice > 1 ? "/Tibia_Coins.gif" : "/Gold_Coin.png";
 
-      // Available data.
-      this.sell_offer = new Metric("Sell Price", item["sell_offer"] / tibiaCoinPrice, "The current lowest sell price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
-      this.buy_offer = new Metric("Buy Price", item["buy_offer"] / tibiaCoinPrice, "The current highest buy price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
-      
+      // Average data.
       this.month_average_sell = new Metric("Avg. Sell Price (mo.)", item["month_average_sell"] / tibiaCoinPriceMonth, "The average sell price of the item in the past 30 days.", "Average Prices", true, "", icon);
       this.month_average_buy = new Metric("Avg. Buy Price (mo.)", item["month_average_buy"] / tibiaCoinPriceMonth, "The average buy price of the item in the past 30 days.", "Average Prices", true, "", icon);
-      this.day_average_sell = new Metric("Avg. Sell Price (day)", item["day_average_sell"] / tibiaCoinPrice, "The average sell price of the item in the past 24 hours.", "Average Prices", true, "", icon);
-      this.day_average_buy = new Metric("Avg. Buy Price (day)", item["day_average_buy"] / tibiaCoinPrice, "The average buy price of the item in the past 24 hours.", "Average Prices", true, "", icon);
+      this.day_average_sell = new TrendMetric("Avg. Sell Price (day)", item["day_average_sell"] / tibiaCoinPrice, this.month_average_sell.value, "The average sell price of the item in the past 24 hours.", "Average Prices", true, "", icon);
+      this.day_average_buy = new TrendMetric("Avg. Buy Price (day)", item["day_average_buy"] / tibiaCoinPrice, this.month_average_buy.value, "The average buy price of the item in the past 24 hours.", "Average Prices", true, "", icon);
+
+      // Buy & Sell data.
+      this.sell_offer = new TrendMetric("Sell Price", item["sell_offer"] / tibiaCoinPrice, this.month_average_sell.value, "The current lowest sell price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
+      this.buy_offer = new TrendMetric("Buy Price", item["buy_offer"] / tibiaCoinPrice, this.month_average_buy.value, "The current highest buy price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
       this.delta_sell_offer = new Metric("Delta Sell Price", (this.sell_offer.value > 0 ? this.sell_offer.value - this.month_average_sell.value : 0) / tibiaCoinPrice, "The difference between the current sell price and the average monthly sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.sell_offer.value >= 0, "", icon);
       this.delta_buy_offer = new Metric("Delta Buy Price", (this.buy_offer.value > 0 ? this.buy_offer.value - this.month_average_buy.value : 0) / tibiaCoinPrice, "The difference between the current buy price and the average monthly buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.buy_offer.value >= 0, "", icon);
       
+      // Extreme data.
       this.month_lowest_sell = new Metric("Lowest Sell Price (mo.)", item["month_lowest_sell"] / tibiaCoinPriceMonth, "The lowest sell price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
       this.month_lowest_buy = new Metric("Lowest Buy Price (mo.)", item["month_lowest_buy"] / tibiaCoinPriceMonth, "The lowest buy price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
       this.month_highest_sell = new Metric("Highest Sell Price (mo.)", item["month_highest_sell"] / tibiaCoinPriceMonth, "The highest sell price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
@@ -189,8 +205,8 @@ export class Metric{
 
       this.month_sold = new Metric("Sold (mo.)", item["month_sold"], "The amount of items sold in the last 30 days.", "Transaction Amounts", false);
       this.month_bought = new Metric("Bought (mo.)", item["month_bought"], "The amount of items bought in the last 30 days.", "Transaction Amounts", false);
-      this.day_sold = new Metric("Sold (day)", item["day_sold"], "The amount of items sold in the last 24 hours.", "Transaction Amounts", false);
-      this.day_bought = new Metric("Bought (day)", item["day_bought"], "The amount of items bought in the last 24 hours.", "Transaction Amounts", false);
+      this.day_sold = new TrendMetric("Sold (day)", item["day_sold"], Math.round(this.month_sold.value / 28), "The amount of items sold in the last 24 hours.", "Transaction Amounts", false);
+      this.day_bought = new TrendMetric("Bought (day)", item["day_bought"], Math.round(this.month_bought.value / 28), "The amount of items bought in the last 24 hours.", "Transaction Amounts", false);
 
       this.sell_offers = new Metric("Sell Offers", item["sell_offers"], "The current amount of sell offers for this item.", "Market Activity", false);
       this.buy_offers = new Metric("Buy Offers", item["buy_offers"], "The current amount of buy offers for this item.", "Market Activity", false);
@@ -251,6 +267,22 @@ export class Metric{
       }
 
       this.potential_profit = new Metric("Potential Profit", (this.profit.value * Math.min(this.month_sold.value, this.month_bought.value)) / tibiaCoinPriceMonth, "The potential profit of the item, if you were the only trader for 1 month.", "Profit Metrics", false, "", icon);
+
+      console.log(this.name, this.getTrendValue());
+    }
+
+    /**
+     * Returns a value indicating its importance compared to other items, for the default sorting.
+     * @returns The trend value of the item.
+     */
+    public getTrendValue() : number {
+      var offerAmount = this.sell_offers.value + this.buy_offers.value;
+      var offerIncrease = (this.day_sold.relativeDifference + this.day_bought.relativeDifference) / 2;
+      var trendFactor = 2;
+
+      var trendValue = offerAmount;// * Math.pow(offerIncrease, trendFactor);
+
+      return trendValue;
     }
 }
 
