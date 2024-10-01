@@ -296,7 +296,7 @@ const App: React.FC = () => {
     columns.push({
       title: '',
       key: 'actions',
-      width: "1%",
+      width: 64,
       render: (text: any, record: any) => {
         return <Space>
             <AntTooltip title="View the price history for this item">
@@ -819,7 +819,7 @@ const App: React.FC = () => {
           </Typography.Title> : ""}
         </Header>
 
-        <Content style={{ margin: '0px 16px 0px', overflow: 'auto' }}>
+        <Content style={{ margin: '0px 16px 0px', overflow: 'auto' }} id='main-content'>
           <Modal
             title=<div>
             Item history for {nameToWikiLink(selectedItem)} 
@@ -869,8 +869,7 @@ const App: React.FC = () => {
               </Collapse>
             </Spin>
           </Modal>
-          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onChange={handleTableChanged} style={{ marginTop: '1%' }}>
-        </Table>
+          <Table virtual pagination={false} scroll={{ y: (window.innerHeight - 126 - 64 - 80) }} size='small' id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onChange={handleTableChanged} style={{ marginTop: '1%' }}></Table>
         </Content>
         
         <Footer style={{
