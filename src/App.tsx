@@ -1,11 +1,11 @@
 import React, { useEffect, useState }  from 'react';
 import type { MenuProps } from 'antd';
-import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin } from 'antd';
-import { QuestionCircleOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone } from '@ant-design/icons';
+import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin, Divider } from 'antd';
+import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined, ShareAltOutlined, UnorderedListOutlined, FallOutlined, RiseOutlined, MinusOutlined } from '@ant-design/icons';
 import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
-import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks } from './utils/data';
+import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks, MarketboardTraderData, Marketboard, exampleMarketboard, TrendMetric } from './utils/data';
 import { linearRegressionLeastSquares } from './utils/math'
 import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
 import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
@@ -23,8 +23,10 @@ var itemMetaData: {[id: number]: ItemMetaData} = {};
 var worldData: WorldData[] = [];
 var worldDataDict: {[name: string]: WorldData} = {};
 var urlParams = new URLSearchParams(window.location.search);
+var localParameters: Set<string> = new Set();
 var lastApiRequests: { [endpoint: string]: number } = {};
 var requestLocks: { [endpoint: string]: boolean } = {};
+var loadOnRender = false;
 
 const App: React.FC = () => {
   /**
@@ -70,8 +72,28 @@ const App: React.FC = () => {
    */
   function handleTableChanged(pagination: any, filters: any, sorter: any){
     if (sorter && JSON.stringify(sorter) != lastSorter){
-      addStatistic("sorted", sorter["field"][0]);
+      var sorterField = typeof sorter["field"] === 'string' ? sorter["field"] : sorter["field"][0];
+
+      addStatistic("sorted", sorterField);
       lastSorter = JSON.stringify(sorter);
+
+      setSortedByColumn(sorterField);
+      setSortedByOrder(sorter["order"]);
+
+      // Make all other columns unsorted.
+      for (var column of columns){
+        var dataIndex: any = column["dataIndex"];
+        var isString = typeof dataIndex === 'string';
+        
+        if (dataIndex == undefined)
+          continue;
+
+        if ((isString && dataIndex != sorterField) || (!isString && dataIndex[0] != sorterField)){
+          column["sortOrder"] = null;
+        } else {
+          column["sortOrder"] = sorter["order"];
+        }
+      }
     }
   }
 
@@ -81,9 +103,11 @@ const App: React.FC = () => {
    * @param defaultValue The default value to return if the parameter is not set.
    * @returns The value of the parameter, or the default value if the parameter is not set.
    */
-  function getLocalParamValue(paramName: string, defaultValue: any){
-    var paramValue = urlParams.get(paramName);
-    if(paramValue == null){
+  function getLocalParamValue(paramName: string, defaultValue: any, takeFromUrl: boolean = true){
+    localParameters.add(paramName);
+
+    var paramValue = takeFromUrl ? urlParams.get(paramName) : null;
+    if(paramValue == null ){
       var localValue = localStorage.getItem(`${paramName}Key`);
 
       if(localValue == null){
@@ -93,6 +117,7 @@ const App: React.FC = () => {
       return localValue;
     }
 
+    loadOnRender = true;
     return paramValue;
   }
 
@@ -102,6 +127,8 @@ const App: React.FC = () => {
    * @param paramValue The value to set the parameter to.
    */
   function setLocalParamValue(paramName: string, paramValue: any, hideFromUrl: boolean){
+    localParameters.add(paramName);
+
     if(!hideFromUrl){
       urlParams.set(paramName, paramValue);
       // TODO: Make this work without refresh.
@@ -109,6 +136,33 @@ const App: React.FC = () => {
     }
 
     localStorage.setItem(`${paramName}Key`, paramValue);
+  }
+
+  /**
+   * Grabs all used local parameters and sets them in the current url.
+   * The url is then copied to the clipboard.
+   */
+  function copyShareableLink(){
+    var currentDomain = window.location.href.split("?")[0];
+    var url = new URL(currentDomain);
+    var nonShareableParams = ["apiAccessToken", "isLightMode"];
+
+    for(var param of localParameters){
+      if(nonShareableParams.includes(param)){
+        continue;
+      }
+
+      var paramValue = getLocalParamValue(param, null, false);
+
+      // If the parameter is not null, set it in the url. However, order can be null.
+      if(paramValue != null || param == "sortedByOrder"){
+        url.searchParams.set(param, paramValue);
+      }
+    }
+
+    navigator.clipboard.writeText(url.toString());
+
+    messageApi.success("Copied link to clipboard!");
   }
 
   /**
@@ -124,15 +178,27 @@ const App: React.FC = () => {
 
   function doesDataMatchFilter(dataObject: ItemData){
     // Filter input by user.
-    if(nameFilter != "" && !dataObject.name.toLowerCase().includes(nameFilter.toLowerCase())){
-      return false;
+    if(nameFilter.length > 0){
+      var itemName = dataObject.name.toLowerCase();
+      var containsAny = false;
+
+      for(var name of nameFilter){
+        if(itemName.includes(name.toLowerCase().trim())){
+          containsAny = true;
+          break;
+        }
+      }
+
+      if(!containsAny){
+        return false;
+      }
     } 
 
     if(maxBuyFilter > 0 && dataObject.buy_offer.value > maxBuyFilter){
       return false;
     }
 
-    if(minBuyFilter > -1 && dataObject.buy_offer.value < minBuyFilter){
+    if(minBuyFilter > 0 && dataObject.buy_offer.value < minBuyFilter){
       return false;
     }
 
@@ -177,20 +243,26 @@ const App: React.FC = () => {
       width: 100,
       fixed: 'left',
       sorter: (a: any, b: any) => a.name.localeCompare(b.name),
-      sortDirections: ['descend', 'ascend', 'descend'],
+      sortDirections: ['descend', 'ascend', null],
       render: (text: any, record: any) => {
         return <div>
-          <img src={`/sprites/${record.id.value}.gif`}/> <br></br>
-          {nameToWikiLink(text)}
-          </div>;
+          <Space>
+            <img src={`/sprites/${record.id.value}.gif`}/>
+            {nameToWikiLink(text)}
+          </Space>
+        </div>;
       }
     });
+
+    if (sortedByOrder != "null" && sortedByColumn == columns[columns.length - 1].dataIndex){
+      columns[columns.length - 1].sortOrder = sortedByOrder;
+    }
     
     // Add all other columns.
     for (const [key, value] of Object.entries(exampleItem)) {
       if(key == "name" || value.isHidden || !marketColumns.includes(key))
         continue;
-
+      
       columns.push({
         title: value.name,
         dataIndex: [key, 'localisedValue'],
@@ -201,22 +273,90 @@ const App: React.FC = () => {
           else
             return a[key].value.localeCompare(b[key].value);
         },
-        sortDirections: ['descend', 'ascend', 'descend'],
+        sortDirections: ['descend', 'ascend', null],
         render: (text: any, record: any) => {
           // Find out of the key's value of this record has additionalInfo.
-          return <div>
+          return <Space>
             {
             record[key].additionalInfo.length > 0 ? 
               <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> : 
               text
             }
-            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px', marginLeft: '8px', marginBottom: "-4px"}}/> : ""}
-          </div>
+            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px'}}/> : ""}
+            {
+            (value instanceof TrendMetric) ? (
+              <AntTooltip title={`${((record[key].relativeDifference - 1) * 100).toFixed(2)}% (was ${record[key].previousValue.toFixed(0)})`}>
+              { record[key].relativeDifference > 1.1 ? <RiseOutlined style={{color: 'green'}}/> :
+                record[key].relativeDifference < 0.9 ? <FallOutlined style={{color: 'red'}}/> : ""}
+              </AntTooltip>
+             ) : ""
+            }
+          </Space>
+        }
+      });
+
+      if (sortedByOrder != "null" && sortedByColumn == key){
+        columns[columns.length - 1].sortOrder = sortedByOrder;
+      }
+    }
+
+    // Add actions column.
+    columns.push({
+      title: '',
+      key: 'actions',
+      width: "1%",
+      render: (text: any, record: any) => {
+        return <Space>
+            <AntTooltip title="View the price history for this item">
+              <Button icon={<LineChartOutlined />} onClick={async () => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value, historyDays); setIsModalOpen(true);}}></Button>
+            </AntTooltip>
+            <AntTooltip title="View the market board for this item">
+              <Button icon={<UnorderedListOutlined />} onClick={async () => {setSelectedItem(record.name); await fetchMarketBoardData(record.id.value); setIsMarketBoardOpen(true);}}></Button>
+            </AntTooltip>
+            <AntTooltip title="View on TibiaWiki">
+              <Button onClick={() => window.open(`https://tibia.fandom.com/wiki/${record.name}`, '_blank')}><img src="/Heavily_Bound_Book.gif" style={{height: '20px', marginLeft: '-8px', marginRight: '-8px' }}/></Button>
+            </AntTooltip>
+          </Space>
+      }
+    });
+
+    setColumns([...columns]);
+  }
+
+  function setMarketBoardDataColumns(exampleItem: MarketboardTraderData){
+    marketBoardColumns = [];
+    
+    // Add all other columns.
+    for (const [key, value] of Object.entries(exampleItem)) {
+      if(value.isHidden)
+        continue;
+      
+      marketBoardColumns.push({
+        title: value.name,
+        dataIndex: [key, 'localisedValue'],
+        width: 50,
+        sorter: (a: any, b: any) => {
+          if (typeof a[key].value == "number")
+            return a[key].value - b[key].value;
+          else
+            return a[key].value.localeCompare(b[key].value);
+        },
+        sortDirections: ['descend', 'ascend', null],
+        render: (text: any, record: any) => {
+          // Find out of the key's value of this record has additionalInfo.
+          return <Space>
+            {
+            record[key].additionalInfo.length > 0 ? 
+              <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> : 
+              text
+            }
+            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px'}}/> : ""}
+          </Space>
         }
       });
     }
 
-    setColumns([...columns]);
+    setMarketBoardColumns([...marketBoardColumns]);
   }
 
   async function addStatistic(identifier: string, value: string){
@@ -231,24 +371,19 @@ const App: React.FC = () => {
     setIsLoading(true);
     setLastUpdated(0);
 
-    // Load metadata if it isn't already loaded.
-    if(Object.keys(itemMetaData).length == 0)
-      await fetchMetaDataAsync();
-
     // Load events if not already loaded.
-    if(Object.keys(events).length == 0)
-      await fetchEventHistory();
+    await fetchEventHistory();
 
     var items: {[key: string]: any} = {};
 
     // Check if marketServer is in cachedMarketResponse.
     for(var i = 0; i < marketServer.length; i++){
       if (!(marketServer[i] in cachedMarketResponses) || cachedMarketResponses[marketServer[i]].timestamp < new Date(worldDataDict[marketServer[i]].last_update + "Z").getTime()){
-        items[marketServer[i]] = await getDataAsync(`market_values?limit=4000&server=${marketServer[i]}&statistics=${marketColumns.join(",")}`);
+        items[marketServer[i]] = await getDataAsync(`market_values?limit=5000&server=${marketServer[i]}&statistics=${marketColumns.join(",")}`);
         cachedMarketResponses[marketServer[i]] = {"timestamp": new Date().getTime(), "response": items[marketServer[i]]};
       }
 
-      await addStatistic("market_values_website", nameFilter);
+      await addStatistic("market_values_website", JSON.stringify(nameFilter));
     }
 
     var marketValues = JSON.parse(cachedMarketResponses[marketServer[0]].response);
@@ -277,30 +412,45 @@ const App: React.FC = () => {
    * in the itemNames dictionary.
    */
   async function fetchMetaDataAsync(){
-    var items = await getDataAsync("item_metadata");
-    var metaDatas: [ItemMetaData] = JSON.parse(items);
+    // Load metadata if it isn't already loaded.
+    if(Object.keys(itemMetaData).length == 0){
+      var items = await getDataAsync("item_metadata");
+      var metaDatas: [ItemMetaData] = JSON.parse(items);
 
-    for(var item of metaDatas){
-      itemMetaData[item.id] = item;
+      var itemOptions = [];
+
+      for(var item of metaDatas.sort((a, b) => a.name.localeCompare(b.name))){
+        itemMetaData[item.id] = item;
+
+        var itemName = item.wiki_name != null ? item.wiki_name : item.name;
+        itemOptions.push({label: itemName, value: itemName, key: item.id});
+      }
+
+      setMarketItemOptions(itemOptions);
     }
   }
 
   /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
   async function fetchEventHistory(){
-    var eventResponse = await getDataAsync("events?start_days_ago=9999", 0);
+    if(Object.keys(events).length == 0){
+      var eventResponse = await getDataAsync("events?start_days_ago=9999", 0);
 
-    var eventValues = JSON.parse(eventResponse);
-    var eventEntries = eventValues;
-
-    for(var i = 0; i < eventEntries.length; i++){
-      var date = eventEntries[i].date;
-      var eventNames = eventEntries[i].events;
-      events[date] = eventNames;
+      var eventValues = JSON.parse(eventResponse);
+      var eventEntries = eventValues;
+  
+      for(var i = 0; i < eventEntries.length; i++){
+        var date = eventEntries[i].date;
+        var eventNames = eventEntries[i].events;
+        events[date] = eventNames;
+      }
     }
   }
 
   async function fetchWorldData(){
+    var isFirstFetch = worldData.length == 0;
+
     var items = await getDataAsync("world_data", 0);
+    await fetchMetaDataAsync();
 
     worldData = JSON.parse(items);
     worldDataDict = {};
@@ -309,6 +459,28 @@ const App: React.FC = () => {
     }
 
     setMarketServerOptions(worldData.sort((a, b) => a.name.localeCompare(b.name)).map(x => {return {label: x.name, value: x.name, timeAgo: unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())}}));
+
+    // Fetch the data immediately if parameters came from the url.
+    if(loadOnRender && isFirstFetch){
+      await fetchData();
+    }
+  }
+
+  async function fetchMarketBoardData(itemId: number){
+    setIsLoading(true);
+
+    var item = await getDataAsync(`market_board?server=${marketServer}&item_id=${itemId}`);
+    var data = JSON.parse(item);
+    var marketBoard: Marketboard = new Marketboard(data);
+
+    var sellData: MarketboardTraderData[] = marketBoard.sellers;
+    var buyData: MarketboardTraderData[] = marketBoard.buyers;
+
+    setMarketBoardSellDataSource(sellData);
+    setMarketBoardBuyDataSource(buyData);
+    setMarketBoardDataColumns(exampleMarketboard);
+
+    setIsLoading(false);
   }
 
   async function fetchPriceHistory(itemId: number, days: number = 30){
@@ -417,7 +589,7 @@ const App: React.FC = () => {
   const { defaultAlgorithm, darkAlgorithm } = theme;
   var [isLightMode, setIsLightMode] = useState(getLocalParamValue("isLightMode", "false") != "false");
   useEffect(() => {
-    setLocalParamValue("isLightMode", isLightMode.toString(), false);
+    setLocalParamValue("isLightMode", isLightMode.toString(), true);
   }, [isLightMode]);
 
   var [marketServer, setMarketServer] = useState(JSON.parse(getLocalParamValue("marketServerValues", JSON.stringify(["Antica"]))));
@@ -436,12 +608,58 @@ const App: React.FC = () => {
     setLocalParamValue("selectedMarketValueColumns", JSON.stringify(marketColumns), true);
   }, [marketColumns]);
 
+  var [nameFilter, setNameFilter] = useState<string[]>(JSON.parse(getLocalParamValue("nameFilter", "[]")));
+  useEffect(() => {
+    setLocalParamValue("nameFilter", JSON.stringify(nameFilter), true);
+  }, [nameFilter]);
+
   var [apiKey, setApiKey] = useState(getLocalParamValue("apiAccessToken", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ3ZWJzaXRlIiwiaWF0IjoxNzA2Mzc2MTM1LCJleHAiOjI0ODM5NzYxMzV9.MrRgQJyNb5rlNmdsD3oyzG3ZugVeeeF8uFNElfWUOyI"));
   useEffect(() => {
     setLocalParamValue("apiAccessToken", apiKey, true);
   }, [apiKey]);
   
+  var [minBuyFilter, setMinBuyFilter] = useState(getLocalParamValue("minBuyFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("minBuyFilter", minBuyFilter, true);
+  }, [minBuyFilter]);
+
+  var [maxBuyFilter, setMaxBuyFilter] = useState(getLocalParamValue("maxBuyFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("maxBuyFilter", maxBuyFilter, true);
+  }, [maxBuyFilter]);
+
+  var [minFlipsFilter, setMinTradesFilter] = useState(getLocalParamValue("minFlipsFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("minFlipsFilter", minFlipsFilter, true);
+  }, [minFlipsFilter]);
+
+  var [maxFlipsFilter, setMaxTradesFilter] = useState(getLocalParamValue("maxFlipsFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("maxFlipsFilter", maxFlipsFilter, true);
+  }, [maxFlipsFilter]);
+  
+  var [minTradersFilter, setMinOffersFilter] = useState(getLocalParamValue("minTradersFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("minTradersFilter", minTradersFilter, true);
+  }, [minTradersFilter]);
+
+  var [maxTradersFilter, setMaxOffersFilter] = useState(getLocalParamValue("maxTradersFilter", 0));
+  useEffect(() => {
+    setLocalParamValue("maxTradersFilter", maxTradersFilter, true);
+  }, [maxTradersFilter]);
+
+  var [sortedByColumn, setSortedByColumn] = useState(getLocalParamValue("sortedByColumn", null));
+  useEffect(() => {
+    setLocalParamValue("sortedByColumn", sortedByColumn, true);
+  }, [sortedByColumn]);
+
+  var [sortedByOrder, setSortedByOrder] = useState(getLocalParamValue("sortedByOrder", null));
+  useEffect(() => {
+    setLocalParamValue("sortedByOrder", sortedByOrder, true);
+  }, [sortedByOrder]);
+
   var [marketServerOptions, setMarketServerOptions] = useState<SelectProps[]>();
+  var [marketItemOptions, setMarketItemOptions] = useState<SelectProps[]>();
 
   // Make all columns optional.
   var marketColumnOptions: any[] = [];
@@ -464,15 +682,11 @@ const App: React.FC = () => {
   }
 
   var [dataSource, setDataSource] = useState<ItemData[]>([]);
+  var [marketBoardSellDataSource, setMarketBoardSellDataSource] = useState<MarketboardTraderData[]>([]);
+  var [marketBoardBuyDataSource, setMarketBoardBuyDataSource] = useState<MarketboardTraderData[]>([]);
+  var [marketBoardColumns, setMarketBoardColumns] = useState<ColumnType<MarketboardTraderData>[]>([]);
   var [isLoading, setIsLoading] = useState(false);
   var [columns, setColumns] = useState<ColumnType<ItemData>[]>([]);
-  var [nameFilter, setNameFilter] = useState("");
-  var [minBuyFilter, setMinBuyFilter] = useState(-1);
-  var [maxBuyFilter, setMaxBuyFilter] = useState(0);
-  var [minFlipsFilter, setMinTradesFilter] = useState(-1);
-  var [maxFlipsFilter, setMaxTradesFilter] = useState(0);
-  var [minTradersFilter, setMinOffersFilter] = useState(-1);
-  var [maxTradersFilter, setMaxOffersFilter] = useState(0);
   var [selectedItem, setSelectedItem] = useState("");
   var [historyDays, setHistoryDays] = useState(30);
   var [modalPriceHistory, setModalPriceHistory] = useState<CustomTimeGraph>();
@@ -481,6 +695,7 @@ const App: React.FC = () => {
   var [modalMedianWeekdayPriceHistory, setModalMedianWeekdayPriceHistory] = useState<CustomTimeGraph>();
   var [modalMedianTransactionVolumeHistory, setModalMedianTransactionVolumeHistory] = useState<CustomTimeGraph>();
   var [isModalOpen, setIsModalOpen] = useState(false);
+  var [isMarketBoardOpen, setIsMarketBoardOpen] = useState(false);
   var [passwordVisible, setPasswordVisible] = useState(false);
   var [lastUpdated, setLastUpdated] = useState(0);
   var [isTibiaCoinPriceVisible, setIsTibiaCoinPriceVisible] = useState(false);
@@ -517,15 +732,11 @@ const App: React.FC = () => {
           borderRight: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
         }}
       >
-        <div id='title' style={{borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)'}}>
-          <Title level={4} style={{textAlign:'center'}}>
+          <Title level={4} style={{textAlign:'center', marginTop: '0px'}}>
             Market Tracker
           </Title>
-        </div>
-        <Title level={5} style={{textAlign:'center', color:'grey'}}>
-          Filters
-        </Title>
-        
+          <Divider>
+          </Divider>
         <Form layout='vertical'>
           <Form.Item>
             <Select options={marketServerOptions} suffixIcon={`${marketServer.length} / 5`} mode='multiple' maxCount={5} defaultValue={marketServer} onChange={(value) => setMarketServer(value)} 
@@ -536,25 +747,49 @@ const App: React.FC = () => {
               </Space>
             }></Select>
           </Form.Item>
-          <Form.Item>
-            <Input placeholder='Name' onChange={(e) => setNameFilter(e.target.value)}></Input>
+          <Form.Item label="Items" tooltip="The items which will be shown in the table. This is optional. Leaving this empty will show all items">
+            <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear optionRender={(option) => 
+              <Space>
+                <img width="20px" src={`/sprites/${option.data.key}.gif`} />
+                <Text>{option.data.label}</Text>
+              </Space>
+            }></Select>
           </Form.Item>
-          <Form.Item>
-            <InputNumber placeholder='Minimum buy price' onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-            <InputNumber placeholder='Maximum buy price' onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <Form.Item label="Market values" tooltip="The market values, in addition to the item name, that will be shown in the table after fetching">
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder="Select the table columns you want to see"
+              defaultValue={marketColumns}
+              onChange={setMarketColumns}
+              options={marketColumnOptions}
+            />
           </Form.Item>
-          <Form.Item>
-            <InputNumber placeholder='Minimum flips' onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-            <InputNumber placeholder='Maximum flips' onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <Form.Item label="Buy price" tooltip="The current buy price of the item">
+            <Space>
+              <InputNumber placeholder='Minimum' defaultValue={minBuyFilter > 0 ? minBuyFilter : null} onChange={(e) => setMinBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              -
+              <InputNumber placeholder='Maximum' defaultValue={maxBuyFilter > 0 ? maxBuyFilter : null} onChange={(e) => setMaxBuyFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            </Space>
           </Form.Item>
-          <Form.Item>
-            <InputNumber placeholder='Minimum traders' onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
-            <InputNumber placeholder='Maximum traders' onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+          <Form.Item label="Flips" tooltip="The amount of times the item can be flipped (bought and sold) per month">
+            <Space>
+              <InputNumber placeholder='Minimum' defaultValue={minFlipsFilter > 0 ? minFlipsFilter : null} onChange={(e) => setMinTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              -
+              <InputNumber placeholder='Maximum' defaultValue={maxFlipsFilter > 0 ? maxFlipsFilter : null} onChange={(e) => setMaxTradesFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            </Space>
+          </Form.Item>
+          <Form.Item label="Traders" tooltip="The amount of buy or sell offers within the past 24 hours, whichever one is smaller. I.e. your competition">
+            <Space>
+              <InputNumber placeholder='Minimum' defaultValue={minTradersFilter > 0 ? minTradersFilter : null} onChange={(e) => setMinOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+              -
+              <InputNumber placeholder='Maximum' defaultValue={maxTradersFilter > 0 ? maxTradersFilter : null} onChange={(e) => setMaxOffersFilter(e == null ? 0 : +e)} formatter={(value) => value ? (+value).toLocaleString() : ""}></InputNumber>
+            </Space>
           </Form.Item>
           <Form.Item label="Prices shown as">
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div>
-              <img src={"/Gold_Coin.png"} alt="Gold" style={{ height: '24px' }} />
+              <img src={"/Gold_Coins.png"} alt="Gold" style={{ height: '24px' }} />
             </div>
             <Switch
               checked={isTibiaCoinPriceVisible}
@@ -564,7 +799,7 @@ const App: React.FC = () => {
               onChange={(checked) => setIsTibiaCoinPriceVisible(checked)}
             />
             <div>
-              <img src={"/sprites/22118.gif"} alt="Avg. Tibia Coins" style={{ height: '24px' }} />
+              <img src={"/Tibia_Coins.gif"} alt="Avg. Tibia Coins" style={{ height: '24px' }} />
             </div>
           </div>
           </Form.Item>
@@ -581,6 +816,10 @@ const App: React.FC = () => {
       <Layout className="site-layout" style={{ width: '100%' }}>
         <Header style={{ backgroundColor: isLightMode ? "#ffffff" : "#101010", borderBottom: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Button icon={<MenuOutlined />} onClick={() => setIsDrawerOpen(true)} style={{ position: 'fixed', left: '16px' }} />
+          <AntTooltip title="Copy your current search parameters as a shareable link">
+            <Button icon={<ShareAltOutlined />} onClick={copyShareableLink} style={{ position: 'fixed', left: '52px' }}>Share</Button>
+          </AntTooltip>
+
           <Button icon={<BulbOutlined />} onClick={() => setIsLightMode(!isLightMode)} style={{ position: 'fixed', right: '16px' }} />
           <a href="https://api.tibiamarket.top:8001/docs" target="_blank" style={{ position: 'fixed', right: '52px' }}>
             <Button icon={<CloudDownloadOutlined />}>
@@ -627,24 +866,28 @@ const App: React.FC = () => {
               </Collapse>
             </Spin>
           </Modal>
-
-          <Alert message="You can see the price history of an item by clicking on its row!" showIcon type="info" closable style={{marginTop: '1%'}} />
-          <Alert message="You can select more data to view by clicking on the box below! ⬇" showIcon type="info" closable />
-          
-          <Select
-            mode="multiple"
-            allowClear
-            style={{ width: '100%' }}
-            placeholder="Select the table columns you want to see"
-            defaultValue={marketColumns}
-            onChange={setMarketColumns}
-            options={marketColumnOptions}
-          />
-          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onRow={(record, rowIndex) => {
-              return {
-                onClick: async (event) => {setSelectedItem(record.name); await fetchPriceHistory(record.id.value, historyDays); setIsModalOpen(true);}
-              };
-            }} onChange={handleTableChanged}>
+          <Modal
+            title=<div>
+            Market board for {nameToWikiLink(selectedItem)} 
+            </div>
+            centered 
+            open={isMarketBoardOpen}
+            onOk={() => setIsMarketBoardOpen(false)}
+            onCancel={() => setIsMarketBoardOpen(false)}
+            style={{ minWidth: '80vw' }}
+          >
+            <Spin spinning={isLoading}>
+              <Collapse defaultActiveKey={[1,2]}>
+                <Panel header="Sellers" key="1">
+                  <Table id='marketboard-sellers-table' dataSource={marketBoardSellDataSource} columns={marketBoardColumns} loading={isLoading} pagination={false} scroll={{ y: 275 }}></Table>
+                </Panel>
+                <Panel header="Buyers" key="2">
+                  <Table id='marketboard-buyers-table' dataSource={marketBoardBuyDataSource} columns={marketBoardColumns} loading={isLoading} pagination={false} scroll={{ y: 275 }}></Table>
+                </Panel>
+              </Collapse>
+            </Spin>
+          </Modal>
+          <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onChange={handleTableChanged} style={{ marginTop: '1%' }}>
         </Table>
         </Content>
         
