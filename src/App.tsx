@@ -70,7 +70,7 @@ const App: React.FC = () => {
       await new Promise(r => setTimeout(r, timeLeft));
     }
 
-    var items = await fetch(`http://127.0.0.1:8001/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
+    var items = await fetch(`https://api.tibiamarket.top:8001/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           var errorMessage = `${response.statusText}. ${await response.text()}`;
           throw new Error(errorMessage);
@@ -905,7 +905,8 @@ const App: React.FC = () => {
               <Space>
                 <Text>{option.data.label}</Text>
                 <Text type='secondary'>{option.data.timeAgo}</Text>
-                {option.data.metaData.pvp_type}
+                {option.data.metaData.battleye_date == "release" ? <Image src="https://static.tibia.com/images/global/content/icon_battleyeinitial.gif" width={20} preview={false} /> : <Image src="https://static.tibia.com/images/global/content/icon_battleye.gif" width={20} preview={false} />}
+                {option.data.metaData.pvp_type.split(" ")[0]}
               </Space>
             }></Select>
           </Form.Item>
