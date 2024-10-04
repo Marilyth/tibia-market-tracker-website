@@ -95,6 +95,8 @@ export class Metric{
     icon: string;
     canBeNegative: boolean;
     siblings: Metric[] = [];
+    minMetric: Metric;
+    maxMetric: Metric;
     toLocaleStringFunction: (value: number) => string;
   
     constructor(server: string, name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", icon: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
@@ -111,6 +113,8 @@ export class Metric{
       this.setValue(value);
       
       this.icon = this.localisedValue == "None" ? "" : icon;
+      this.minMetric = this;
+      this.maxMetric = this;
     }
 
     public setValue(value: number){
@@ -120,24 +124,19 @@ export class Metric{
 
     public addSibling(sibling: Metric){
       this.siblings.push(sibling);
+
+      if (sibling.value <= 0 && !this.canBeNegative)
+        return;
+
+      if ((this.minMetric.value <= 0 && !this.canBeNegative) || this.minMetric.value > sibling.value)
+        this.minMetric = sibling;
+
+      if (this.maxMetric.value < sibling.value)
+        this.maxMetric = sibling;
     }
 
     public hasSiblings() : boolean {
       return this.siblings.length > 0;
-    }
-
-    /**
-     * Returns the sibling with the lowest valid value, including the current metric.
-     */
-    public getMinSibling() : Metric {
-      return this.siblings.concat(this).reduce((a, b) => this.canBeNegative && a.value <= 0 ? b : (a.value < b.value ? a : b));
-    }
-
-    /**
-     * Returns the sibling with the highest valid value, including the current metric.
-     */
-    public getMaxSibling() : Metric {
-      return this.siblings.concat(this).reduce((a, b) => this.canBeNegative && a.value <= 0 ? b : (a.value > b.value ? a : b));
     }
 
     /**
@@ -250,10 +249,10 @@ export class TrendMetric extends Metric{
       var icon = tibiaCoinPrice > 1 ? "/Tibia_Coins.gif" : "/Gold_Coin.png";
 
       // Average data.
-      this.month_average_sell = new Metric(server, "Avg. Sell Price (mo.)", item["month_average_sell"] / tibiaCoinPriceMonth, "The average sell price of the item in the past 30 days.", "Average Prices", true, "", icon);
-      this.month_average_buy = new Metric(server, "Avg. Buy Price (mo.)", item["month_average_buy"] / tibiaCoinPriceMonth, "The average buy price of the item in the past 30 days.", "Average Prices", true, "", icon);
-      this.day_average_sell = new TrendMetric(server, "Avg. Sell Price (day)", item["day_average_sell"] / tibiaCoinPrice, this.month_average_sell.value, "The average sell price of the item in the past 24 hours.", "Average Prices", true, "", icon);
-      this.day_average_buy = new TrendMetric(server, "Avg. Buy Price (day)", item["day_average_buy"] / tibiaCoinPrice, this.month_average_buy.value, "The average buy price of the item in the past 24 hours.", "Average Prices", true, "", icon);
+      this.month_average_sell = new Metric(server, "Avg. Sell Price (mo.)", item["month_average_sell"] / tibiaCoinPriceMonth, "The average sell price of the item in the past 30 days.", "Average Prices", false, "", icon);
+      this.month_average_buy = new Metric(server, "Avg. Buy Price (mo.)", item["month_average_buy"] / tibiaCoinPriceMonth, "The average buy price of the item in the past 30 days.", "Average Prices", false, "", icon);
+      this.day_average_sell = new TrendMetric(server, "Avg. Sell Price (day)", item["day_average_sell"] / tibiaCoinPrice, this.month_average_sell.value, "The average sell price of the item in the past 24 hours.", "Average Prices", false, "", icon);
+      this.day_average_buy = new TrendMetric(server, "Avg. Buy Price (day)", item["day_average_buy"] / tibiaCoinPrice, this.month_average_buy.value, "The average buy price of the item in the past 24 hours.", "Average Prices", false, "", icon);
 
       // Buy & Sell data.
       this.sell_offer = new TrendMetric(server, "Sell Price", item["sell_offer"] / tibiaCoinPrice, this.month_average_sell.value, "The current lowest sell price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
@@ -271,14 +270,14 @@ export class TrendMetric extends Metric{
       this.day_highest_sell = new Metric(server, "Highest Sell Price (day)", item["day_highest_sell"] / tibiaCoinPrice, "The highest sell price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
       this.day_highest_buy = new Metric(server, "Highest Buy Price (day)", item["day_highest_buy"] / tibiaCoinPrice, "The highest buy price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
 
-      this.month_sold = new Metric(server, "Sold (mo.)", item["month_sold"], "The amount of items sold in the last 30 days.", "Transaction Amounts", false);
-      this.month_bought = new Metric(server, "Bought (mo.)", item["month_bought"], "The amount of items bought in the last 30 days.", "Transaction Amounts", false);
-      this.day_sold = new TrendMetric(server, "Sold (day)", item["day_sold"], Math.round(this.month_sold.value / 28), "The amount of items sold in the last 24 hours.", "Transaction Amounts", false);
-      this.day_bought = new TrendMetric(server, "Bought (day)", item["day_bought"], Math.round(this.month_bought.value / 28), "The amount of items bought in the last 24 hours.", "Transaction Amounts", false);
+      this.month_sold = new Metric(server, "Sold (mo.)", item["month_sold"], "The amount of items sold in the last 30 days.", "Transaction Amounts", true);
+      this.month_bought = new Metric(server, "Bought (mo.)", item["month_bought"], "The amount of items bought in the last 30 days.", "Transaction Amounts", true);
+      this.day_sold = new TrendMetric(server, "Sold (day)", item["day_sold"], Math.round(this.month_sold.value / 28), "The amount of items sold in the last 24 hours.", "Transaction Amounts", true);
+      this.day_bought = new TrendMetric(server, "Bought (day)", item["day_bought"], Math.round(this.month_bought.value / 28), "The amount of items bought in the last 24 hours.", "Transaction Amounts", true);
 
-      this.sell_offers = new Metric(server, "Sell Offers", item["sell_offers"], "The current amount of sell offers for this item.", "Market Activity", false);
-      this.buy_offers = new Metric(server, "Buy Offers", item["buy_offers"], "The current amount of buy offers for this item.", "Market Activity", false);
-      this.active_traders = new Metric(server, "Traders", item["active_traders"], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", false);
+      this.sell_offers = new Metric(server, "Sell Offers", item["sell_offers"], "The current amount of sell offers for this item.", "Market Activity", true);
+      this.buy_offers = new Metric(server, "Buy Offers", item["buy_offers"], "The current amount of buy offers for this item.", "Market Activity", true);
+      this.active_traders = new Metric(server, "Traders", item["active_traders"], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", true);
   
       // Calculated data.
       var profit = this.sell_offer.value > 0 && this.buy_offer.value > 0 ? Math.round((this.sell_offer.value - this.buy_offer.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
@@ -326,12 +325,12 @@ export class TrendMetric extends Metric{
         this.npc_sell_price = new Metric(server, "NPC Sell Price", -1, "The lowest price NPCs sell this item for.", "Buy & Sell Prices", false, "", "/Gold_Coin.png");
         this.npc_buy_price = new Metric(server, "NPC Buy Price", -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false, "", "/Gold_Coin.png");
         this.category = new TextMetric(server, "Category", "Unknown", "The market category of the item.", "Meta data");
-        this.npc_profit = new Metric(server, "NPC Profit", -1, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics", false, "", "/Gold_Coin.png");
-        this.npc_immediate_profit = new Metric(server, "NPC Immediate Profit", -1, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", false, "", "/Gold_Coin.png");
-        this.total_immediate_profit = new Metric(server, "Total NPC Immediate Profit", -1, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", false, "", "/Gold_Coin.png");
+        this.npc_profit = new Metric(server, "NPC Profit", -1, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics", true, "", "/Gold_Coin.png");
+        this.npc_immediate_profit = new Metric(server, "NPC Immediate Profit", -1, "The highest profit you can get right now for flipping this item between the market and NPCs once.", "Profit Metrics", true, "", "/Gold_Coin.png");
+        this.total_immediate_profit = new Metric(server, "Total NPC Immediate Profit", -1, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", true, "", "/Gold_Coin.png");
       }
 
-      this.potential_profit = new Metric(server, "Potential Profit", (this.profit.value * Math.min(this.month_sold.value, this.month_bought.value)) / tibiaCoinPriceMonth, "The total profit that has potentially been generated by this item in the past 30 days.", "Profit Metrics", false, "", icon);
+      this.potential_profit = new Metric(server, "Potential Profit", (this.profit.value * Math.min(this.month_sold.value, this.month_bought.value)) / tibiaCoinPriceMonth, "The total profit that has potentially been generated by this item in the past 30 days.", "Profit Metrics", true, "", icon);
       this.transfer_potential_profit = new Metric(server, "Transfer Potential Profit", 0, "The total profit that has potentially been generated by this item in the past 30 days, if transfered between worlds. Minus 2% tax.", "Profit Metrics", true, "", icon);
       this.transfer_average_profit = new Metric(server, "Transfer Avg. Profit", 0, "The average profit that could be generated by this item if transfered between worlds. Minus 2% tax.", "Profit Metrics", true, "", icon);
     }
@@ -378,8 +377,8 @@ export class TrendMetric extends Metric{
       }
 
       // Adjust the transfer profits.
-      var highestAverageSellOffer = this.month_average_sell.getMaxSibling();
-      var lowestAverageBuyOffer = this.month_average_buy.getMinSibling();
+      var highestAverageSellOffer = this.month_average_sell.maxMetric;
+      var lowestAverageBuyOffer = this.month_average_buy.minMetric;
 
       if(highestAverageSellOffer.value > 0 && lowestAverageBuyOffer.value > 0){
         this.transfer_average_profit.setValue(highestAverageSellOffer.value - lowestAverageBuyOffer.value);

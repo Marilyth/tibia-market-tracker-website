@@ -70,7 +70,7 @@ const App: React.FC = () => {
       await new Promise(r => setTimeout(r, timeLeft));
     }
 
-    var items = await fetch(`https://api.tibiamarket.top:8001/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
+    var items = await fetch(`http://127.0.0.1:8001/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           var errorMessage = `${response.statusText}. ${await response.text()}`;
           throw new Error(errorMessage);
@@ -363,16 +363,24 @@ const App: React.FC = () => {
             let sortedSiblings = metric.getSortedSiblings();
 
             let iconElement = null;
-            if (metric.icon !== "") {
-              iconElement = <img src={metric.icon} style={{ height: '20px' }} />;
+            if (metric.maxMetric.icon !== "") {
+              iconElement = <img src={metric.maxMetric.icon} style={{ height: '20px' }} />;
             }
-
+            
             var rangeJSX = <Space>
-              {sortedSiblings[0].localisedValue}
+              {metric.minMetric.localisedValue}
               -
-              {sortedSiblings[sortedSiblings.length - 1].localisedValue}
+              {metric.maxMetric.localisedValue}
               {iconElement}
             </Space>;
+
+            // If the min and max are the same, only show one value.
+            if (metric.minMetric.localisedValue == metric.maxMetric.localisedValue){
+              rangeJSX = <Space>
+                {metric.minMetric.localisedValue}
+                {iconElement}
+              </Space>;
+            }
 
             currentJSX = <div></div>
             for(var sibling of sortedSiblings){
@@ -455,6 +463,9 @@ const App: React.FC = () => {
     await getDataAsync(`add_statistic?identifier=${identifier}&sub_identifier=${subIdentifier}&value=${value}`, 0);
   }
 
+  /**
+   * Fetches the market values and events from the API and populates the dataSource with the data.
+   */
   async function fetchData(){
     if (isLoading)
       return;
@@ -466,15 +477,23 @@ const App: React.FC = () => {
     itemDataDict = {};
     dataSource = [];
 
-    // Check if marketServer is in cachedMarketResponse.
-    for(var i = 0; i < marketServer.length; i++){
-      if (!(marketServer[i] in cachedMarketResponses) || cachedMarketResponses[marketServer[i]].timestamp < new Date(worldDataDict[marketServer[i]].last_update + "Z").getTime()){
-        var items: string = await getDataAsync(`market_values?limit=5000&server=${marketServer[i]}&statistics=${marketColumns.join(",")}`);
-        cachedMarketResponses[marketServer[i]] = {"timestamp": new Date().getTime(), "response": items};
+    // Load all market values that are not cached or are outdated.
+    var missingServers = marketServer.filter(x => !(x in cachedMarketResponses) || cachedMarketResponses[x].timestamp < new Date(worldDataDict[x].last_update + "Z").getTime());
+    if (missingServers.length > 0){
+      var missingServerString = missingServers.join(", ");
+      var items: string = await getDataAsync(`market_values?limit=5000&servers=${missingServerString}&statistics=${marketColumns.join(",")}`);
+      var data = JSON.parse(items);
+
+      for (var i = 0; i < missingServers.length; i++){
+        var server = missingServers[i];
+        cachedMarketResponses[server] = {"timestamp": new Date().getTime(), "response": JSON.stringify(data[i])};
       }
+    }
 
-      await addStatistic("market_values_website", JSON.stringify(nameFilter));
+    await addStatistic("market_values_website", JSON.stringify(nameFilter));
 
+    // Load all market values from cache and add them to the dataSource.
+    for (var i = 0; i < marketServer.length; i++){
       var marketValues = JSON.parse(cachedMarketResponses[marketServer[i]].response);
       var tibiaCoinData = isTibiaCoinPriceVisible ? marketValues.find((x: any) => x.id == 22118) : null;
   
@@ -513,7 +532,9 @@ const App: React.FC = () => {
     }
   }
 
-  /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
+  /**
+   * Fetches the event history from the API and sets up the events dictionary.
+   */
   async function fetchEventHistory(){
     if(Object.keys(events).length == 0){
       var eventResponse = await getDataAsync("events?start_days_ago=9999", 0);
@@ -529,6 +550,9 @@ const App: React.FC = () => {
     }
   }
 
+  /**
+   * Fetches the world data from the API and sets up the market server options.
+   */
   async function fetchWorldData(){
     var isFirstFetch = worldData.length == 0;
 
@@ -553,17 +577,22 @@ const App: React.FC = () => {
     }
   }
 
+  /**
+   * Fetches the market board data for an item and sets up the tables.
+   * @param itemId The id of the item to fetch the market board data for.
+   */
   async function fetchMarketBoardData(itemId: number){
     setIsLoading(true);
 
     var sellData: MarketboardTraderData[] = [];
     var buyData: MarketboardTraderData[] = [];
 
+    var item = await getDataAsync(`market_board?servers=${marketServer.join(",")}&item_id=${itemId}`);
+    var data = JSON.parse(item);
+
     for(var i = 0; i < marketServer.length; i++){
       var serverName = marketServer[i];
-      var item = await getDataAsync(`market_board?server=${serverName}&item_id=${itemId}`);
-      var data = JSON.parse(item);
-      var marketBoard: Marketboard = new Marketboard(marketServer, data);
+      var marketBoard: Marketboard = new Marketboard(serverName, data[i]);
 
       sellData = sellData.concat(marketBoard.sellers);
       buyData = buyData.concat(marketBoard.buyers);
@@ -582,6 +611,11 @@ const App: React.FC = () => {
     setIsLoading(false);
   }
 
+  /**
+   * Fetches the price history for an item and sets up the graphs.
+   * @param itemId The id of the item to fetch the price history for.
+   * @param days The amount of days to fetch the price history for.
+   */
   async function fetchPriceHistory(itemId: number, days: number = 30){
     setIsLoading(true);
 
@@ -591,20 +625,29 @@ const App: React.FC = () => {
     var weekdayPriceGraph: CustomTimeGraph = new CustomTimeGraph();
     var weekdayTransactionGraph: CustomTimeGraph = new CustomTimeGraph();
 
+    var histories = await getDataAsync(`item_history?servers=${marketServer.join(",")}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
+    var parsedHistories = JSON.parse(histories);
+
+    // Load tibia coin histories into the cache, if required.
+    if (isTibiaCoinPriceVisible){
+      var missingServers = marketServer.filter(x => !(x in cachedTibiaCoinHistoryResponses) || cachedTibiaCoinHistoryResponses[x].timestamp < new Date(worldDataDict[x].last_update + "Z").getTime());
+
+      if(missingServers.length > 0){
+        var tibiaCoinHistoryResponse = await getDataAsync(`item_history?servers=${missingServers.join(",")}&item_id=22118&start_days_ago=9999&statistics=${marketColumns.join(",")}`);
+        var tibiaCoinHistoryData = JSON.parse(tibiaCoinHistoryResponse);
+
+        for (var i = 0; i < missingServers.length; i++){
+          var serverName = missingServers[i];
+          var tibiaCoinHistory = tibiaCoinHistoryData[i];
+
+          cachedTibiaCoinHistoryResponses[serverName] = {"timestamp": new Date().getTime(), "response": JSON.stringify(tibiaCoinHistory)};
+        }
+      }
+    }
+
     for(var i = 0; i < marketServer.length; i++){
       var serverName = marketServer[i];
-      var item = await getDataAsync(`item_history?server=${serverName}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
-      var tibiaCoinHistory = null;
-
-      // Check if marketServer is in cachedMarketResponse.
-      if (isTibiaCoinPriceVisible){
-        if(!(serverName in cachedTibiaCoinHistoryResponses) || cachedTibiaCoinHistoryResponses[serverName].timestamp < new Date(worldDataDict[serverName].last_update + "Z").getTime()){
-          var tibiaCoinHistoryResponse = await getDataAsync(`item_history?server=${serverName}&item_id=22118&start_days_ago=9999&statistics=${marketColumns.join(",")}`);
-          cachedTibiaCoinHistoryResponses[serverName] = {"timestamp": new Date().getTime(), "response": tibiaCoinHistoryResponse};
-        }
-
-        tibiaCoinHistory = JSON.parse(cachedTibiaCoinHistoryResponses[serverName].response);
-      }
+      var tibiaCoinHistory = isTibiaCoinPriceVisible ? JSON.parse(cachedTibiaCoinHistoryResponses[serverName].response) : null;
 
       // HSL color values for buy and sell offers.
       var buycolor = [243, 51.9, 68.2];
@@ -636,7 +679,7 @@ const App: React.FC = () => {
       weekdayTransactionGraph.addDetail(`${serverName}_daySold`, sellColorExpression, `Median sold (${serverName})`);
       weekdayTransactionGraph.isWeekdayGraph = true;
 
-      var data = JSON.parse(item);
+      var data = parsedHistories[i];
       var metaData = itemMetaData[itemId];
 
       var itemData: ItemData[] = [];
@@ -711,7 +754,7 @@ const App: React.FC = () => {
     setLocalParamValue("isLightMode", isLightMode.toString(), true);
   }, [isLightMode]);
 
-  var [marketServer, setMarketServer] = useState(JSON.parse(getLocalParamValue("marketServerValues", JSON.stringify(["Antica"]))));
+  var [marketServer, setMarketServer] = useState<string[]>(JSON.parse(getLocalParamValue("marketServerValues", JSON.stringify(["Antica"]))));
   useEffect(() => {
     setLocalParamValue("marketServerValues", JSON.stringify(marketServer), true);
   }, [marketServer]);
