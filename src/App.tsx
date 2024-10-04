@@ -22,6 +22,8 @@ var cachedTibiaCoinHistoryResponses: {[server: string]: {timestamp: number, resp
 var itemMetaData: {[id: number]: ItemMetaData} = {};
 var worldData: WorldData[] = [];
 var worldDataDict: {[name: string]: WorldData} = {};
+export var tibiaDataWorldDataDict: {[name: string]: any} = {};
+var itemDataDict: {[id: number]: ItemData} = {};
 var urlParams = new URLSearchParams(window.location.search);
 var localParameters: Set<string> = new Set();
 var lastApiRequests: { [endpoint: string]: number } = {};
@@ -29,6 +31,31 @@ var requestLocks: { [endpoint: string]: boolean } = {};
 var loadOnRender = false;
 
 const App: React.FC = () => {
+  /**
+   * Fetches and sets the meta information for each world.
+   */
+  async function getTibiaDataWorldDataAsync(){
+    var worlds = await fetch(`https://api.tibiadata.com/v4/worlds`).then(async response => {
+      if(response.status != 200){
+          var errorMessage = `${response.statusText}. ${await response.text()}`;
+          throw new Error(errorMessage);
+      }
+  
+      return response.text();
+    }).catch((error) => {
+      messageApi.error(`Fetching tibiadata.com failed, please try again in a bit!`, 10);
+      messageApi.error(error.message, 10);
+      setIsLoading(false);
+  
+      throw new Error("Fetching tracked items failed!");
+    });
+
+    // Parse and add the world data.
+    for (var world of JSON.parse(worlds).worlds.regular_worlds){
+      tibiaDataWorldDataDict[world.name] = world;
+    }
+  }
+
   /**
    * Send a request to the api to fetch data. Automatically handles errors.
    * @param endpoint The endpoint to fetch data from.
@@ -221,16 +248,21 @@ const App: React.FC = () => {
     return true;
   }
 
-  function addDataRow(data: any, tibiaCoinData: any){
+  function addDataRow(server: string, data: any, tibiaCoinData: any){
     var metaData = itemMetaData[data.id];
 
-    var dataObject: ItemData = new ItemData(data, metaData, tibiaCoinData);
+    var dataObject: ItemData = new ItemData(server, data, metaData, tibiaCoinData);
 
     if(!doesDataMatchFilter(dataObject)){
       return;
     }
 
-    dataSource.push(dataObject);
+    if (itemDataDict[data.id] == null){
+      dataSource.push(dataObject);
+      itemDataDict[data.id] = dataObject;
+    } else {
+      itemDataDict[data.id].addSiblingObject(dataObject);
+    }
   }
 
   function setDataColumns(exampleItem: ItemData){
@@ -260,8 +292,57 @@ const App: React.FC = () => {
     
     // Add all other columns.
     for (const [key, value] of Object.entries(exampleItem)) {
-      if(key == "name" || value.isHidden || !marketColumns.includes(key))
+      if(key == "name" || key == "tibiaCoinData" || value.isHidden || !marketColumns.includes(key))
         continue;
+
+      var render = (text: any, metric: any) => {
+        let content = metric.localisedValue;
+
+        // Check for additional info and update content accordingly.
+        if (metric.additionalInfo.length > 0) {
+          content = (
+            <AntTooltip style={{ marginLeft: '200px' }} title={newLineToBreaks(metric.additionalInfo)}>
+              {text}
+            </AntTooltip>
+          );
+        }
+
+        // Add icon if it exists.
+        let iconElement = null;
+        if (metric.icon !== "") {
+          iconElement = <img src={metric.icon} style={{ height: '20px' }} />;
+        }
+
+        // Handle TrendMetric.
+        let trendElement = null;
+
+        // Typescript is absolutely terrible. I can't use instanceof.
+        if (metric.constructor.name == "TrendMetric") {
+          let trendIcon = null;
+          if (metric.relativeDifference > 1.1) {
+            trendIcon = <RiseOutlined style={{ color: 'green' }} />;
+          } else if (metric.relativeDifference < 0.9) {
+            trendIcon = <FallOutlined style={{ color: 'red' }} />;
+          }
+
+          trendElement = (
+            <AntTooltip
+              title={`${((metric.relativeDifference - 1) * 100).toFixed(2)}% (was ${metric.previousValue.toFixed(0)})`}
+            >
+              {trendIcon}
+            </AntTooltip>
+          );
+        }
+
+        // Return final JSX
+        return (
+          <Space>
+            {content}
+            {iconElement}
+            {trendElement}
+          </Space>
+        );
+      }
       
       columns.push({
         title: value.name,
@@ -269,29 +350,47 @@ const App: React.FC = () => {
         width: 50,
         sorter: (a: any, b: any) => {
           if (typeof a[key].value == "number")
-            return a[key].value - b[key].value;
+            return a[key].maxMetric.value - b[key].maxMetric.value;
           else
             return a[key].value.localeCompare(b[key].value);
         },
         sortDirections: ['descend', 'ascend', null],
         render: (text: any, record: any) => {
-          // Find out of the key's value of this record has additionalInfo.
-          return <Space>
-            {
-            record[key].additionalInfo.length > 0 ? 
-              <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> : 
-              text
+          var metric = record[key];
+          var currentJSX = render(text, metric);
+
+          if(metric.hasSiblings()){
+            let sortedSiblings = metric.getSortedSiblings();
+
+            let iconElement = null;
+            if (metric.maxMetric.icon !== "") {
+              iconElement = <img src={metric.maxMetric.icon} style={{ height: '20px' }} />;
             }
-            {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px'}}/> : ""}
-            {
-            (value instanceof TrendMetric) ? (
-              <AntTooltip title={`${((record[key].relativeDifference - 1) * 100).toFixed(2)}% (was ${record[key].previousValue.toFixed(0)})`}>
-              { record[key].relativeDifference > 1.1 ? <RiseOutlined style={{color: 'green'}}/> :
-                record[key].relativeDifference < 0.9 ? <FallOutlined style={{color: 'red'}}/> : ""}
-              </AntTooltip>
-             ) : ""
+            
+            var rangeJSX = <Space>
+              {metric.minMetric.localisedValue}
+              -
+              {metric.maxMetric.localisedValue}
+              {iconElement}
+            </Space>;
+
+            // If the min and max are the same, only show one value.
+            if (metric.minMetric.localisedValue == metric.maxMetric.localisedValue){
+              rangeJSX = <Space>
+                {metric.minMetric.localisedValue}
+                {iconElement}
+              </Space>;
             }
-          </Space>
+
+            currentJSX = <div></div>
+            for(var sibling of sortedSiblings){
+              currentJSX = <div>{currentJSX}<Text type='secondary'>{sibling.server}:</Text> {render(sibling.localisedValue, sibling)}</div>;
+            }
+
+            currentJSX = <AntTooltip title={currentJSX}>{rangeJSX}</AntTooltip>;
+          }
+
+          return currentJSX;
         }
       });
 
@@ -364,40 +463,47 @@ const App: React.FC = () => {
     await getDataAsync(`add_statistic?identifier=${identifier}&sub_identifier=${subIdentifier}&value=${value}`, 0);
   }
 
+  /**
+   * Fetches the market values and events from the API and populates the dataSource with the data.
+   */
   async function fetchData(){
     if (isLoading)
       return;
 
     setIsLoading(true);
-    setLastUpdated(0);
 
     // Load events if not already loaded.
     await fetchEventHistory();
-
-    // Check if marketServer is in cachedMarketResponse.
-    if (!(marketServer in cachedMarketResponses) || cachedMarketResponses[marketServer].timestamp < new Date(worldDataDict[marketServer].last_update + "Z").getTime()){
-      var items = await getDataAsync(`market_values?limit=5000&server=${marketServer}&statistics=${marketColumns.join(",")}`);
-      cachedMarketResponses[marketServer] = {"timestamp": new Date().getTime(), "response": items};
-    }
-    
-    await addStatistic("market_values_website", JSON.stringify(nameFilter));
-
-    var marketValues = JSON.parse(cachedMarketResponses[marketServer].response);
+    itemDataDict = {};
     dataSource = [];
 
-    var tibiaCoinData = isTibiaCoinPriceVisible ? marketValues.find((x: any) => x.id == 22118) : null;
+    // Load all market values that are not cached or are outdated.
+    var missingServers = marketServer.filter(x => !(x in cachedMarketResponses) || cachedMarketResponses[x].timestamp < new Date(worldDataDict[x].last_update + "Z").getTime());
+    if (missingServers.length > 0){
+      var missingServerString = missingServers.join(", ");
+      var items: string = await getDataAsync(`batch_market_values?limit=5000&servers=${missingServerString}&statistics=${marketColumns.join(",")}`);
+      var data = JSON.parse(items);
 
-    for(var i = 0; i < marketValues.length; i++){
-      addDataRow(marketValues[i], tibiaCoinData);
+      for (var i = 0; i < missingServers.length; i++){
+        var server = missingServers[i];
+        cachedMarketResponses[server] = {"timestamp": new Date().getTime(), "response": JSON.stringify(data[i])};
+      }
+    }
+
+    await addStatistic("market_values_website", JSON.stringify(nameFilter));
+
+    // Load all market values from cache and add them to the dataSource.
+    for (var i = 0; i < marketServer.length; i++){
+      var marketValues = JSON.parse(cachedMarketResponses[marketServer[i]].response);
+      var tibiaCoinData = isTibiaCoinPriceVisible ? marketValues.find((x: any) => x.id == 22118) : null;
+  
+      for(var j = 0; j < marketValues.length; j++){
+        addDataRow(marketServer[i], marketValues[j], tibiaCoinData);
+      }
     }
 
     setDataColumns(exampleItem);
     setDataSource([...dataSource]);
-
-    // If data has values, set the last updated timestamp to the maximum timestamp of the data.
-    if(marketValues.length > 0){
-      setLastUpdated(Math.max(...marketValues.map((x: any) => x.time)));
-    }
 
     setIsLoading(false);
     setIsDrawerOpen(false);
@@ -426,7 +532,9 @@ const App: React.FC = () => {
     }
   }
 
-  /// Gets and parses the events.csv file from the data branch, and saves the events in the global events dictionary.
+  /**
+   * Fetches the event history from the API and sets up the events dictionary.
+   */
   async function fetchEventHistory(){
     if(Object.keys(events).length == 0){
       var eventResponse = await getDataAsync("events?start_days_ago=9999", 0);
@@ -442,9 +550,13 @@ const App: React.FC = () => {
     }
   }
 
+  /**
+   * Fetches the world data from the API and sets up the market server options.
+   */
   async function fetchWorldData(){
     var isFirstFetch = worldData.length == 0;
 
+    await getTibiaDataWorldDataAsync();
     var items = await getDataAsync("world_data", 0);
     await fetchMetaDataAsync();
 
@@ -454,7 +566,10 @@ const App: React.FC = () => {
       worldDataDict[worldData[i].name] = worldData[i];
     }
 
-    setMarketServerOptions(worldData.sort((a, b) => a.name.localeCompare(b.name)).map(x => {return {label: `${x.name} (${unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())})`, value: x.name}}));
+    setMarketServerOptions(worldData.sort((a, b) => a.name.localeCompare(b.name)).map(x => {
+      var tibiaApiData = tibiaDataWorldDataDict[x.name];
+      return {label: x.name, value: x.name, metaData: tibiaApiData, timeAgo: unixTimeToTimeAgo(new Date(x.last_update + "Z").getTime())};
+    }));
 
     // Fetch the data immediately if parameters came from the url.
     if(loadOnRender && isFirstFetch){
@@ -462,15 +577,32 @@ const App: React.FC = () => {
     }
   }
 
+  /**
+   * Fetches the market board data for an item and sets up the tables.
+   * @param itemId The id of the item to fetch the market board data for.
+   */
   async function fetchMarketBoardData(itemId: number){
     setIsLoading(true);
 
-    var item = await getDataAsync(`market_board?server=${marketServer}&item_id=${itemId}`);
-    var data = JSON.parse(item);
-    var marketBoard: Marketboard = new Marketboard(data);
+    var sellData: MarketboardTraderData[] = [];
+    var buyData: MarketboardTraderData[] = [];
 
-    var sellData: MarketboardTraderData[] = marketBoard.sellers;
-    var buyData: MarketboardTraderData[] = marketBoard.buyers;
+    var item = await getDataAsync(`batch_market_board?servers=${marketServer.join(",")}&item_id=${itemId}`);
+    var data = JSON.parse(item);
+
+    for(var i = 0; i < marketServer.length; i++){
+      var serverName = marketServer[i];
+      var marketBoard: Marketboard = new Marketboard(serverName, data[i]);
+
+      sellData = sellData.concat(marketBoard.sellers);
+      buyData = buyData.concat(marketBoard.buyers);
+      
+      // Add server name to the trader names if there are multiple servers.
+      if(marketServer.length > 1){
+        marketBoard.sellers.forEach(x => x.name.localisedValue += ` (${serverName})`);
+        marketBoard.buyers.forEach(x => x.name.localisedValue += ` (${serverName})`);
+      }
+    }
 
     setMarketBoardSellDataSource(sellData);
     setMarketBoardBuyDataSource(buyData);
@@ -479,95 +611,129 @@ const App: React.FC = () => {
     setIsLoading(false);
   }
 
+  /**
+   * Fetches the price history for an item and sets up the graphs.
+   * @param itemId The id of the item to fetch the price history for.
+   * @param days The amount of days to fetch the price history for.
+   */
   async function fetchPriceHistory(itemId: number, days: number = 30){
     setIsLoading(true);
 
-    var item = await getDataAsync(`item_history?server=${marketServer}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
-    var tibiaCoinHistory = null;
-
-    // Check if marketServer is in cachedMarketResponse.
-    if (isTibiaCoinPriceVisible){
-      if(!(marketServer in cachedTibiaCoinHistoryResponses) || cachedTibiaCoinHistoryResponses[marketServer].timestamp < new Date(worldDataDict[marketServer].last_update + "Z").getTime()){
-        var tibiaCoinHistoryResponse = await getDataAsync(`item_history?server=${marketServer}&item_id=22118&start_days_ago=9999&statistics=${marketColumns.join(",")}`);
-        cachedTibiaCoinHistoryResponses[marketServer] = {"timestamp": new Date().getTime(), "response": tibiaCoinHistoryResponse};
-      }
-
-      tibiaCoinHistory = JSON.parse(cachedTibiaCoinHistoryResponses[marketServer].response);
-    }
-
     var priceGraphData: CustomTimeGraph = new CustomTimeGraph();
-    priceGraphData.addDetail("buyOffer", "#8884d8", "Buy offer");
-    priceGraphData.addDetail("sellOffer", "#82ca9d", "Sell offer");
-
     var priceTransactionGraphData: CustomTimeGraph = new CustomTimeGraph();
-    priceTransactionGraphData.addDetail("bought", "#8884d8", "Bought");
-    priceTransactionGraphData.addDetail("sold", "#82ca9d", "Sold");
-
     var traderGraphData: CustomTimeGraph = new CustomTimeGraph();
-    traderGraphData.addDetail("activeTraders", "#d884d8", "Active traders");
-
     var weekdayPriceGraph: CustomTimeGraph = new CustomTimeGraph();
-    weekdayPriceGraph.addDetail("buyOffer", "#8884d8", "Median buy offer");
-    weekdayPriceGraph.addDetail("sellOffer", "#82ca9d", "Median sell offer");
-    weekdayPriceGraph.isWeekdayGraph = true;
-
     var weekdayTransactionGraph: CustomTimeGraph = new CustomTimeGraph();
-    weekdayTransactionGraph.addDetail("dayBought", "#8884d8", "Median bought");
-    weekdayTransactionGraph.addDetail("daySold", "#82ca9d", "Median sold");
-    weekdayTransactionGraph.isWeekdayGraph = true;
 
-    var data = JSON.parse(item);
-    var metaData = itemMetaData[itemId];
+    var histories = await getDataAsync(`batch_item_history?servers=${marketServer.join(",")}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
+    var parsedHistories = JSON.parse(histories);
 
-    var itemData: ItemData[] = [];
-    for(var i = 0; i < data.length; i++) {
-      var tibiaCoinHistoryIndex = tibiaCoinHistory != null ? Math.max(0, Math.min(tibiaCoinHistory.length - 1, (tibiaCoinHistory.length - data.length) + i)) : -1;
-      var tibiaCoinData = tibiaCoinHistory != null ? tibiaCoinHistory[tibiaCoinHistoryIndex] : null;
+    // Load tibia coin histories into the cache, if required.
+    if (isTibiaCoinPriceVisible){
+      var missingServers = marketServer.filter(x => !(x in cachedTibiaCoinHistoryResponses) || cachedTibiaCoinHistoryResponses[x].timestamp < new Date(worldDataDict[x].last_update + "Z").getTime());
 
-      var dataObject: ItemData = new ItemData(data[i], metaData, tibiaCoinData);
-      itemData.push(dataObject);
+      if(missingServers.length > 0){
+        var tibiaCoinHistoryResponse = await getDataAsync(`batch_item_history?servers=${missingServers.join(",")}&item_id=22118&start_days_ago=9999&statistics=${marketColumns.join(",")}`);
+        var tibiaCoinHistoryData = JSON.parse(tibiaCoinHistoryResponse);
+
+        for (var i = 0; i < missingServers.length; i++){
+          var serverName = missingServers[i];
+          var tibiaCoinHistory = tibiaCoinHistoryData[i];
+
+          cachedTibiaCoinHistoryResponses[serverName] = {"timestamp": new Date().getTime(), "response": JSON.stringify(tibiaCoinHistory)};
+        }
+      }
     }
 
-    for(var i = 0; i < itemData.length; i++){
-      var data_events: string[] = timestampToEvents(data[i].time, events);
-      var dataObject = itemData[i];
+    for(var i = 0; i < marketServer.length; i++){
+      var serverName = marketServer[i];
+      var tibiaCoinHistory = isTibiaCoinPriceVisible ? JSON.parse(cachedTibiaCoinHistoryResponses[serverName].response) : null;
 
-      // Price is daily average if available, otherwise it's the current price.
-      var priceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      if (dataObject.day_average_buy.value >= 0 && dataObject.day_average_sell.value >= 0)
-      {
-        // If nothing was bought/sold on that day, ignore the price.
-        priceDatapoint.addData("buyOffer", dataObject.day_average_buy.value > 0 ? dataObject.day_average_buy.value : -1);
-        priceDatapoint.addData("sellOffer", dataObject.day_average_sell.value > 0 ? dataObject.day_average_sell.value : -1);
+      // HSL color values for buy and sell offers.
+      var buycolor = [243, 51.9, 68.2];
+      var sellColor = [143, 40.4, 65.1];
+      var traderColor = [300, 51.9, 68.2];
+
+      // Add a shift to the colors depending on the current i value.
+      buycolor[0] += (360 / marketServer.length) * i;
+      sellColor[0] += (360 / marketServer.length) * i;
+      traderColor[0] += (360 / marketServer.length) * i;
+
+      var buyColorExpression = `hsl(${buycolor[0]}, ${buycolor[1]}%, ${buycolor[2]}%)`;
+      var sellColorExpression = `hsl(${sellColor[0]}, ${sellColor[1]}%, ${sellColor[2]}%)`;
+      var traderColorExpression = `hsl(${traderColor[0]}, ${traderColor[1]}%, ${traderColor[2]}%)`;
+
+      priceGraphData.addDetail(`${serverName}_buyOffer`, buyColorExpression, `Buy offer (${serverName})`);
+      priceGraphData.addDetail(`${serverName}_sellOffer`, sellColorExpression, `Sell offer (${serverName})`);
+
+      priceTransactionGraphData.addDetail(`${serverName}_bought`, buyColorExpression, `Bought (${serverName})`);
+      priceTransactionGraphData.addDetail(`${serverName}_sold`, sellColorExpression, `Sold (${serverName})`);
+
+      traderGraphData.addDetail(`${serverName}_activeTraders`, traderColorExpression, `Active traders (${serverName})`);
+
+      weekdayPriceGraph.addDetail(`${serverName}_buyOffer`, buyColorExpression, `Median buy offer (${serverName})`);
+      weekdayPriceGraph.addDetail(`${serverName}_sellOffer`, sellColorExpression, `Median sell offer (${serverName})`);
+      weekdayPriceGraph.isWeekdayGraph = true;
+
+      weekdayTransactionGraph.addDetail(`${serverName}_dayBought`, buyColorExpression, `Median bought (${serverName})`);
+      weekdayTransactionGraph.addDetail(`${serverName}_daySold`, sellColorExpression, `Median sold (${serverName})`);
+      weekdayTransactionGraph.isWeekdayGraph = true;
+
+      var data = parsedHistories[i];
+      var metaData = itemMetaData[itemId];
+
+      var itemData: ItemData[] = [];
+      for(var j = 0; j < data.length; j++) {
+        var tibiaCoinHistoryIndex = tibiaCoinHistory != null ? Math.max(0, Math.min(tibiaCoinHistory.length - 1, (tibiaCoinHistory.length - data.length) + i)) : -1;
+        var tibiaCoinData = tibiaCoinHistory != null ? tibiaCoinHistory[tibiaCoinHistoryIndex] : null;
+
+        var dataObject: ItemData = new ItemData(serverName, data[j], metaData, tibiaCoinData);
+        itemData.push(dataObject);
       }
-      else
-      {
-        priceDatapoint.addData("buyOffer", dataObject.buy_offer.value);
-        priceDatapoint.addData("sellOffer", dataObject.sell_offer.value);
+
+      for(var j = 0; j < itemData.length; j++){
+        var data_events: string[] = timestampToEvents(data[j].time, events);
+        var dataObject = itemData[j];
+
+        // Price is daily average if available, otherwise it's the current price.
+        var priceDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+        if (dataObject.day_average_buy.value >= 0 && dataObject.day_average_sell.value >= 0)
+        {
+          // If nothing was bought/sold on that day, ignore the price.
+          priceDatapoint.addData(`${serverName}_buyOffer`, dataObject.day_average_buy.value > 0 ? dataObject.day_average_buy.value : -1);
+          priceDatapoint.addData(`${serverName}_sellOffer`, dataObject.day_average_sell.value > 0 ? dataObject.day_average_sell.value : -1);
+        }
+        else
+        {
+          priceDatapoint.addData(`${serverName}_buyOffer`, dataObject.buy_offer.value);
+          priceDatapoint.addData(`${serverName}_sellOffer`, dataObject.sell_offer.value);
+        }
+        
+        priceGraphData.addData(priceDatapoint);
+
+        var transactionDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+        transactionDatapoint.addData(`${serverName}_bought`, dataObject.day_bought.value > -1 ? dataObject.day_bought.value :  ~~(dataObject.month_bought.value / 30));
+        transactionDatapoint.addData(`${serverName}_sold`, dataObject.day_sold.value > -1 ? dataObject.day_sold.value :  ~~(dataObject.month_sold.value / 30));
+        priceTransactionGraphData.addData(transactionDatapoint);
+
+        var traderDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
+        traderDatapoint.addData(`${serverName}_activeTraders`, dataObject.active_traders.value);
+        traderGraphData.addData(traderDatapoint);
+
+        var medianWeekdayPriceDatapoint = new CustomHistoryData(dataObject.time.value - 86400, data_events);
+        medianWeekdayPriceDatapoint.addData(`${serverName}_buyOffer`, dataObject.day_average_buy.value);
+        medianWeekdayPriceDatapoint.addData(`${serverName}_sellOffer`, dataObject.day_average_sell.value);
+        weekdayPriceGraph.addData(medianWeekdayPriceDatapoint);
+
+        // Set this statistic minus 1 day since they are 1 day delayed.
+        var medianWeekdayTransactionDatapoint = new CustomHistoryData(dataObject.time.value - 86400, data_events);
+        medianWeekdayTransactionDatapoint.addData(`${serverName}_dayBought`, dataObject.day_bought.value);
+        medianWeekdayTransactionDatapoint.addData(`${serverName}_daySold`, dataObject.day_sold.value);
+        weekdayTransactionGraph.addData(medianWeekdayTransactionDatapoint);
       }
-      
-      priceGraphData.addData(priceDatapoint);
-
-      var transactionDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      transactionDatapoint.addData("bought", dataObject.day_bought.value > -1 ? dataObject.day_bought.value :  ~~(dataObject.month_bought.value / 30));
-      transactionDatapoint.addData("sold", dataObject.day_sold.value > -1 ? dataObject.day_sold.value :  ~~(dataObject.month_sold.value / 30));
-      priceTransactionGraphData.addData(transactionDatapoint);
-
-      var traderDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
-      traderDatapoint.addData("activeTraders", dataObject.active_traders.value);
-      traderGraphData.addData(traderDatapoint);
-
-      var medianWeekdayPriceDatapoint = new CustomHistoryData(dataObject.time.value - 86400, data_events);
-      medianWeekdayPriceDatapoint.addData("buyOffer", dataObject.day_average_buy.value);
-      medianWeekdayPriceDatapoint.addData("sellOffer", dataObject.day_average_sell.value);
-      weekdayPriceGraph.addData(medianWeekdayPriceDatapoint);
-
-      // Set this statistic minus 1 day since they are 1 day delayed.
-      var medianWeekdayTransactionDatapoint = new CustomHistoryData(dataObject.time.value - 86400, data_events);
-      medianWeekdayTransactionDatapoint.addData("dayBought", dataObject.day_bought.value);
-      medianWeekdayTransactionDatapoint.addData("daySold", dataObject.day_sold.value);
-      weekdayTransactionGraph.addData(medianWeekdayTransactionDatapoint);
     }
+
+    console.log(priceGraphData);
 
     priceGraphData.calculateTrend();
     priceTransactionGraphData.calculateTrend();
@@ -588,9 +754,9 @@ const App: React.FC = () => {
     setLocalParamValue("isLightMode", isLightMode.toString(), true);
   }, [isLightMode]);
 
-  var [marketServer, setMarketServer] = useState(getLocalParamValue("marketServer", "Antica"));
+  var [marketServer, setMarketServer] = useState<string[]>(JSON.parse(getLocalParamValue("marketServerValues", JSON.stringify(["Antica"]))));
   useEffect(() => {
-    setLocalParamValue("marketServer", marketServer, true);
+    setLocalParamValue("marketServerValues", JSON.stringify(marketServer), true);
   }, [marketServer]);
 
   var [marketColumns, setMarketColumns] = useState(JSON.parse(getLocalParamValue("selectedMarketValueColumns", JSON.stringify(["sell_offer", "buy_offer"]))));
@@ -693,7 +859,6 @@ const App: React.FC = () => {
   var [isModalOpen, setIsModalOpen] = useState(false);
   var [isMarketBoardOpen, setIsMarketBoardOpen] = useState(false);
   var [passwordVisible, setPasswordVisible] = useState(false);
-  var [lastUpdated, setLastUpdated] = useState(0);
   var [isTibiaCoinPriceVisible, setIsTibiaCoinPriceVisible] = useState(false);
   var [isDrawerOpen, setIsDrawerOpen] = useState(true);
   useEffect(() => {
@@ -734,8 +899,16 @@ const App: React.FC = () => {
           <Divider>
           </Divider>
         <Form layout='vertical'>
-          <Form.Item label="World" required tooltip="The world for which the market values are fetched">
-            <Select options={marketServerOptions} defaultValue={marketServer} onChange={(value) => setMarketServer(value)}></Select>
+          <Form.Item required label='World' tooltip='The world(s) for which the market values are fetched'>
+            <Select options={marketServerOptions} suffixIcon={`${marketServer.length} / ${marketServerOptions?.length}`} mode='multiple' defaultValue={marketServer} onChange={(value) => setMarketServer(value)} 
+              optionRender={(option) => 
+              <Space>
+                <Text>{option.data.label}</Text>
+                <Text type='secondary'>{option.data.timeAgo}</Text>
+                {option.data.metaData.battleye_date == "release" ? <Image src="https://static.tibia.com/images/global/content/icon_battleyeinitial.gif" width={20} preview={false} /> : <Image src="https://static.tibia.com/images/global/content/icon_battleye.gif" width={20} preview={false} />}
+                {option.data.metaData.pvp_type.split(" ")[0]}
+              </Space>
+            }></Select>
           </Form.Item>
           <Form.Item label="Items" tooltip="The items which will be shown in the table. This is optional. Leaving this empty will show all items">
             <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear optionRender={(option) => 
@@ -797,7 +970,7 @@ const App: React.FC = () => {
             <Input.Password placeholder="Access token" defaultValue={apiKey} onChange={(e) => setApiKey(e.target.value)} />
           </Form.Item>*/}
           <Form.Item>
-            <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading}>
+            <Button htmlType="submit" id='search-button' onClick={fetchData} loading={isLoading} disabled={marketServer.length == 0}>
               Search
             </Button>
           </Form.Item>
@@ -842,16 +1015,16 @@ const App: React.FC = () => {
             <Spin spinning={isLoading}>
               <Collapse defaultActiveKey={1}>
                 <Panel header="Average daily price over time" key="1">
-                  <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
                 <Panel header="Transactions over time" key="2">
-                  <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
                 <Panel header="Median price per weekday" key="3">
-                  <DynamicChart timeGraph={modalMedianWeekdayPriceHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalMedianWeekdayPriceHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
                 <Panel header="Median transactions per weekday" key="4">
-                  <DynamicChart timeGraph={modalMedianTransactionVolumeHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalMedianTransactionVolumeHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
               </Collapse>
             </Spin>
