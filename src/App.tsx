@@ -22,7 +22,7 @@ var cachedTibiaCoinHistoryResponses: {[server: string]: {timestamp: number, resp
 var itemMetaData: {[id: number]: ItemMetaData} = {};
 var worldData: WorldData[] = [];
 var worldDataDict: {[name: string]: WorldData} = {};
-var tibiaDataWorldDataDict: {[name: string]: any} = {};
+export var tibiaDataWorldDataDict: {[name: string]: any} = {};
 var itemDataDict: {[id: number]: ItemData} = {};
 var urlParams = new URLSearchParams(window.location.search);
 var localParameters: Set<string> = new Set();
@@ -292,7 +292,7 @@ const App: React.FC = () => {
     
     // Add all other columns.
     for (const [key, value] of Object.entries(exampleItem)) {
-      if(key == "name" || value.isHidden || !marketColumns.includes(key))
+      if(key == "name" || key == "tibiaCoinData" || value.isHidden || !marketColumns.includes(key))
         continue;
 
       var render = (text: any, metric: any) => {
@@ -350,7 +350,7 @@ const App: React.FC = () => {
         width: 50,
         sorter: (a: any, b: any) => {
           if (typeof a[key].value == "number")
-            return a[key].value - b[key].value;
+            return a[key].maxMetric.value - b[key].maxMetric.value;
           else
             return a[key].value.localeCompare(b[key].value);
         },
@@ -481,7 +481,7 @@ const App: React.FC = () => {
     var missingServers = marketServer.filter(x => !(x in cachedMarketResponses) || cachedMarketResponses[x].timestamp < new Date(worldDataDict[x].last_update + "Z").getTime());
     if (missingServers.length > 0){
       var missingServerString = missingServers.join(", ");
-      var items: string = await getDataAsync(`market_values?limit=5000&servers=${missingServerString}&statistics=${marketColumns.join(",")}`);
+      var items: string = await getDataAsync(`batch_market_values?limit=5000&servers=${missingServerString}&statistics=${marketColumns.join(",")}`);
       var data = JSON.parse(items);
 
       for (var i = 0; i < missingServers.length; i++){
@@ -587,7 +587,7 @@ const App: React.FC = () => {
     var sellData: MarketboardTraderData[] = [];
     var buyData: MarketboardTraderData[] = [];
 
-    var item = await getDataAsync(`market_board?servers=${marketServer.join(",")}&item_id=${itemId}`);
+    var item = await getDataAsync(`batch_market_board?servers=${marketServer.join(",")}&item_id=${itemId}`);
     var data = JSON.parse(item);
 
     for(var i = 0; i < marketServer.length; i++){
@@ -625,7 +625,7 @@ const App: React.FC = () => {
     var weekdayPriceGraph: CustomTimeGraph = new CustomTimeGraph();
     var weekdayTransactionGraph: CustomTimeGraph = new CustomTimeGraph();
 
-    var histories = await getDataAsync(`item_history?servers=${marketServer.join(",")}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
+    var histories = await getDataAsync(`batch_item_history?servers=${marketServer.join(",")}&item_id=${itemId}&start_days_ago=${days}&statistics=${marketColumns.join(",")}`);
     var parsedHistories = JSON.parse(histories);
 
     // Load tibia coin histories into the cache, if required.
@@ -633,7 +633,7 @@ const App: React.FC = () => {
       var missingServers = marketServer.filter(x => !(x in cachedTibiaCoinHistoryResponses) || cachedTibiaCoinHistoryResponses[x].timestamp < new Date(worldDataDict[x].last_update + "Z").getTime());
 
       if(missingServers.length > 0){
-        var tibiaCoinHistoryResponse = await getDataAsync(`item_history?servers=${missingServers.join(",")}&item_id=22118&start_days_ago=9999&statistics=${marketColumns.join(",")}`);
+        var tibiaCoinHistoryResponse = await getDataAsync(`batch_item_history?servers=${missingServers.join(",")}&item_id=22118&start_days_ago=9999&statistics=${marketColumns.join(",")}`);
         var tibiaCoinHistoryData = JSON.parse(tibiaCoinHistoryResponse);
 
         for (var i = 0; i < missingServers.length; i++){
@@ -1014,16 +1014,16 @@ const App: React.FC = () => {
             <Spin spinning={isLoading}>
               <Collapse defaultActiveKey={1}>
                 <Panel header="Average daily price over time" key="1">
-                  <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalPriceHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
                 <Panel header="Transactions over time" key="2">
-                  <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalTransationHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
                 <Panel header="Median price per weekday" key="3">
-                  <DynamicChart timeGraph={modalMedianWeekdayPriceHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalMedianWeekdayPriceHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
                 <Panel header="Median transactions per weekday" key="4">
-                  <DynamicChart timeGraph={modalMedianTransactionVolumeHistory!} isLightMode={isLightMode}></DynamicChart>
+                  <DynamicChart timeGraph={modalMedianTransactionVolumeHistory!} isLightMode={isLightMode} animate={marketServer.length == 1}></DynamicChart>
                 </Panel>
               </Collapse>
             </Spin>

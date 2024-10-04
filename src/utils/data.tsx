@@ -1,8 +1,42 @@
 import { unixTimeToTimeAgo } from './Timestamp';
 import { linearRegressionLeastSquares } from './math'
+import { tibiaDataWorldDataDict } from '../App';
 
 const tax: number = 0.02;
 const maxTax: number = 1000000;
+
+/**
+ * Returns whether  a  transfer between the two worlds is possible.
+ * @param from The world to transfer from.
+ * @param to The world to transfer to.
+ * @returns Whether the transfer is possible.
+ */
+export function canTransferWorlds(from: string, to: string) : boolean {
+  if (from == to)
+    return false;
+
+  var fromData = tibiaDataWorldDataDict[from];
+  var toData = tibiaDataWorldDataDict[to];
+
+  // If either world is blocked, return false.
+  if (fromData.transfer_type == "blocked" || toData.transfer_type == "blocked")
+    return false;
+
+  // If from's protection is weaker than to's, return false.
+  if (toData.battleye_protected && toData.battleye_date == "release" && (!fromData.battleye_protected ||  fromData.battleye_date != "release"))
+    return false;
+
+  var fromDataPvpType: string = fromData.pvp_type.toLowerCase();
+  var toDataPvpType: string = toData.pvp_type.toLowerCase();
+  var fromDataPvpNumber: number = fromDataPvpType.includes("hardcore") ? 3 : fromDataPvpType.includes("open") ? 2 : fromDataPvpType.includes("optional") ? 1 : 0;
+  var toDataPvpNumber: number = toDataPvpType.includes("hardcore") ? 3 : toDataPvpType.includes("open") ? 2 : toDataPvpType.includes("optional") ? 1 : 0;
+
+  // If from's PvP type is stricter than to's, return false.
+  if (fromDataPvpNumber < toDataPvpNumber)
+    return false;
+
+  return true;
+}
 
 export class WorldData{
     name: string;
@@ -103,6 +137,7 @@ export class Metric{
       this.server = server;
       this.name = name;
       this.value = value;
+
       this.canBeNegative = canBeNegative;
       this.description = description;
       this.category = category;
@@ -115,6 +150,7 @@ export class Metric{
       this.icon = this.localisedValue == "None" ? "" : icon;
       this.minMetric = this;
       this.maxMetric = this;
+      this.siblings.push(this);
     }
 
     public setValue(value: number){
@@ -124,7 +160,7 @@ export class Metric{
 
     public addSibling(sibling: Metric){
       this.siblings.push(sibling);
-
+      
       if (sibling.value <= 0 && !this.canBeNegative)
         return;
 
@@ -136,14 +172,14 @@ export class Metric{
     }
 
     public hasSiblings() : boolean {
-      return this.siblings.length > 0;
+      return this.siblings.length > 1;
     }
 
     /**
      * Returns the siblings sorted by value, including the current metric.
      */
     public getSortedSiblings() : Metric[] {
-      return this.siblings.concat(this).sort((a, b) => a.value - b.value);
+      return this.siblings.sort((a, b) => a.value - b.value);
     }
 }
 
@@ -156,7 +192,6 @@ export class TextMetric{
   category: string = "";
   additionalInfo: string;
   icon: string;
-  siblings: Metric[] = [];
 
   constructor(server: string, name: string, value: string, description: string, category: string, additionalInfo: string = "", icon: string = "") {
     this.server = server;
@@ -167,22 +202,6 @@ export class TextMetric{
     this.category = category;
     this.additionalInfo = additionalInfo;
     this.icon = icon;
-  }
-
-  public addSibling(sibling: Metric){
-    this.siblings.push(sibling);
-  }
-
-  public hasSiblings() : boolean {
-    return this.siblings.length > 0;
-  }
-
-  public getMinSibling() : Metric {
-    return this.siblings.reduce((a, b) => a.value < b.value ? a : b);
-  }
-
-  public getMaxSibling() : Metric {
-    return this.siblings.reduce((a, b) => a.value > b.value ? a : b);
   }
 }
 
@@ -238,8 +257,10 @@ export class TrendMetric extends Metric{
     category: TextMetric;
     time: Metric;
     name: string;
+    tibiaCoinData: {[key: string]: {[key: string]: any} | null} = {};
   
     constructor(server: string, item: {[key: string]: any}, meta_data: ItemMetaData, tibiaCoinData: {[key: string]: any} | null = null) {
+      this.tibiaCoinData[server] = tibiaCoinData;
       this.id = new Metric(server, "Item Id", item["id"], "The Tibia internal id of the item.", "Meta data", false);
       this.time = new Metric(server, "Time", item["time"], "The time the data was collected.", "Meta data", false, "", "", (value) => unixTimeToTimeAgo(value));
       
@@ -280,9 +301,9 @@ export class TrendMetric extends Metric{
       this.active_traders = new Metric(server, "Traders", item["active_traders"], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", true);
   
       // Calculated data.
-      var profit = this.sell_offer.value > 0 && this.buy_offer.value > 0 ? Math.round((this.sell_offer.value - this.buy_offer.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
+      var profit = item["sell_offer"] > 0 && item["buy_offer"] > 0 ? (item["sell_offer"] - item["buy_offer"]) - Math.round((Math.min(item["sell_offer"] * tax, maxTax) + Math.min(item["buy_offer"] * tax, maxTax))) : 0;
       this.profit = new Metric(server, "Profit", profit / tibiaCoinPrice, `The profit you would get for flipping this item right now. Minus ${tax} tax.`, "Profit Metrics", false, "", icon);
-      var avgProfit = this.month_average_sell.value > 0 && this.month_average_buy.value > 0 ? Math.round((this.month_average_sell.value - this.month_average_buy.value) - Math.min(this.sell_offer.value * tax, maxTax)) : 0;
+      var avgProfit = item["month_average_sell"] > 0 && item["month_average_buy"] > 0 ? (item["month_average_sell"] - item["month_average_buy"]) - Math.round(Math.min(item["month_average_sell"] * tax, maxTax) + Math.min(item["month_average_buy"] * tax, maxTax)) : 0;
       this.average_profit = new Metric(server, "Avg. Profit", avgProfit / tibiaCoinPriceMonth, `The profit you would get on average for flipping this item. Minus ${tax} tax.`, "Profit Metrics", false, "", icon);
 
       if(meta_data != null){
@@ -295,25 +316,25 @@ export class TrendMetric extends Metric{
         this.npc_buy_price = new Metric(server, "NPC Buy Price", npc_buy.length > 0 ? npc_buy[0].price : -1, "The highest price NPCs buy this item for.", "Buy & Sell Prices", false, npc_buy.length > 0 ? `${npc_buy[0].name} in ${npc_buy[0].location}` : "", "/Gold_Coin.png");
         this.category = new TextMetric(server, "Category", meta_data.category, "The market category of the item.", "Meta data");
 
-        var sellToNPCProfit = this.buy_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.buy_offer.value) - Math.min(this.buy_offer.value * tax, maxTax)) : -1;
-        var sellToMarketProfit = this.sell_offer.value > 0 && this.npc_sell_price.value > 0 ? Math.round((this.sell_offer.value - this.npc_sell_price.value) - Math.min(this.sell_offer.value * tax, maxTax)) : -1;
+        var sellToNPCProfit = item["buy_offer"] > 0 && this.npc_buy_price.value > 0 ? (this.npc_buy_price.value - item["buy_offer"]) - Math.round(Math.min(item["buy_offer"] * tax, maxTax)) : -1;
+        var sellToMarketProfit = item["sell_offer"] > 0 && this.npc_sell_price.value > 0 ? (item["sell_offer"] - this.npc_sell_price.value) - Math.round(Math.min(item["sell_offer"] * tax, maxTax)) : -1;
         var npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
 
         this.npc_profit = new Metric(server, "NPC Profit", npcProfit == -1 ? 0 : npcProfit, "The profit you would get for flipping this item between the market and NPCs, by adding offers. Minus 2% tax.", "Profit Metrics", false, "/Gold_Coin.png");
 
-        sellToNPCProfit = this.sell_offer.value > 0 && this.npc_buy_price.value > 0 ? Math.round((this.npc_buy_price.value - this.sell_offer.value)) : -1;
-        sellToMarketProfit = this.npc_sell_price.value > 0 && this.buy_offer.value > 0 ? Math.round((this.buy_offer.value - this.npc_sell_price.value)) : -1;
+        sellToNPCProfit = item["sell_offer"] > 0 && this.npc_buy_price.value > 0 ? (this.npc_buy_price.value - item["sell_offer"]) : -1;
+        sellToMarketProfit = this.npc_sell_price.value > 0 && item["buy_offer"] > 0 ? (item["buy_offer"] - this.npc_sell_price.value) : -1;
         npcProfit = Math.max(sellToNPCProfit, sellToMarketProfit);
         var npcProfitAdditionalInfo = "";
 
         if (npcProfit > 0) {
           if (sellToNPCProfit > sellToMarketProfit) {
             var npc_offer = npc_buy[0];
-            npcProfitAdditionalInfo = `Buy for ${this.sell_offer.value} from Market.\nSell to NPC ${npc_offer.name} in ${npc_offer.location} for ${npc_offer.price}.\n${sellToNPCProfit} profit.`;
+            npcProfitAdditionalInfo = `Buy for ${item["sell_offer"]} from Market.\nSell to NPC ${npc_offer.name} in ${npc_offer.location} for ${npc_offer.price}.\n${sellToNPCProfit} profit.`;
           }
           else {
             var npc_offer = npc_sell[npc_sell.length - 1];
-            npcProfitAdditionalInfo = `Buy for ${npc_offer.price} from NPC ${npc_offer.name} in ${npc_offer.location}.\nSell to Market for ${this.buy_offer.value}.\n${sellToMarketProfit} profit.`;
+            npcProfitAdditionalInfo = `Buy for ${npc_offer.price} from NPC ${npc_offer.name} in ${npc_offer.location}.\nSell to Market for ${item["buy_offer"]}.\n${sellToMarketProfit} profit.`;
           }
         }
 
@@ -330,9 +351,10 @@ export class TrendMetric extends Metric{
         this.total_immediate_profit = new Metric(server, "Total NPC Immediate Profit", -1, "The total profit you can get right now for flipping this item between the market and NPCs, by exhausting all existing offers.", "Profit Metrics", true, "", "/Gold_Coin.png");
       }
 
-      this.potential_profit = new Metric(server, "Potential Profit", (this.profit.value * Math.min(this.month_sold.value, this.month_bought.value)) / tibiaCoinPriceMonth, "The total profit that has potentially been generated by this item in the past 30 days.", "Profit Metrics", true, "", icon);
-      this.transfer_potential_profit = new Metric(server, "Transfer Potential Profit", 0, "The total profit that has potentially been generated by this item in the past 30 days, if transfered between worlds. Minus 2% tax.", "Profit Metrics", true, "", icon);
-      this.transfer_average_profit = new Metric(server, "Transfer Avg. Profit", 0, "The average profit that could be generated by this item if transfered between worlds. Minus 2% tax.", "Profit Metrics", true, "", icon);
+      var potentialProfit = avgProfit * Math.min(this.month_sold.value, this.month_bought.value);
+      this.potential_profit = new Metric(server, "Potential Profit", (potentialProfit - Math.round(Math.min(potentialProfit * tax, maxTax))) / tibiaCoinPriceMonth, "The average profit times the amount of trades possible per month.", "Profit Metrics", false, "", icon);
+      this.transfer_potential_profit = new Metric(server, "Transfer Potential Profit", 0, "The highest average transfer profit times the amount of trades possible per month.", "Profit Metrics", true, "", icon);
+      this.transfer_average_profit = new Metric(server, "Transfer Avg. Profit", 0, "The average profit that could be generated by this item if transfered between worlds.", "Profit Metrics", true, "", icon);
     }
 
     /**
@@ -352,14 +374,13 @@ export class TrendMetric extends Metric{
      * @param sibling The sibling item to add.
      */
     public addSiblingObject(sibling: ItemData){
-      var siblingsProperties: [string, any][] = Object.entries(sibling).sort((a, b) => a[0].localeCompare(b[0]));
-      var currentProperties: [string, any][] = Object.entries(this).sort((a, b) => a[0].localeCompare(b[0]));
+      this.tibiaCoinData[sibling.month_average_sell.server] = sibling.tibiaCoinData[sibling.month_average_sell.server];
 
       // Go through all the metrics and add the siblings.
-      for (var i = 0; i < currentProperties.length; i++) {
-        var key = currentProperties[i][0];
-        var value = currentProperties[i][1];
-        var siblingValue = siblingsProperties[i][1];
+      for (var i = 0; i < exampleItemObjectEntries.length; i++) {
+        var key = exampleItemObjectEntries[i][0];
+        var value = this[key as keyof ItemData];
+        var siblingValue = sibling[key as keyof ItemData];
 
         // Skip the transfer values from adding siblings.
         if (key.includes("transfer"))
@@ -377,16 +398,50 @@ export class TrendMetric extends Metric{
       }
 
       // Adjust the transfer profits.
-      var highestAverageSellOffer = this.month_average_sell.maxMetric;
-      var lowestAverageBuyOffer = this.month_average_buy.minMetric;
+      var metricsCount = this.month_average_sell.siblings.length;
+      var newSellMetric = sibling.month_average_sell;
+      var newBuyMetric = sibling.month_average_buy;
 
-      if(highestAverageSellOffer.value > 0 && lowestAverageBuyOffer.value > 0){
-        this.transfer_average_profit.setValue(highestAverageSellOffer.value - lowestAverageBuyOffer.value);
-        this.transfer_average_profit.setValue(this.transfer_average_profit.value - Math.min(this.transfer_average_profit.value * tax, maxTax));
-        this.transfer_average_profit.additionalInfo = `Buy for ${lowestAverageBuyOffer.localisedValue} on ${lowestAverageBuyOffer.server}.\nSell for ${highestAverageSellOffer.localisedValue} on ${highestAverageSellOffer.server}.\nProfit: ${this.transfer_average_profit.localisedValue}`;
-  
-        this.transfer_potential_profit.setValue(0);
-        this.transfer_potential_profit.additionalInfo = ``;
+      // If the new server can't be traded with, return.
+      if (newSellMetric.value <= 0 && newBuyMetric.value <= 0)
+        return;
+
+      // Check for any new best transfer profits.
+      for (var i = 0; i < metricsCount - 1; i++) {
+        var oldSellMetric = this.month_average_sell.siblings[i];
+        var oldBuyMetric = this.month_average_buy.siblings[i];
+
+        var toSellMetric = oldSellMetric.value > newSellMetric.value ? oldSellMetric : newSellMetric;
+        var fromBuyMetric = oldBuyMetric.value < newBuyMetric.value && oldBuyMetric.value > 0 ? oldBuyMetric : newBuyMetric;
+
+        var toSellAmount = toSellMetric.server == sibling.month_sold.server ? sibling.month_sold.value : this.month_sold.siblings[i].value;
+        var fromBuyAmount = fromBuyMetric.server == sibling.month_bought.server ? sibling.month_bought.value : this.month_bought.siblings[i].value;
+
+        // If the servers can't be traded with, skip.
+        if(toSellMetric.value <= 0 || fromBuyMetric.value <= 0)
+          continue;
+
+        // If a transfer is impossible, skip.
+        if (!canTransferWorlds(fromBuyMetric.server, toSellMetric.server))
+          continue;
+
+        var newAvgProfit = toSellMetric.value - fromBuyMetric.value;
+
+        var potentialAmount = Math.min(toSellAmount, fromBuyAmount);
+        var newPotentialProfit = newAvgProfit * potentialAmount;
+
+        var newAvgProfit = newAvgProfit - Math.round(Math.min(toSellMetric.value * tax, maxTax) + Math.min(fromBuyMetric.value * tax, maxTax));
+        var newPotentialProfit = newPotentialProfit - Math.round(Math.min(toSellMetric.value * potentialAmount * tax, maxTax) + Math.min(fromBuyMetric.value * potentialAmount * tax, maxTax));
+
+        if (newAvgProfit > this.transfer_average_profit.value) {
+          this.transfer_average_profit.setValue(newAvgProfit);
+          this.transfer_average_profit.additionalInfo = `Buy for ${fromBuyMetric.localisedValue} on ${fromBuyMetric.server}.\nSell for ${toSellMetric.localisedValue} on ${toSellMetric.server}.\nProfit: ${this.transfer_average_profit.localisedValue}\n\nKeep in mind transfers cost 750 TC.`;
+        }
+
+        if (newPotentialProfit > this.transfer_potential_profit.value) {
+          this.transfer_potential_profit.setValue(newPotentialProfit);
+          this.transfer_potential_profit.additionalInfo = `Buy ${potentialAmount}x for ${fromBuyMetric.localisedValue} on ${fromBuyMetric.server}.\nSell ${potentialAmount}x for ${toSellMetric.localisedValue} on ${toSellMetric.server}.\nPotential profit: ${this.transfer_potential_profit.localisedValue}\n\nKeep in mind transfers cost 750 TC.\nThis trade would fully exhaust the market and does not account for competition.`;
+        }
       }
     }
     
@@ -446,6 +501,8 @@ export var exampleItem: ItemData = new ItemData("Antica", {
   "total_immediate_profit": -1,
   "total_immediate_profit_info": ""
 }, exampleMetaData, null);
+
+export var exampleItemObjectEntries: [string, any][] = Object.entries(exampleItem);
 
 export var weekDays: string[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
