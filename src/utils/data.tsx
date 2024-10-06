@@ -600,7 +600,7 @@ export class CustomTimeGraph{
      */
     public addDetail(name: string, colour: string, label: string){
       this.colours[name] = colour;
-      this.colours[name + "Trend"] = colour + "77";
+      this.colours[name + "Trend"] = colour.replace("hsl(", "hsla(").replace(")", ", 0.5)");
       this.labels[name] = label;
       this.labels[name + "Trend"] = label + " Trend Hidden";
     }
