@@ -67,6 +67,9 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
 
             dynamicData.push(timeGraph.data[i].asDynamic());
         }
+
+        // Order the data by time.
+        dynamicData = dynamicData.sort((a, b) => a.time - b.time);
         
         var lines: any[] = [];
         // Add a line for every key in the dynamicData except for time and events.
