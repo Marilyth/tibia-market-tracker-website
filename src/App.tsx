@@ -900,7 +900,7 @@ const App: React.FC = () => {
           </Divider>
         <Form layout='vertical'>
           <Form.Item required label='World' tooltip='The world(s) for which the market values are fetched'>
-            <Select options={marketServerOptions} suffixIcon={`${marketServer.length} / ${marketServerOptions?.length}`} mode='multiple' defaultValue={marketServer} onChange={(value) => setMarketServer(value)} 
+            <Select options={marketServerOptions} allowClear suffixIcon={`${marketServer.length} / ${marketServerOptions?.length}`} mode='multiple' defaultValue={marketServer} onChange={(value) => setMarketServer(value)} 
               optionRender={(option) => 
               <Space>
                 <Text>{option.data.label}</Text>
