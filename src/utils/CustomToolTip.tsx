@@ -54,7 +54,7 @@ interface DynamicChartProps {
     isLightMode: boolean;
     animate: boolean;
 }
-
+  
 export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProps) => {
     if (!timeGraph.isWeekdayGraph) {
         var dynamicData: any[] = [];
@@ -75,11 +75,18 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
         // Add a line for every key in the dynamicData except for time and events.
         Object.keys(timeGraph.labels).forEach((key) => {
             if(key != "time" && key != "events" && !key.endsWith("Colour")){
+                var isTrend = key.endsWith("Trend");
+                var datapointCount = dynamicData.filter((data) => data[key] != null).length;
+
                 var colour = timeGraph.colours[key] ?? "#82ca9d";
                 var label = timeGraph.labels[key] ?? key;
-                var strokeDashArray = key.endsWith("Trend") ? "3 3" : undefined;
-                var activeDot = key.endsWith("Trend") ? false : true;
-                lines.push(<Line isAnimationActive={animate} connectNulls key={key} name={label} type='monotone' dataKey={key} dot={false} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
+                var strokeDashArray = isTrend ? "3 3" : undefined;
+                var activeDot = !isTrend;
+
+                // Show a dot for each datapoint, if there are less than 60 non null values.
+                var showDot = !isTrend && datapointCount <= 60;
+
+                lines.push(<Line isAnimationActive={animate} connectNulls key={key} name={label} type='monotone' dataKey={key} dot={showDot} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
             }
         });
         
