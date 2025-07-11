@@ -733,8 +733,6 @@ const App: React.FC = () => {
       }
     }
 
-    console.log(priceGraphData);
-
     priceGraphData.calculateTrend();
     priceTransactionGraphData.calculateTrend();
 

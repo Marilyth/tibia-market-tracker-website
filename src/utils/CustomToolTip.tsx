@@ -61,11 +61,15 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
 
         // Fill dynamicData with the data from the timeGraph.
         for(var i = 0; i < timeGraph.data.length; i++){
-            if(Object.keys(timeGraph.data[i].data).length == 0){
+            if(Object.keys(timeGraph.data[i].data).length == 0)
                 continue;
-            }
 
-            dynamicData.push(timeGraph.data[i].asDynamic());
+            var dynamicDataPoint = timeGraph.data[i].asDynamic(i == 0 || i == timeGraph.data.length - 1);
+
+            if (dynamicDataPoint == null)
+                continue;
+
+            dynamicData.push(dynamicDataPoint);
         }
 
         // Order the data by time.
@@ -86,7 +90,7 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
                 // Show a dot for each datapoint, if there are less than 60 non null values.
                 var showDot = !isTrend && datapointCount <= 60;
 
-                lines.push(<Line isAnimationActive={animate} connectNulls key={key} name={label} type='monotone' dataKey={key} dot={showDot} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
+                lines.push(<Line isAnimationActive={animate} key={key} name={label} type='monotone' dataKey={key} dot={showDot} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
             }
         });
         

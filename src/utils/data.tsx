@@ -569,11 +569,23 @@ export class CustomHistoryData{
     /**
      * Returns the data as a dynamic object to be used with charts.
      */
-    public asDynamic() : {[name: string]: number} {
+    public asDynamic(forceInclude: boolean) : {[name: string]: number} | null {
       var dynamicData: {[name: string]: any} = {};
+      var containsData = false;
+
       for(var name in this.data){
+        if(this.data[name] == null)
+          continue;
+
+        if (!name.endsWith("Trend"))
+          containsData = true;
+
         dynamicData[name] = this.data[name];
       }
+
+      // If no data was added, ignore this point.
+      if (!containsData && !forceInclude)
+        return null;
 
       dynamicData["time"] = this.time;
       dynamicData["events"] = this.events;
