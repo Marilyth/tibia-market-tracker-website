@@ -1,16 +1,13 @@
 import React, { useEffect, useState }  from 'react';
-import type { MenuProps } from 'antd';
-import { Layout, Drawer, Radio, RadioProps, RadioGroupProps, DrawerProps, FloatButton, FloatButtonProps, Collapse, Tooltip as AntTooltip, message, Menu, theme, Select, Button, Input, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Pagination, Image, Modal, Alert, AlertProps, Form, SelectProps, Spin, Divider } from 'antd';
-import { QuestionCircleOutlined, LineChartOutlined, FilterOutlined, BulbFilled, BulbOutlined, OrderedListOutlined, MenuOutlined, CodeOutlined, CloudDownloadOutlined, GithubOutlined, QuestionCircleFilled, QuestionCircleTwoTone, InfoCircleOutlined, ShareAltOutlined, UnorderedListOutlined, FallOutlined, RiseOutlined, MinusOutlined } from '@ant-design/icons';
-import {LineChart, BarChart, Bar, XAxis, YAxis, CartesianGrid, Line, ResponsiveContainer, Tooltip, Brush } from 'recharts';
+import { Layout, Drawer, Radio, Collapse, Tooltip as AntTooltip, message, theme, Select, Button, ConfigProvider, InputNumber, Space, Switch, Table, Typography, Image, Modal, Form, SelectProps, Spin, Divider } from 'antd';
+import { QuestionCircleOutlined, LineChartOutlined, BulbOutlined, MenuOutlined, CloudDownloadOutlined, ShareAltOutlined, UnorderedListOutlined, FallOutlined, RiseOutlined } from '@ant-design/icons';
 import './App.css';
 import { ColumnType } from 'antd/es/table';
 import { timestampToEvents, ItemData, Metric, TextMetric, exampleItem, NPCSaleData, ItemMetaData, WorldData, CustomTimeGraph, CustomHistoryData, newLineToBreaks, MarketboardTraderData, Marketboard, exampleMarketboard, TrendMetric } from './utils/data';
-import { linearRegressionLeastSquares } from './utils/math'
-import { CustomTooltip, DynamicChart } from './utils/CustomToolTip';
-import { Timestamp, unixTimeToTimeAgo } from './utils/Timestamp';
-import { DefaultOptionType } from 'antd/es/select';
+import { DynamicChart } from './utils/CustomToolTip';
+import { unixTimeToTimeAgo } from './utils/Timestamp';
 import { FaDiscord, FaGithub } from "react-icons/fa";
+import { FormattedNumberInput } from './utils/FormattedNumberInput';
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
@@ -40,13 +37,13 @@ const App: React.FC = () => {
           var errorMessage = `${response.statusText}. ${await response.text()}`;
           throw new Error(errorMessage);
       }
-  
+
       return response.text();
     }).catch((error) => {
       messageApi.error(`Fetching tibiadata.com failed, please try again in a bit!`, 10);
       messageApi.error(error.message, 10);
       setIsLoading(false);
-  
+
       throw new Error("Fetching tracked items failed!");
     });
 
@@ -70,18 +67,18 @@ const App: React.FC = () => {
       await new Promise(r => setTimeout(r, timeLeft));
     }
 
-    var items = await fetch(`https://api.tibiamarket.top:8001/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
+    var items = await fetch(`https://api.tibiamarket.top/${endpoint}`, {headers: {"Authorization": `Bearer ${apiKey}`}}).then(async response => {
       if(response.status != 200){
           var errorMessage = `${response.statusText}. ${await response.text()}`;
           throw new Error(errorMessage);
       }
-  
+
       return response.text();
     }).catch((error) => {
       messageApi.error(`Fetching ${endpointName} failed, please try again in a bit!`, 10);
       messageApi.error(error.message, 10);
       setIsLoading(false);
-  
+
       throw new Error("Fetching tracked items failed!");
     });
 
@@ -93,9 +90,9 @@ const App: React.FC = () => {
 
   /**
    * Gets called when the pagination, filter or sorter changes.
-   * @param pagination 
-   * @param filters 
-   * @param sorter 
+   * @param pagination
+   * @param filters
+   * @param sorter
    */
   function handleTableChanged(pagination: any, filters: any, sorter: any){
     if (sorter && JSON.stringify(sorter) != lastSorter){
@@ -111,7 +108,7 @@ const App: React.FC = () => {
       for (var column of columns){
         var dataIndex: any = column["dataIndex"];
         var isString = typeof dataIndex === 'string';
-        
+
         if (dataIndex == undefined)
           continue;
 
@@ -192,13 +189,6 @@ const App: React.FC = () => {
     messageApi.success("Copied link to clipboard!");
   }
 
-  /**
-   * Returns all search filters as a string. Joined by a comma.
-   */
-  function getCurrentFilterString(){
-    return `Name: ${nameFilter}, Min Buy: ${minBuyFilter}, Max Buy: ${maxBuyFilter}, Min Flips: ${minFlipsFilter}, Max Flips: ${maxFlipsFilter}, Min Traders: ${minTradersFilter}, Max Traders: ${maxTradersFilter}`;
-  }
-
   function nameToWikiLink(itemName: string){
     return <a href={'https://tibia.fandom.com/wiki/' + itemName} target='_blank'>{itemName}</a>
   }
@@ -219,7 +209,7 @@ const App: React.FC = () => {
       if(!containsAny){
         return false;
       }
-    } 
+    }
 
     if(maxBuyFilter > 0 && dataObject.buy_offer.value > maxBuyFilter){
       return false;
@@ -289,7 +279,7 @@ const App: React.FC = () => {
     if (sortedByOrder != "null" && sortedByColumn == columns[columns.length - 1].dataIndex){
       columns[columns.length - 1].sortOrder = sortedByOrder;
     }
-    
+
     // Add all other columns.
     for (const [key, value] of Object.entries(exampleItem)) {
       if(key == "name" || key == "tibiaCoinData" || value.isHidden || !marketColumns.includes(key))
@@ -343,8 +333,8 @@ const App: React.FC = () => {
           </Space>
         );
       }
-      
-      columns.push({
+
+     columns.push({
         title: value.name,
         dataIndex: [key, 'localisedValue'],
         width: 50,
@@ -355,39 +345,57 @@ const App: React.FC = () => {
             return a[key].value.localeCompare(b[key].value);
         },
         sortDirections: ['descend', 'ascend', null],
+        // Add filters for numeric columns.
+        onFilter: (value: any, record: any) => {
+          if (typeof record[key].value !== "number") return true;
+
+          return (value.min == undefined || record[key].value >= value.min) &&
+                 (value.max == undefined || value.max == 0 || record[key].value <= value.max);
+        },
+        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }: any) => (
+          <div style={{ padding: 8, display: 'flex', flexDirection: 'column', paddingTop: '1em', paddingBottom: '1em' }}>
+
+            <span>Min value</span>
+            <FormattedNumberInput
+              placeholder="Min"
+              value={selectedKeys[0]?.min}
+              onChange={(value) => setSelectedKeys(value ? [{...selectedKeys[0], min: value}] : [])}
+            />
+
+            <span style={{ marginTop: '1em' }}>Max value</span>
+            <FormattedNumberInput
+              placeholder="Max"
+              value={selectedKeys[0]?.max}
+              onChange={(value) => setSelectedKeys(value ? [{...selectedKeys[0], max: value}] : [])}
+            />
+
+            <Button style={{ marginTop: '1em' }} type="primary" onClick={() => confirm()} size="small">Filter</Button>
+          </div>
+        ),
         render: (text: any, record: any) => {
           var metric = record[key];
           var currentJSX = render(text, metric);
 
-          if(metric.hasSiblings()){
+          if (metric.hasSiblings()) {
             let sortedSiblings = metric.getSortedSiblings();
+            let iconElement = metric.maxMetric.icon ? (
+              <img src={metric.maxMetric.icon} style={{ height: '20px' }} />
+            ) : null;
 
-            let iconElement = null;
-            if (metric.maxMetric.icon !== "") {
-              iconElement = <img src={metric.maxMetric.icon} style={{ height: '20px' }} />;
-            }
-            
-            var rangeJSX = <Space>
-              {metric.minMetric.localisedValue}
-              -
-              {metric.maxMetric.localisedValue}
-              {iconElement}
-            </Space>;
+            let rangeJSX =
+              metric.minMetric.localisedValue == metric.maxMetric.localisedValue ? (
+                <Space>{metric.minMetric.localisedValue}{iconElement}</Space>
+              ) : (
+                <Space>{metric.minMetric.localisedValue} - {metric.maxMetric.localisedValue}{iconElement}</Space>
+              );
 
-            // If the min and max are the same, only show one value.
-            if (metric.minMetric.localisedValue == metric.maxMetric.localisedValue){
-              rangeJSX = <Space>
-                {metric.minMetric.localisedValue}
-                {iconElement}
-              </Space>;
-            }
+            let tooltipJSX = sortedSiblings.map((sibling: any) => (
+              <div key={sibling.server}>
+                <Text type='secondary'>{sibling.server}:</Text> {render(sibling.localisedValue, sibling)}
+              </div>
+            ));
 
-            currentJSX = <div></div>
-            for(var sibling of sortedSiblings){
-              currentJSX = <div>{currentJSX}<Text type='secondary'>{sibling.server}:</Text> {render(sibling.localisedValue, sibling)}</div>;
-            }
-
-            currentJSX = <AntTooltip title={currentJSX}>{rangeJSX}</AntTooltip>;
+            currentJSX = <AntTooltip title={tooltipJSX}>{rangeJSX}</AntTooltip>;
           }
 
           return currentJSX;
@@ -424,12 +432,12 @@ const App: React.FC = () => {
 
   function setMarketBoardDataColumns(exampleItem: MarketboardTraderData){
     marketBoardColumns = [];
-    
+
     // Add all other columns.
     for (const [key, value] of Object.entries(exampleItem)) {
       if(value.isHidden)
         continue;
-      
+
       marketBoardColumns.push({
         title: value.name,
         dataIndex: [key, 'localisedValue'],
@@ -445,8 +453,8 @@ const App: React.FC = () => {
           // Find out of the key's value of this record has additionalInfo.
           return <Space>
             {
-            record[key].additionalInfo.length > 0 ? 
-              <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> : 
+            record[key].additionalInfo.length > 0 ?
+              <AntTooltip style={{ marginLeft: '200px'}} title={newLineToBreaks(record[key].additionalInfo)}>{text}</AntTooltip> :
               text
             }
             {record[key].icon != "" ? <img src={record[key].icon} style={{height: '20px'}}/> : ""}
@@ -496,7 +504,7 @@ const App: React.FC = () => {
     for (var i = 0; i < marketServer.length; i++){
       var marketValues = JSON.parse(cachedMarketResponses[marketServer[i]].response);
       var tibiaCoinData = isTibiaCoinPriceVisible ? marketValues.find((x: any) => x.id == 22118) : null;
-  
+
       for(var j = 0; j < marketValues.length; j++){
         addDataRow(marketServer[i], marketValues[j], tibiaCoinData);
       }
@@ -541,7 +549,7 @@ const App: React.FC = () => {
 
       var eventValues = JSON.parse(eventResponse);
       var eventEntries = eventValues;
-  
+
       for(var i = 0; i < eventEntries.length; i++){
         var date = eventEntries[i].date;
         var eventNames = eventEntries[i].events;
@@ -596,7 +604,7 @@ const App: React.FC = () => {
 
       sellData = sellData.concat(marketBoard.sellers);
       buyData = buyData.concat(marketBoard.buyers);
-      
+
       // Add server name to the trader names if there are multiple servers.
       if(marketServer.length > 1){
         marketBoard.sellers.forEach(x => x.name.localisedValue += ` (${serverName})`);
@@ -708,7 +716,7 @@ const App: React.FC = () => {
           priceDatapoint.addData(`${serverName}_buyOffer`, dataObject.buy_offer.value);
           priceDatapoint.addData(`${serverName}_sellOffer`, dataObject.sell_offer.value);
         }
-        
+
         priceGraphData.addData(priceDatapoint);
 
         var transactionDatapoint = new CustomHistoryData(dataObject.time.value, data_events);
@@ -745,7 +753,7 @@ const App: React.FC = () => {
     setIsLoading(false);
   }
 
-  const [messageApi, contextHolder] = message.useMessage(); 
+  const [messageApi, contextHolder] = message.useMessage();
   const { defaultAlgorithm, darkAlgorithm } = theme;
   var [isLightMode, setIsLightMode] = useState(getLocalParamValue("isLightMode", "false") != "false");
   useEffect(() => {
@@ -777,7 +785,7 @@ const App: React.FC = () => {
   useEffect(() => {
     setLocalParamValue("apiAccessToken", apiKey, true);
   }, [apiKey]);
-  
+
   var [minBuyFilter, setMinBuyFilter] = useState(getLocalParamValue("minBuyFilter", 0));
   useEffect(() => {
     setLocalParamValue("minBuyFilter", minBuyFilter, true);
@@ -797,7 +805,7 @@ const App: React.FC = () => {
   useEffect(() => {
     setLocalParamValue("maxFlipsFilter", maxFlipsFilter, true);
   }, [maxFlipsFilter]);
-  
+
   var [minTradersFilter, setMinOffersFilter] = useState(getLocalParamValue("minTradersFilter", 0));
   useEffect(() => {
     setLocalParamValue("minTradersFilter", minTradersFilter, true);
@@ -824,7 +832,7 @@ const App: React.FC = () => {
   // Make all columns optional.
   var marketColumnOptions: any[] = [];
   for (const [key, value] of Object.entries(exampleItem)) {
-    if(key == "name")
+    if(key == "name" || key == "tibiaCoinData" || value.isHidden)
       continue;
 
     var category = marketColumnOptions.find(x => x.label == value.category);
@@ -897,9 +905,9 @@ const App: React.FC = () => {
           <Divider>
           </Divider>
         <Form layout='vertical'>
-          <Form.Item required label='World' tooltip='The world(s) for which the market values are fetched'>
-            <Select options={marketServerOptions} allowClear suffixIcon={`${marketServer.length} / ${marketServerOptions?.length}`} mode='multiple' defaultValue={marketServer} onChange={(value) => setMarketServer(value)} 
-              optionRender={(option) => 
+          <Form.Item required label='Worlds' tooltip='The world(s) for which the market values are fetched'>
+            <Select options={marketServerOptions} allowClear maxCount={20} suffixIcon={`${marketServer.length} / 20`} mode='multiple' defaultValue={marketServer} onChange={(value) => setMarketServer(value)}
+              optionRender={(option) =>
               <Space>
                 <Text>{option.data.label}</Text>
                 <Text type='secondary'>{option.data.timeAgo}</Text>
@@ -909,7 +917,7 @@ const App: React.FC = () => {
             }></Select>
           </Form.Item>
           <Form.Item label="Items" tooltip="The items which will be shown in the table. This is optional. Leaving this empty will show all items">
-            <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear optionRender={(option) => 
+            <Select mode='tags' defaultValue={nameFilter} onChange={setNameFilter} tokenSeparators={[",", ";", "."]} placeholder="Item name(s)" options={marketItemOptions} allowClear optionRender={(option) =>
               <Space>
                 <img width="20px" src={`/sprites/${option.data.key}.gif`} />
                 <Text>{option.data.label}</Text>
@@ -982,17 +990,12 @@ const App: React.FC = () => {
           </AntTooltip>
 
           <Button icon={<BulbOutlined />} onClick={() => setIsLightMode(!isLightMode)} style={{ position: 'fixed', right: '16px' }} />
-          <a href="https://api.tibiamarket.top:8001/docs" target="_blank" style={{ position: 'fixed', right: '52px' }}>
+          <a href="https://api.tibiamarket.top/docs" target="_blank" style={{ position: 'fixed', right: '52px' }}>
             <Button icon={<CloudDownloadOutlined />}>
              API
             </Button>
           </a>
-          <a href="https://github.com/Marilyth/tibia-market-tracker-website/wiki/Use-the-Tibia-Market-Tracker" target="_blank" style={{ position: 'fixed', right: '132px' }}>
-            <Button icon={<QuestionCircleOutlined />}>
-             Guide
-            </Button>
-          </a>
-          {window.innerWidth > 650 ? 
+          {window.innerWidth > 650 ?
           <Typography.Title level={3} style={{ margin: 0 }}>
             Market Tracker
           </Typography.Title> : ""}
@@ -1000,16 +1003,16 @@ const App: React.FC = () => {
 
         <Content style={{ margin: '0px 16px 0px', overflow: 'auto' }}>
           <Modal
-            title=<div>
-            Item history for {nameToWikiLink(selectedItem)} 
-            <Radio.Group options={historyDayOptions} value={historyDays} optionType="button" disabled={isLoading} style={{marginLeft: "16px"}} onChange={(e) => {setHistoryDays(e.target.value); fetchPriceHistory(dataSource.find(x => x.name == selectedItem)!.id.value, e.target.value)}}></Radio.Group>
-            </div>
-            centered
-            open={isModalOpen}
-            onOk={() => setIsModalOpen(false)}
-            onCancel={() => setIsModalOpen(false)}
-            style={{ minWidth: '80vw' }}
-          >
+            title={<div>
+              Item history for {nameToWikiLink(selectedItem)}
+              <Radio.Group options={historyDayOptions} value={historyDays} optionType="button" disabled={isLoading} style={{marginLeft: "16px"}} onChange={(e) => {setHistoryDays(e.target.value); fetchPriceHistory(dataSource.find(x => x.name == selectedItem)!.id.value, e.target.value)}}></Radio.Group>
+            </div>}
+              centered
+              open={isModalOpen}
+              onOk={() => setIsModalOpen(false)}
+              onCancel={() => setIsModalOpen(false)}
+              style={{ minWidth: '80vw' }}
+            >
             <Spin spinning={isLoading}>
               <Collapse defaultActiveKey={1}>
                 <Panel header="Average daily price over time" key="1">
@@ -1028,10 +1031,10 @@ const App: React.FC = () => {
             </Spin>
           </Modal>
           <Modal
-            title=<div>
-            Market board for {nameToWikiLink(selectedItem)} 
-            </div>
-            centered 
+            title={<div>
+              Market board for {nameToWikiLink(selectedItem)}
+            </div>}
+            centered
             open={isMarketBoardOpen}
             onOk={() => setIsMarketBoardOpen(false)}
             onCancel={() => setIsMarketBoardOpen(false)}
@@ -1051,13 +1054,13 @@ const App: React.FC = () => {
           <Table id='items-table' dataSource={dataSource} columns={columns} loading={isLoading} onChange={handleTableChanged} style={{ marginTop: '1%' }}>
         </Table>
         </Content>
-        
+
         <Footer style={{
           borderTop: isLightMode ? '1px solid rgba(0,0,0,0.1)' : '1px solid rgba(255,255,255,0.1)',
           textAlign: 'center',
         }}>
           ❤️ Please consider donating a few TC or gold to <a href="https://www.tibia.com/community/?name=leenia">Leenia</a> on Antica to help out! ❤️<br></br>
-          <a href="https://discord.gg/Rvc8mXtmZH" target="_blank"><FaDiscord color="#505050" size={42} style={{marginTop: 16, marginRight: 16}}/></a> 
+          <a href="https://discord.gg/Rvc8mXtmZH" target="_blank"><FaDiscord color="#505050" size={42} style={{marginTop: 16, marginRight: 16}}/></a>
           <a href="https://github.com/Marilyth/tibia-market-tracker-website/issues" target="_blank" ><FaGithub color="#505050" size={42} /></a>
         </Footer>
       </Layout>

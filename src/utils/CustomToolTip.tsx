@@ -54,7 +54,7 @@ interface DynamicChartProps {
     isLightMode: boolean;
     animate: boolean;
 }
-  
+
 export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProps) => {
     if (!timeGraph.isWeekdayGraph) {
         var dynamicData: any[] = [];
@@ -74,7 +74,7 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
 
         // Order the data by time.
         dynamicData = dynamicData.sort((a, b) => a.time - b.time);
-        
+
         var lines: any[] = [];
         // Add a line for every key in the dynamicData except for time and events.
         Object.keys(timeGraph.labels).forEach((key) => {
@@ -90,16 +90,16 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
                 // Show a dot for each datapoint, if there are less than 60 non null values.
                 var showDot = !isTrend && datapointCount <= 60;
 
-                lines.push(<Line isAnimationActive={animate} key={key} name={label} type='monotone' dataKey={key} dot={showDot} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
+                lines.push(<Line isAnimationActive={animate} connectNulls key={key} name={label} type='monotone' dataKey={key} dot={showDot} activeDot={activeDot} stroke={colour} strokeDasharray={strokeDashArray} />);
             }
         });
-        
-        var chart = 
+
+        var chart =
         <ResponsiveContainer width="100%" height={window.innerHeight * 0.4}>
             <LineChart data={dynamicData}>
                 <XAxis domain={["dataMin", "dataMax + 1"]} allowDuplicatedCategory={false} type='number' dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)} />
                 <YAxis domain={["dataMin", "dataMax + 1"]} tickFormatter={(value) => value.toFixed(0)} />
-                
+
                 <Tooltip content={<CustomTooltip/>} contentStyle={{backgroundColor: isLightMode ? "#FFFFFFBB" : "#141414BB", border: isLightMode ? '1px solid rgba(0,0,0,0.2)' : '1px solid rgba(255,255,255,0.5)'}} labelFormatter={(date, payload) => <div>
                                                         {new Date(date * 1000).toLocaleString('en-GB', weekdayDateOptions)}
                                                         <p style={{ color: "#ffb347"}}>{payload[0].payload.events.join(", ")}</p>
@@ -110,7 +110,7 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
                 <Brush data={dynamicData} fill={isLightMode ? "#FFFFFF" : "#141414"} dataKey="time" tickFormatter={(date) => new Date(date * 1000).toLocaleString('en-GB', dateOptions)}></Brush>
             </LineChart>
         </ResponsiveContainer>
-        
+
         return chart;
     } else{
         var weekdayData: CustomHistoryData[][] = [[], [], [], [], [], [], []];
@@ -121,7 +121,7 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
             if(Object.keys(timeGraph.data[i].data).length == 0){
                 continue;
             }
-            
+
             weekdayData[getWeekday(timeGraph.data[i].time)].push(timeGraph.data[i]);
         }
 
@@ -155,12 +155,12 @@ export const DynamicChart = ({timeGraph, isLightMode, animate}: DynamicChartProp
             if(key != "weekday" && !key.endsWith("Colour") && !key.endsWith("Trend")){
                 var colour = timeGraph.colours[key] ?? "#82ca9d";
                 var label = timeGraph.labels[key] ?? key;
-                
+
                 bars.push(<Bar isAnimationActive={animate} key={key} name={label} barSize={30} dataKey={key} fill={colour} />);
             }
         });
 
-        var chart = 
+        var chart =
         <ResponsiveContainer width='100%' height={window.innerHeight * 0.4}>
             <BarChart data={dynamicData}>
                 <XAxis dataKey="weekday" tickFormatter={(day, index) => getWeekdayName(index)}/>
