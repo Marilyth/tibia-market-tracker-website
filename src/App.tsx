@@ -376,7 +376,7 @@ const App: React.FC = () => {
           var metric = record[key];
           var currentJSX = render(text, metric);
 
-          if (metric.hasSiblings()) {
+          if (!(metric instanceof TextMetric) && metric.hasSiblings()) {
             let sortedSiblings = metric.getSortedSiblings();
             let iconElement = metric.maxMetric.icon ? (
               <img src={metric.maxMetric.icon} style={{ height: '20px' }} />
