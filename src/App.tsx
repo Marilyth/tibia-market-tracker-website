@@ -911,8 +911,8 @@ const App: React.FC = () => {
               <Space>
                 <Text>{option.data.label}</Text>
                 <Text type='secondary'>{option.data.timeAgo}</Text>
-                {option.data.metaData.battleye_date == "release" ? <Image src="https://static.tibia.com/images/global/content/icon_battleyeinitial.gif" width={20} preview={false} /> : <Image src="https://static.tibia.com/images/global/content/icon_battleye.gif" width={20} preview={false} />}
-                {option.data.metaData.pvp_type.split(" ")[0]}
+                {(option.data.metaData?.battleye_date == "release") ? <Image src="https://static.tibia.com/images/global/content/icon_battleyeinitial.gif" width={20} preview={false} /> : <Image src="https://static.tibia.com/images/global/content/icon_battleye.gif" width={20} preview={false} />}
+                {(option.data.metaData?.pvp_type.split(" ")[0])}
               </Space>
             }></Select>
           </Form.Item>
