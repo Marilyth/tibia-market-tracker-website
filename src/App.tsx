@@ -306,8 +306,8 @@ const App: React.FC = () => {
         // Handle TrendMetric.
         let trendElement = null;
 
-        // Typescript is absolutely terrible. I can't use instanceof.
-        if (metric.constructor.name == "TrendMetric") {
+        // Check if the metric has a relativeDifference property.
+        if (metric.relativeDifference !== undefined) {
           let trendIcon = null;
           if (metric.relativeDifference > 1.1) {
             trendIcon = <RiseOutlined style={{ color: 'green' }} />;
