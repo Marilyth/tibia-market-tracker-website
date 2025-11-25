@@ -54,7 +54,7 @@ export class NPCSaleData{
     location: string;
     currency_object_type_id: number;
     currency_quest_flag_display_name: string;
-  
+
     constructor(price: number, name: string, location: string, currency_object_type_id: number = 0, currency_quest_flag_display_name: string = ""){
       this.price = price;
       this.name = name;
@@ -132,7 +132,7 @@ export class Metric{
     minMetric: Metric;
     maxMetric: Metric;
     toLocaleStringFunction: (value: number) => string;
-  
+
     constructor(server: string, name: string, value: number, description: string, category: string, canBeNegative: boolean = true, additionalInfo: string = "", icon: string = "", toLocaleStringFunction: (value: number) => string = (value) => value.toLocaleString()) {
       this.server = server;
       this.name = name;
@@ -146,7 +146,7 @@ export class Metric{
       this.toLocaleStringFunction = toLocaleStringFunction;
       this.localisedValue = "";
       this.setValue(value);
-      
+
       this.icon = this.localisedValue == "None" ? "" : icon;
       this.minMetric = this;
       this.maxMetric = this;
@@ -160,7 +160,7 @@ export class Metric{
 
     public addSibling(sibling: Metric){
       this.siblings.push(sibling);
-      
+
       if (sibling.value <= 0 && !this.canBeNegative)
         return;
 
@@ -218,7 +218,7 @@ export class TrendMetric extends Metric{
     this.relativeDifference = previousValue > 0 ? value / previousValue : 1;
   }
 }
-  
+
   export class ItemData{
     sell_offer: TrendMetric;
     buy_offer: TrendMetric;
@@ -240,8 +240,13 @@ export class TrendMetric extends Metric{
     npc_buy_price: Metric;
     month_sold: Metric;
     month_bought: Metric;
+    month_transactions: Metric;
     day_sold: TrendMetric;
     day_bought: TrendMetric;
+    day_transactions: TrendMetric;
+    delta_day_sold: Metric;
+    delta_day_bought: Metric;
+    delta_day_transactions: Metric;
     profit: Metric;
     average_profit: Metric;
     potential_profit: Metric;
@@ -252,26 +257,27 @@ export class TrendMetric extends Metric{
     transfer_potential_profit: Metric
     sell_offers: Metric;
     buy_offers: Metric;
+    offers: Metric;
     active_traders: Metric;
     id: Metric;
     category: TextMetric;
     time: Metric;
     name: string;
     tibiaCoinData: {[key: string]: {[key: string]: any} | null} = {};
-  
+
     constructor(server: string, item: {[key: string]: any}, meta_data: ItemMetaData, tibiaCoinData: {[key: string]: any} | null = null) {
       this.tibiaCoinData[server] = tibiaCoinData;
       this.id = new Metric(server, "Item Id", item["id"], "The Tibia internal id of the item.", "Meta data", false);
       this.time = new Metric(server, "Time", item["time"], "The time the data was collected.", "Meta data", false, "", "", (value) => unixTimeToTimeAgo(value));
-      
+
       var tibiaCoinPrice = Math.max(tibiaCoinData != null ? (tibiaCoinData["day_average_sell"] > -1 ? tibiaCoinData["day_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
       var tibiaCoinPriceMonth = Math.max(tibiaCoinData != null ? (tibiaCoinData["month_average_sell"] > -1 ? tibiaCoinData["month_average_sell"] : tibiaCoinData["sell_offer"]) : 1, 1);
 
       var icon = tibiaCoinPrice > 1 ? "/Tibia_Coins.gif" : "/Gold_Coin.png";
 
       // Average data.
-      this.month_average_sell = new Metric(server, "Avg. Sell Price (mo.)", item["month_average_sell"] / tibiaCoinPriceMonth, "The average sell price of the item in the past 30 days.", "Average Prices", false, "", icon);
-      this.month_average_buy = new Metric(server, "Avg. Buy Price (mo.)", item["month_average_buy"] / tibiaCoinPriceMonth, "The average buy price of the item in the past 30 days.", "Average Prices", false, "", icon);
+      this.month_average_sell = new Metric(server, "Avg. Sell Price (mo.)", item["month_average_sell"] / tibiaCoinPriceMonth, "The average sell price of the item in the past 28 days.", "Average Prices", false, "", icon);
+      this.month_average_buy = new Metric(server, "Avg. Buy Price (mo.)", item["month_average_buy"] / tibiaCoinPriceMonth, "The average buy price of the item in the past 28 days.", "Average Prices", false, "", icon);
       this.day_average_sell = new TrendMetric(server, "Avg. Sell Price (day)", item["day_average_sell"] / tibiaCoinPrice, this.month_average_sell.value, "The average sell price of the item in the past 24 hours.", "Average Prices", false, "", icon);
       this.day_average_buy = new TrendMetric(server, "Avg. Buy Price (day)", item["day_average_buy"] / tibiaCoinPrice, this.month_average_buy.value, "The average buy price of the item in the past 24 hours.", "Average Prices", false, "", icon);
 
@@ -280,26 +286,36 @@ export class TrendMetric extends Metric{
       this.buy_offer = new TrendMetric(server, "Buy Price", item["buy_offer"] / tibiaCoinPrice, this.month_average_buy.value, "The current highest buy price of the item on the market board.", "Buy & Sell Prices", false, "", icon);
       this.delta_sell_offer = new Metric(server, "Delta Sell Price", (this.sell_offer.value > 0 ? this.sell_offer.value - this.month_average_sell.value : 0) / tibiaCoinPrice, "The difference between the current sell price and the average monthly sell price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.sell_offer.value >= 0, "", icon);
       this.delta_buy_offer = new Metric(server, "Delta Buy Price", (this.buy_offer.value > 0 ? this.buy_offer.value - this.month_average_buy.value : 0) / tibiaCoinPrice, "The difference between the current buy price and the average monthly buy price. If this is very negative, this is a great time to buy. If this is very positive, this is a great time to sell.", "Buy & Sell Prices", this.buy_offer.value >= 0, "", icon);
-      
+
       // Extreme data.
-      this.month_lowest_sell = new Metric(server, "Lowest Sell Price (mo.)", item["month_lowest_sell"] / tibiaCoinPriceMonth, "The lowest sell price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
-      this.month_lowest_buy = new Metric(server, "Lowest Buy Price (mo.)", item["month_lowest_buy"] / tibiaCoinPriceMonth, "The lowest buy price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
-      this.month_highest_sell = new Metric(server, "Highest Sell Price (mo.)", item["month_highest_sell"] / tibiaCoinPriceMonth, "The highest sell price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
-      this.month_highest_buy = new Metric(server, "Highest Buy Price (mo.)", item["month_highest_buy"] / tibiaCoinPriceMonth, "The highest buy price of the item in the last 30 days.", "Extreme Prices", false, "", icon);
+      this.month_lowest_sell = new Metric(server, "Lowest Sell Price (mo.)", item["month_lowest_sell"] / tibiaCoinPriceMonth, "The lowest sell price of the item in the last 28 days.", "Extreme Prices", false, "", icon);
+      this.month_lowest_buy = new Metric(server, "Lowest Buy Price (mo.)", item["month_lowest_buy"] / tibiaCoinPriceMonth, "The lowest buy price of the item in the last 28 days.", "Extreme Prices", false, "", icon);
+      this.month_highest_sell = new Metric(server, "Highest Sell Price (mo.)", item["month_highest_sell"] / tibiaCoinPriceMonth, "The highest sell price of the item in the last 28 days.", "Extreme Prices", false, "", icon);
+      this.month_highest_buy = new Metric(server, "Highest Buy Price (mo.)", item["month_highest_buy"] / tibiaCoinPriceMonth, "The highest buy price of the item in the last 28 days.", "Extreme Prices", false, "", icon);
       this.day_lowest_sell = new Metric(server, "Lowest Sell Price (day)", item["day_lowest_sell"] / tibiaCoinPrice, "The lowest sell price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
       this.day_lowest_buy = new Metric(server, "Lowest Buy Price (day)", item["day_lowest_buy"] / tibiaCoinPrice, "The lowest buy price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
       this.day_highest_sell = new Metric(server, "Highest Sell Price (day)", item["day_highest_sell"] / tibiaCoinPrice, "The highest sell price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
       this.day_highest_buy = new Metric(server, "Highest Buy Price (day)", item["day_highest_buy"] / tibiaCoinPrice, "The highest buy price of the item in the last 24 hours.", "Extreme Prices", false, "", icon);
 
-      this.month_sold = new Metric(server, "Sold (mo.)", item["month_sold"], "The amount of items sold in the last 30 days.", "Transaction Amounts", true);
-      this.month_bought = new Metric(server, "Bought (mo.)", item["month_bought"], "The amount of items bought in the last 30 days.", "Transaction Amounts", true);
+      this.month_sold = new Metric(server, "Sold (mo.)", item["month_sold"], "The amount of items sold in the last 28 days.", "Transaction Amounts", true);
+      this.month_bought = new Metric(server, "Bought (mo.)", item["month_bought"], "The amount of items bought in the last 28 days.", "Transaction Amounts", true);
+      this.month_transactions = new Metric(server, "Transactions (mo.)", item["month_sold"] + item["month_bought"], "The amount of items bought or sold in the last 28 days.", "Transaction Amounts", true);
+
       this.day_sold = new TrendMetric(server, "Sold (day)", item["day_sold"], Math.round(this.month_sold.value / 28), "The amount of items sold in the last 24 hours.", "Transaction Amounts", true);
       this.day_bought = new TrendMetric(server, "Bought (day)", item["day_bought"], Math.round(this.month_bought.value / 28), "The amount of items bought in the last 24 hours.", "Transaction Amounts", true);
+      this.day_transactions = new TrendMetric(server, "Transactions (day)", this.day_sold.value + this.day_bought.value, Math.round(this.month_transactions.value / 28), "The amount of items bought or sold in the last 24 hours.", "Transaction Amounts", true);
 
+      this.delta_day_sold = new Metric(server, "Delta Sold (day)", this.day_sold.value - Math.round(this.month_sold.value / 28), "The difference between the amount of items sold in the last 24 hours and the average daily sold items in the last 28 days.", "Transaction Amounts", true);
+      this.delta_day_bought = new Metric(server, "Delta Bought (day)", this.day_bought.value - Math.round(this.month_bought.value / 28), "The difference between the amount of items bought in the last 24 hours and the average daily bought items in the last 28 days.", "Transaction Amounts", true);
+      this.delta_day_transactions = new Metric(server, "Delta Transactions (day)", this.delta_day_sold.value + this.delta_day_bought.value, "The difference between the amount of items bought or sold in the last 24 hours and the average daily bought or sold items in the last 28 days.", "Transaction Amounts", true);
+
+      // Market activity.
       this.sell_offers = new Metric(server, "Sell Offers", item["sell_offers"], "The current amount of sell offers for this item.", "Market Activity", true);
       this.buy_offers = new Metric(server, "Buy Offers", item["buy_offers"], "The current amount of buy offers for this item.", "Market Activity", true);
+      this.offers = new Metric(server, "Offers", this.sell_offers.value + this.buy_offers.value, "The current amount of offers for this item.", "Market Activity", true);
+
       this.active_traders = new Metric(server, "Traders", item["active_traders"], "The amount of buy or sell offers in the last 24 hours, whichever one is smaller. I.e. the amount of other flippers you are competing with.", "Market Activity", true);
-  
+
       // Calculated data.
       var profit = item["sell_offer"] > 0 && item["buy_offer"] > 0 ? (item["sell_offer"] - item["buy_offer"]) - Math.round((Math.min(item["sell_offer"] * tax, maxTax) + Math.min(item["buy_offer"] * tax, maxTax))) : 0;
       this.profit = new Metric(server, "Profit", profit / tibiaCoinPrice, `The profit you would get for flipping this item right now. Minus ${tax} tax.`, "Profit Metrics", false, "", icon);
@@ -444,7 +460,7 @@ export class TrendMetric extends Metric{
         }
       }
     }
-    
+
     /**
      * Returns a value indicating its importance compared to other items, for the default sorting.
      * @returns The trend value of the item.
@@ -533,8 +549,8 @@ export function timestampToEvents(unixTimestamp: number, events: { [date: string
 
 /**
  * Replaces the newlines of a string with HTML breaks.
- * @param text 
- * @returns 
+ * @param text
+ * @returns
  */
 export function newLineToBreaks(text: string) : any {
   return text.split("\n").map((item, key) => {
@@ -549,7 +565,7 @@ export class CustomHistoryData{
     data: {[name: string]: any} = {};
     time: number;
     events: string[];
-  
+
     constructor(time: number, events: string[]){
       this.time = time;
       this.events = events;
@@ -632,7 +648,7 @@ export class CustomTimeGraph{
           x_values.push(this.data[i].time);
           y_values.push(this.data[i].data[name]);
         }
-        
+
         var trend = linearRegressionLeastSquares(x_values, y_values);
 
         for(var i = 0; i < this.data.length; i++){
