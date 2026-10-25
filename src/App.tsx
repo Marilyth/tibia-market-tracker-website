@@ -32,7 +32,7 @@ const App: React.FC = () => {
    * Fetches and sets the meta information for each world.
    */
   async function getTibiaDataWorldDataAsync(){
-    var worlds = await fetch(`https://api.tibiadata.com/v4/worlds`).then(async response => {
+    var worlds = await fetch(`https://api.tibiadata.com/v5/worlds`).then(async response => {
       if(response.status != 200){
           var errorMessage = `${response.statusText}. ${await response.text()}`;
           throw new Error(errorMessage);
